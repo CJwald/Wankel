@@ -1,5 +1,5 @@
-project "Core"
-   kind "StaticLib"
+project "Wankel"
+   kind "SharedLib"
    language "C++"
    cppdialect "C++20"
    targetdir "Binaries/%{cfg.buildcfg}"
@@ -16,8 +16,11 @@ project "Core"
    objdir ("../Binaries/Intermediates/" .. OutputDir .. "/%{prj.name}")
 
    filter "system:windows"
-       systemversion "latest"
-       defines { }
+        systemversion "latest"
+        defines 
+        { 
+            "WK_PLATFORM_WINDOWS"
+        }
 
    filter "configurations:Debug"
        defines { "DEBUG" }

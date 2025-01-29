@@ -1,4 +1,4 @@
-project "App"
+project "Sandbox"
    kind "ConsoleApp"
    language "C++"
    cppdialect "C++20"
@@ -11,13 +11,13 @@ project "App"
    {
       "Source",
 
-	  -- Include Core
-	  "../Core/Source"
+	  -- Include Wankel
+	  "../Wankel/Source"
    }
 
    links
    {
-      "Core"
+      "Wankel"
    }
 
    targetdir ("../Binaries/" .. OutputDir .. "/%{prj.name}")

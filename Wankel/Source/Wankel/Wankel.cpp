@@ -1,8 +1,8 @@
-#include "Core.h"
+#include "Wankel.h"
 
 #include <iostream>
 
-namespace Core {
+namespace Wankel {
 
 	void PrintHelloWorld()
 	{
