@@ -1,10 +1,10 @@
 #include "Input.h"
 
-#include "Walnut/Application.h"
+#include "../Core/Application.h"
 
 #include <GLFW/glfw3.h>
 
-namespace Walnut {
+namespace Wankel {
 
 	bool Input::IsKeyDown(KeyCode keycode)
 	{
