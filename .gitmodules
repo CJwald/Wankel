@@ -1,5 +1,5 @@
-[submodule "Walnut/vendor/imgui/src"]
-	path = Walnut/vendor/imgui/src
+[submodule "vendor/imgui/src"]
+	path = vendor/imgui/src
 	url = https://github.com/ocornut/imgui
 	branch = docking
 [submodule "vendor/imgui"]
