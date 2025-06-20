@@ -12,7 +12,13 @@ project "Wankel-App"
       "Source",
 
 	  -- Include Wankel
-	  "../Wankel/Source"
+	  "../Wankel/Source",
+      
+      "../vendor/imgui",
+      "../vendor/glfw/include",
+
+      "%{IncludeDir.VulkanSDK}",
+      "%{IncludeDir.glm}",
    }
 
    links

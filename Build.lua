@@ -14,4 +14,5 @@ group "Wankel"
 	include "Wankel/Build-Wankel.lua"
 group ""
 
+include "WankelExternal.lua"
 include "Wankel-App/Build-Wankel-App.lua"

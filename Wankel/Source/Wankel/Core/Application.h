@@ -14,11 +14,11 @@ void check_vk_result(VkResult err);
 
 struct GLFWwindow;
 
-namespace Walnut {
+namespace Wankel {
 
 	struct ApplicationSpecification
 	{
-		std::string Name = "Walnut App";
+		std::string Name = "Wankel App";
 		uint32_t Width = 1600;
 		uint32_t Height = 900;
 	};

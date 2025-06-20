@@ -2,16 +2,16 @@
 
 #ifdef WL_PLATFORM_WINDOWS
 
-extern Walnut::Application* Walnut::CreateApplication(int argc, char** argv);
+extern Wankel::Application* Wankel::CreateApplication(int argc, char** argv);
 bool g_ApplicationRunning = true;
 
-namespace Walnut {
+namespace Wankel {
 
 	int Main(int argc, char** argv)
 	{
 		while (g_ApplicationRunning)
 		{
-			Walnut::Application* app = Walnut::CreateApplication(argc, argv);
+			Wankel::Application* app = Wankel::CreateApplication(argc, argv);
 			app->Run();
 			delete app;
 		}
@@ -27,14 +27,14 @@ namespace Walnut {
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
 {
-	return Walnut::Main(__argc, __argv);
+	return Wankel::Main(__argc, __argv);
 }
 
 #else
 
 int main(int argc, char** argv)
 {
-	return Walnut::Main(argc, argv);
+	return Wankel::Main(argc, argv);
 }
 
 #endif // WL_DIST

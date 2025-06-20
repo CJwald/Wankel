@@ -9,7 +9,22 @@ project "Wankel"
 
    includedirs
    {
-      "Source"
+      "Source",
+
+      "../vendor/imgui",
+      "../vendor/glfw/include",
+      "../vendor/stb_image",
+
+      "%{IncludeDir.VulkanSDK}",
+      "%{IncludeDir.glm}",
+   }
+
+   links
+   {
+       "ImGui",
+       "GLFW",
+
+       "%{Library.Vulkan}",
    }
 
    targetdir ("../Binaries/" .. OutputDir .. "/%{prj.name}")

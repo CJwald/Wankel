@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Walnut {
+namespace Wankel {
 
 	class Layer
 	{

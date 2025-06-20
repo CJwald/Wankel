@@ -55,7 +55,7 @@ static std::vector<std::vector<std::function<void()>>> s_ResourceFreeQueue;
 // and is always guaranteed to increase (eg. 0, 1, 2, 0, 1, 2)
 static uint32_t s_CurrentFrameIndex = 0;
 
-static Walnut::Application* s_Instance = nullptr;
+static Wankel::Application* s_Instance = nullptr;
 
 void check_vk_result(VkResult err)
 {
@@ -382,7 +382,7 @@ static void glfw_error_callback(int error, const char* description)
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-namespace Walnut {
+namespace Wankel {
 
 	Application::Application(const ApplicationSpecification& specification)
 		: m_Specification(specification)
