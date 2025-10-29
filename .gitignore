@@ -1,0 +1,37 @@
+# CMake build artefacts
+build/
+bin/
+lib/
+cmake-build-*/
+
+# IDE / editor files
+*.swp
+*.swo
+*.sublime-*
+.vscode/
+.idea/
+*.user
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# CMake cache
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json   # (optional – keep if you use clangd)
+
+# Testing / temporary
+*.log
+*.tmp
