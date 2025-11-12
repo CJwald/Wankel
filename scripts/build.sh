@@ -1,30 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# -------------------------------------------------
-# Configurable variables
-# -------------------------------------------------
+# ---- CONFIG ----
 BUILD_DIR="${BUILD_DIR:-$(pwd)/build}"
 BUILD_TYPE="${BUILD_TYPE:-Debug}"
-NUM_JOBS="${NUM_JOBS:-$(nproc)}"
+JOBS="${JOBS:-$(nproc)}"
 
-# -------------------------------------------------
-# Helper
-# -------------------------------------------------
-print() { echo -e "\033[1;34m==>\033[0m $*\n"; }
+# ---- Go to the directory that contains this script (project root) ----
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# -------------------------------------------------
-# Create / enter build directory
-# -------------------------------------------------
+echo "Project root : $PROJECT_ROOT"
+echo "Build dir    : $BUILD_DIR"
+echo "Build type   : $BUILD_TYPE"
+
+# ---- Create / enter build dir ----
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-print "Configuring CMake (type: $BUILD_TYPE) ..."
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      ..
+# ---- Configure (point CMake at the project root) ----
+cmake "$PROJECT_ROOT" \
+      -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-print "Building (jobs: $NUM_JOBS) ..."
-cmake --build . --config $BUILD_TYPE -j$NUM_JOBS
+# ---- Build ----
+cmake --build . --config "$BUILD_TYPE" -j"$JOBS"
 
-print "Build finished! Binaries are in $BUILD_DIR/bin"
+echo "Build complete! Binaries are in $BUILD_DIR/bin"
