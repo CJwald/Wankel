@@ -12,7 +12,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # "engine" = name of the build folder CMake creates inside sandbox/build/
 add_subdirectory(.. Wankel)
 
-add_executable(Sandbox main.cpp)
+add_executable(Sandbox SandboxApp.cpp)
 
 # Link against the Wankel library that was just built
 target_link_libraries(Sandbox PRIVATE Wankel)
