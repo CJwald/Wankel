@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(WankelEngine LANGUAGES CXX)
+project(WankelEngine LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,7 +17,7 @@ target_include_directories(Wankel PUBLIC
 
 target_link_libraries(Wankel PUBLIC
     SDL3::SDL3
-    glad
+    glad::glad
     glm::glm
     spdlog::spdlog
 )
