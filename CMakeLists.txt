@@ -20,5 +20,6 @@ target_link_libraries(Wankel PUBLIC
     glad::glad
     glm::glm
     spdlog::spdlog
+    glfw
 )
 

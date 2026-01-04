@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine.h"
+#include "Window.h"
 
 namespace Wankel {
 	class Application {
@@ -10,6 +11,9 @@ namespace Wankel {
 		virtual ~Application();
 	
 		void Run();
+	private:
+		std::unique_ptr<Window> m_Window;
+		bool m_Running = true;
 	};
 
 	// To be defined in client

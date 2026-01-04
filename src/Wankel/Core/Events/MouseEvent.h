@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Wankel/Events/Event.h"
+#include "Wankel/Core/Events/Event.h"
 #include "Wankel/Core/MouseCodes.h"
 
 namespace Wankel {

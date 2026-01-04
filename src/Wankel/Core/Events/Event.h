@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Wankel/Engine.h"
+#include "Wankel/Core/Engine.h"
 #include <string>
 #include <functional>
 
@@ -15,26 +15,26 @@ namespace Wankel {
 		None = 0,
 		WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
 		AppTick, AppUpdate, AppRender,
-		KeyPressed, KeyReleased,
+		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled, 
 		ControllerButtonPressed, ControllerButtonReleased, ControllerStickMoved 
 	};
 
 	enum EventCategory {
 		None = 0, 
-		EventCategoryApplication       = BIT(0);
-		EventCategoryInput             = BIT(1);
-		EventCategoryKeyboard          = BIT(2);
-		EventCategoryMouse             = BIT(3);
-		EventCategoryMouseButton       = BIT(4);
-		EventCategoryController        = BIT(5);
-		EventCategoryControllerButton  = BIT(6);
-		EventCategoryControllerStick   = BIT(7);
+		EventCategoryApplication       = BIT(0),
+		EventCategoryInput             = BIT(1),
+		EventCategoryKeyboard          = BIT(2),
+		EventCategoryMouse             = BIT(3),
+		EventCategoryMouseButton       = BIT(4),
+		EventCategoryController        = BIT(5),
+		EventCategoryControllerButton  = BIT(6),
+		EventCategoryControllerStick   = BIT(7)
 
-	}
+	};
 
-#define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::##type: }\
-                               virtual EventType GetEventType() const override { GetStaticType(); } \
+#define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::type; }\
+                               virtual EventType GetEventType() const override { return GetStaticType(); } \
 							   virtual const char* GetName() const override { return #type; } 
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; } 
@@ -45,13 +45,13 @@ namespace Wankel {
 		virtual EventType GetEventType() const = 0;
 		virtual const char* GetName() const = 0;
 		virtual int GetCategoryFlags() const = 0;
-		virtual std::string ToString() const = 0;
+		virtual std::string ToString() const { return GetName(); }
 
 		inline bool IsInCategory(EventCategory category) {
-			return GetCategoryFlags & category;
+			return GetCategoryFlags() & category;
 		}
 	protected:
-		m_Handled = false;
+		bool Handled = false;
 	};
 
 	class EventDispatcher {
@@ -75,7 +75,7 @@ namespace Wankel {
 	};
 
 	inline std::ostream& operator<<(std::ostream& os, const Event& e) {
-		return os << e.ToString()
+		return os << e.ToString();
 	}
 
 }

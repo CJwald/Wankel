@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Wankel/Events/Event.h"
+#include "Wankel/Core/Events/Event.h"
 
 namespace Wankel {
 	class WindowResizeEvent : public Event {
@@ -11,7 +11,7 @@ namespace Wankel {
 		unsigned int GetHeight() const  { return m_Height; }
 
 		std::string ToString() const override {
-			std::stringstring ss;
+			std::stringstream ss;
 			ss << "WindowResizeEvent: " << m_Width << ", " << m_Height;
 			return ss.str();
 		}
