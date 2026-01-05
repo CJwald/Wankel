@@ -9,11 +9,11 @@
 #endif
 
 namespace Wankel { 
-	Scope<Window> Window::Create(const WindowProps& props) {
-	#ifdef WK_PLATFORM_WINDOWS
-		return CreateScope<WindowsWindow>(props);
-	#else
-		return CreateScope<LinuxWindow>(props);
-	#endif
-	}
+	//Scope<Window> Window::Create(const WindowProps& props) {
+	//#ifdef WK_PLATFORM_WINDOWS
+	//	return CreateScope<WindowsWindow>(props);
+	//#else
+	//	return CreateScope<LinuxWindow>(props);
+	//#endif
+	//}
 }
