@@ -50,6 +50,7 @@ namespace Wankel {
 		inline bool IsInCategory(EventCategory category) {
 			return GetCategoryFlags() & category;
 		}
+		bool IsHandled() const { return Handled; }
 	protected:
 		bool Handled = false;
 	};
