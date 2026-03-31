@@ -4,9 +4,11 @@
 #include <GLFW/glfw3.h> // todo: remove, just used for testing 
 
 namespace Wankel {
+#define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
 
 	Application::Application() {
 		m_Window = std::unique_ptr<Window>(Window::Create());
+		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 	}
 
 	Application::~Application() {
@@ -14,17 +16,22 @@ namespace Wankel {
 	
 	void Application::Run() {
 		while (m_Running) {
-			std::cout << "Before glClearColor" << std::endl;
-			if (glfwGetCurrentContext() == nullptr) {
-			    std::cerr << "ERROR: No GLFW context is current!" << std::endl;
-			    return;  // 🚨 STOP execution
-			}	
-			std::cout << "OpenGL Version: " << (const char*)glGetString(GL_VERSION) << std::endl;
 			glClearColor(0, 1, 0, 0);
 			glClear(GL_COLOR_BUFFER_BIT);
 			m_Window->OnUpdate();
-			std::cout << "End app" << std::endl;
 		}
+	}
+	
+	void Application::OnEvent(Event& e) { 
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+
+		WK_CORE_TRACE("{0}", e.ToString());	
+	}
+
+	bool Application::OnWindowClose(WindowCloseEvent& e) {
+		m_Running = false;
+		return true;
 	}
 }
 
