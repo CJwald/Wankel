@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 #ifdef WK_PLATFORM_WINDOWS
 

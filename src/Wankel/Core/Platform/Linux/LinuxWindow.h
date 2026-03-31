@@ -2,7 +2,7 @@
 
 #include "Wankel/Core/Window.h"
 //#include "Wankel/Renderer/GraphicsContext.h"
-
+#include <glad/gl.h>     // Make sure this is included BEFORE GLFW
 #include <GLFW/glfw3.h>
 
 namespace Wankel {

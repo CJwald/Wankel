@@ -1,5 +1,8 @@
 #include "wkpch.h"
 #include "Wankel/Core/Platform/Linux/LinuxWindow.h"
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 //#include "Wankel/Core/Input.h"
 
@@ -40,6 +43,7 @@ namespace Wankel {
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
+		m_Data.VSync = true;
 
 		WK_CORE_INFO("Creating window {0} ({1}, {2})", props.Title, props.Width, props.Height);
 
@@ -47,13 +51,38 @@ namespace Wankel {
 			//WK_PROFILE_SCOPE("glfwInit");
 			int success = glfwInit();
 			WK_CORE_ASSERT(success, "Could not initialize GLFW!");
+			s_GLFWWindowCount = 1;
 			//glfwSetErrorCallback(GLFWErrorCallback);
+		} else {
+			++s_GLFWWindowCount;
 		}
 
+		// Optional but recommended for modern OpenGL
+    	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
+		if (!m_Window) {
+		    WK_CORE_ERROR("Failed to create GLFW window!");
+		    throw std::runtime_error("GLFW window creation failed");
+		}
+
+
 		glfwMakeContextCurrent(m_Window);
 		//m_Context = GraphicsContext::Create(m_Window);
 		//m_Context->Init();
+
+		// Load GLAD - this must come AFTER MakeContextCurrent
+		if (!gladLoadGL(glfwGetProcAddress)) {
+			WK_CORE_ERROR("Failed to initialize GLAD!");
+		    return;
+		}
+
+		// Print info so you know it worked
+		WK_CORE_INFO("OpenGL Vendor:   {0}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+		WK_CORE_INFO("OpenGL Renderer: {0}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+		WK_CORE_INFO("OpenGL Version:  {0}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
@@ -139,7 +168,8 @@ namespace Wankel {
 		//WK_PROFILE_FUNCTION();
 
 		glfwDestroyWindow(m_Window);
-		--s_GLFWWindowCount;
+		if (--s_GLFWWindowCount == 0)
+    		glfwTerminate();
 
 		if (s_GLFWWindowCount == 0) {
 			glfwTerminate();
@@ -150,18 +180,15 @@ namespace Wankel {
 		//WK_PROFILE_FUNCTION();
 
 		glfwPollEvents();
+		glfwSwapBuffers(m_Window);
 		//m_Context->SwapBuffers();
 	}
 
 	void LinuxWindow::SetVSync(bool enabled) {
 		//WK_PROFILE_FUNCTION();
 
-		//if (enabled)
-		//	glfwSwapInterval(1);
-		//else
-		//	glfwSwapInterval(0);
-
 		m_Data.VSync = enabled;
+		glfwSwapInterval(enabled ? 1 : 0);
 	}
 
 	bool LinuxWindow::IsVSync() const {

@@ -5,21 +5,32 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Add external dependencies first
 add_subdirectory(external)
 
+# Collect all engine sources
 file(GLOB_RECURSE WANKEL_SOURCES "src/Wankel/*.cpp")
+
 add_library(Wankel STATIC ${WANKEL_SOURCES})
 
+# Include directories
 target_include_directories(Wankel PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-target_link_libraries(Wankel PUBLIC
-    SDL3::SDL3
-    glad::glad
-    glm::glm
-    spdlog::spdlog
-    glfw
+# Link dependencies
+target_link_libraries(Wankel 
+	PUBLIC
+	    spdlog::spdlog
+	PRIVATE
+	    SDL3::SDL3
+	    glad::glad
+	    glfw
+	    glm::glm
 )
 
+# Make glad headers available to Wankel (and thus to Sandbox)
+target_include_directories(Wankel PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
+)
