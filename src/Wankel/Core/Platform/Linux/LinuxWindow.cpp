@@ -70,6 +70,10 @@ namespace Wankel {
 
 
 		glfwMakeContextCurrent(m_Window);
+		if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
+		    std::cout << "Failed to initialize GLAD\n";
+		    exit(-1);
+		}
 		//m_Context = GraphicsContext::Create(m_Window);
 		//m_Context->Init();
 
