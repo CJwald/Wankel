@@ -24,11 +24,11 @@ target_link_libraries(Wankel
 	PUBLIC
 	    spdlog::spdlog
 		imgui
+	    glm::glm #TODO: make Private
 	PRIVATE
 	    SDL3::SDL3
 	    glad::glad
 	    glfw
-	    glm::glm
 )
 
 # Make glad headers available to Wankel (and thus to Sandbox)

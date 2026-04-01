@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <glm/glm.hpp>
 
 namespace Wankel {
 
@@ -10,6 +11,7 @@ namespace Wankel {
 	
 	    void Bind() const;
 	    void Unbind() const;
+		void SetMat4(const std::string& name, const glm::mat4& matrix);
 	
 	private:
 	    unsigned int m_RendererID;
