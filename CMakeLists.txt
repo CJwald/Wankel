@@ -25,9 +25,9 @@ target_link_libraries(Wankel
 	    spdlog::spdlog
 		imgui
 	    glm::glm #TODO: make Private
+	    glad::glad #TODO: make Private
 	PRIVATE
 	    SDL3::SDL3
-	    glad::glad
 	    glfw
 )
 
