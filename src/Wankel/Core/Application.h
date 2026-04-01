@@ -7,6 +7,8 @@
 #include <Wankel/Core/Events/ApplicationEvent.h>
 
 namespace Wankel {
+	class ImGuiLayer;
+	
 	class Application {
 
 	public:
@@ -20,14 +22,22 @@ namespace Wankel {
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* layer);
 
+		static Application& Get() { return *s_Instance; }
+		Window& GetWindow() { return *m_Window; }
+
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
 
 		std::unique_ptr<Window> m_Window;
 		bool m_Running = true;
 		LayerStack m_LayerStack;
+		
+		ImGuiLayer* m_ImGuiLayer = nullptr;
+		static Application* s_Instance;
 	};
+
 
 	// To be defined in client
 	Application* CreateApplication();
+
 }

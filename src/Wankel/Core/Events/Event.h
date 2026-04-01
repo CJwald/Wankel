@@ -51,6 +51,7 @@ namespace Wankel {
 			return GetCategoryFlags() & category;
 		}
 		bool IsHandled() const { return Handled; }
+    	void SetHandled(bool handled) { Handled = handled; }
 	protected:
 		bool Handled = false;
 	};

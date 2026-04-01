@@ -1,4 +1,5 @@
-#include <Wankel/Core/Application.h>
+#include "Wankel/Core/Application.h"
+#include "Wankel/Core/ImGui/ImGuiLayer.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h> // todo: remove, just used for testing 
@@ -7,8 +8,13 @@ namespace Wankel {
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
 
 	Application::Application() {
+		s_Instance = this;
+
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
+		
+		m_ImGuiLayer = new ImGuiLayer();
+		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application() {
@@ -16,10 +22,12 @@ namespace Wankel {
 
 	void Application::PushLayer(Layer* layer) {
 		m_LayerStack.PushLayer(layer);
+		layer->OnAttach();
 	}
 	
 	void Application::PushOverlay(Layer* layer) {
 		m_LayerStack.PushOverlay(layer);
+		layer->OnAttach();
 	}
 
 	void Application::Run() {
@@ -29,6 +37,13 @@ namespace Wankel {
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
+			
+			m_ImGuiLayer->Begin();
+
+    		for (Layer* layer : m_LayerStack)
+    		    layer->OnImGuiRender(); // optional but recommended
+
+    		m_ImGuiLayer->End();
 
 			m_Window->OnUpdate();
 		}
@@ -51,6 +66,9 @@ namespace Wankel {
 		m_Running = false;
 		return true;
 	}
+
+	Application* Application::s_Instance = nullptr;
+
 }
 
 

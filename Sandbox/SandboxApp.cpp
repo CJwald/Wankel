@@ -8,8 +8,24 @@ public:
 	}
 
 	void OnUpdate() override {
-		WK_CORE_INFO("ExampleLayer::Update");
 	}
+
+	void OnImGuiRender() override {
+        // Simple ImGui window
+        ImGui::Begin("Test Window");
+
+        ImGui::Text("Hello from ImGui!");
+        ImGui::Text("This means ImGui is working 🎉");
+
+        static float value = 0.0f;
+        ImGui::SliderFloat("Float", &value, 0.0f, 1.0f);
+
+        if (ImGui::Button("Click Me")) {
+            printf("Button clicked!\n");
+        }
+
+        ImGui::End();
+    }
 
 	void OnEvent(Wankel::Event& event) override {
 		WK_CORE_TRACE("{0}", event.ToString());

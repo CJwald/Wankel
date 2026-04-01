@@ -22,11 +22,11 @@
 #include <unordered_map>
 #include <unordered_set>
 
-//#include "Wankel/Core/Base.h"
+#include "Wankel/Core/Base.h"
 
 #include "Wankel/Core/Log.h"
 
-//#include "Wankel/Debug/Instrumentor.h"
+//#include "Wankel/Core/Debug/Instrumentor.h"
 
 #ifdef WK_PLATFORM_WINDOWS
 	#include <Windows.h>

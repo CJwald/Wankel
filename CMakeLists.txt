@@ -23,6 +23,7 @@ target_include_directories(Wankel PUBLIC
 target_link_libraries(Wankel 
 	PUBLIC
 	    spdlog::spdlog
+		imgui
 	PRIVATE
 	    SDL3::SDL3
 	    glad::glad
@@ -34,3 +35,8 @@ target_link_libraries(Wankel
 target_include_directories(Wankel PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
 )
+
+#target_include_directories(Wankel PUBLIC
+#    "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui"
+#)
+
