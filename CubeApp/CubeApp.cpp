@@ -33,7 +33,6 @@ public:
         : Layer("CubeLayer")
     {
         float vertices[] = {
-            // positions
             -0.5f,-0.5f,-0.5f,  0.5f,-0.5f,-0.5f,  0.5f, 0.5f,-0.5f,
              0.5f, 0.5f,-0.5f, -0.5f, 0.5f,-0.5f, -0.5f,-0.5f,-0.5f,
 
@@ -82,25 +81,35 @@ public:
         m_Pitch = 0.0f;
 
         // --------------------
-        // Mouse init (NO JUMP)
+        // Mouse setup
         // --------------------
         GLFWwindow* window = static_cast<GLFWwindow*>(
             Application::Get().GetWindow().GetNativeWindow());
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-        double xpos, ypos;
-        glfwGetCursorPos(window, &xpos, &ypos);
-        m_LastX = xpos;
-        m_LastY = ypos;
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+        glfwSetCursorPos(window, width / 2.0, height / 2.0);
+
+        m_LastX = width / 2.0f;
+        m_LastY = height / 2.0f;
+        m_FirstMouse = true;
     }
 
     void OnUpdate() override
     {
-        float speed = 0.05f;
-
         GLFWwindow* window = static_cast<GLFWwindow*>(
             Application::Get().GetWindow().GetNativeWindow());
+
+        // --------------------
+        // Delta time
+        // --------------------
+        float currentTime = glfwGetTime();
+        float deltaTime = currentTime - m_LastFrame;
+        m_LastFrame = currentTime;
+
+        float speed = 2.5f * deltaTime;
 
         // --------------------
         // Movement
@@ -120,13 +129,20 @@ public:
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
 
+        if (m_FirstMouse)
+        {
+            m_LastX = xpos;
+            m_LastY = ypos;
+            m_FirstMouse = false;
+        }
+
         float xoffset = xpos - m_LastX;
         float yoffset = m_LastY - ypos;
 
         m_LastX = xpos;
         m_LastY = ypos;
 
-        float sensitivity = 0.03f;
+        float sensitivity = 0.002f;
         xoffset *= sensitivity;
         yoffset *= sensitivity;
 
@@ -186,6 +202,9 @@ private:
 
     float m_LastX;
     float m_LastY;
+    bool m_FirstMouse;
+
+    float m_LastFrame = 0.0f;
 };
 
 // --------------------
