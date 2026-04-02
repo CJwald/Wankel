@@ -33,7 +33,6 @@ namespace Wankel {
 
 	void Application::Run() {
 		while (m_Running) {
-			//Input::Update();
 
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -56,7 +55,7 @@ namespace Wankel {
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
 
-		WK_CORE_TRACE("{0}", event.ToString());	
+		//WK_CORE_TRACE("{0}", event.ToString());	
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); ) {
 			(*--it)->OnEvent(event);

@@ -26,6 +26,9 @@ namespace Wankel {
 		// Called by platform layer (DO NOT call manually)
 		static void SetMouseDelta(float dx, float dy);
 
+		// Reset delta at the end of the frame (prevents sticking)
+		static void ResetMouseDelta();
+
 	private:
 		static float s_MouseDeltaX;
 		static float s_MouseDeltaY;

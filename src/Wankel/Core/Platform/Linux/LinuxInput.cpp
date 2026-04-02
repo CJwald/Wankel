@@ -36,20 +36,20 @@ namespace Wankel {
 	// -----------------------------
 	// Mouse delta (EVENT DRIVEN)
 	// -----------------------------
-	float Input::GetMouseDeltaX()
-	{
-		return s_MouseDeltaX;
-	}
-
-	float Input::GetMouseDeltaY()
-	{
-		return s_MouseDeltaY;
-	}
+	float Input::GetMouseDeltaX() { return s_MouseDeltaX; }
+	float Input::GetMouseDeltaY() { return s_MouseDeltaY; }
 
 	void Input::SetMouseDelta(float dx, float dy)
 	{
 		s_MouseDeltaX = dx;
 		s_MouseDeltaY = dy;
+	}
+
+	// Reset every frame after use
+	void Input::ResetMouseDelta()
+	{
+		s_MouseDeltaX = 0.0f;
+		s_MouseDeltaY = 0.0f;
 	}
 
 }

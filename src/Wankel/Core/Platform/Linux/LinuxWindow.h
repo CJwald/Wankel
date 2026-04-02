@@ -30,7 +30,10 @@ namespace Wankel {
 		virtual void Shutdown();
 	private:
 		GLFWwindow* m_Window;
-		//Scope<GraphicsContext> m_Context;
+
+		double m_LastMouseX = 0.0;
+    	double m_LastMouseY = 0.0;
+		bool m_FirstMouse = true;
 
 		struct WindowData {
 			std::string Title;
@@ -38,6 +41,10 @@ namespace Wankel {
 			bool VSync;
 
 			EventCallbackFn EventCallback;
+
+			double LastMouseX = 400.0;   // reasonable starting point
+    		double LastMouseY = 300.0;
+    		bool FirstMouse = true;
 		};
 
 		WindowData m_Data;

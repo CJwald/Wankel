@@ -10,6 +10,7 @@
 #include "Wankel/Core/Events/MouseEvent.h"
 #include "Wankel/Core/Events/KeyEvent.h"
 
+#include "Wankel/Core/Input.h"
 //#include "Wankel/Renderer/Renderer.h"
 
 //#include "Platform/OpenGL/OpenGLContext.h"
@@ -112,33 +113,28 @@ namespace Wankel {
 			data.EventCallback(event);
 		});
 
-		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			switch (action) {
-				case GLFW_PRESS: {
-					KeyPressedEvent event(key, 0);
-					data.EventCallback(event);
-					break;
-				}
-				case GLFW_RELEASE: {
-					KeyReleasedEvent event(key);
-					data.EventCallback(event);
-					break;
-				}
-				case GLFW_REPEAT: {
-					KeyPressedEvent event(key, true);
-					data.EventCallback(event);
-					break;
-				}
-			}
-		});
-
-		glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int keycode) {
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			KeyTypedEvent event(keycode);
-			data.EventCallback(event);
+		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
+		{
+		    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		
+		    if (data.FirstMouse)
+		    {
+		        data.LastMouseX = xPos;
+		        data.LastMouseY = yPos;
+		        data.FirstMouse = false;
+		        return;
+		    }
+		
+		    float deltaX = static_cast<float>(xPos - data.LastMouseX);
+		    float deltaY = static_cast<float>(yPos - data.LastMouseY);
+		
+		    data.LastMouseX = xPos;
+		    data.LastMouseY = yPos;
+		
+		    Wankel::Input::SetMouseDelta(deltaX, -deltaY);
+		
+		    MouseMovedEvent event(deltaX, deltaY);
+		    data.EventCallback(event);
 		});
 
 		glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods) {
@@ -164,22 +160,35 @@ namespace Wankel {
 			MouseScrolledEvent event((float)xOffset, (float)yOffset);
 			data.EventCallback(event);
 		});
-		
 		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
 		{
-		    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		    auto* data = static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+		    if (!data) return;
 		
-		    static double lastX = xPos;
-		    static double lastY = yPos;
+		    static double lastX = 0.0;
+		    static double lastY = 0.0;
+		    static bool firstMouse = true;
 		
-		    float deltaX = (float)(xPos - lastX);
-		    float deltaY = (float)(lastY - yPos);
+		    if (firstMouse)
+		    {
+		        lastX = xPos;
+		        lastY = yPos;
+		        firstMouse = false;
+		        return;
+		    }
+		
+		    float deltaX = static_cast<float>(xPos - lastX);
+		    float deltaY = static_cast<float>(yPos - lastY);
 		
 		    lastX = xPos;
 		    lastY = yPos;
 		
-		    MouseMovedEvent event(deltaX, deltaY); // 🔥 SEND DELTA, NOT POSITION
-		    data.EventCallback(event);
+		    // Update Input system
+		    Wankel::Input::SetMouseDelta(deltaX, -deltaY);   // negative Y for natural look
+		
+		    // Optional: fire event
+		    MouseMovedEvent event(deltaX, deltaY);
+		    data->EventCallback(event);
 		});
 	}
 
