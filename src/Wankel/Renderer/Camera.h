@@ -1,20 +1,38 @@
 #pragma once
+
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace Wankel {
 
-class Camera {
-public:
-    Camera(float fov, float aspect, float nearClip, float farClip);
+	class Camera {
+	public:
+		Camera(float fov, float aspect, float nearClip, float farClip);
 
-    void SetPosition(const glm::vec3& position);
-    const glm::vec3& GetPosition() const;
+		// Position
+		void SetPosition(const glm::vec3& position);
+		const glm::vec3& GetPosition() const;
 
-    glm::mat4 GetViewProjection() const;
+		// Rotation
+		void SetOrientation(const glm::quat& orientation);
+		const glm::quat& GetOrientation() const;
 
-private:
-    glm::mat4 m_Projection;
-    glm::vec3 m_Position = {0.0f, 0.0f, 3.0f};
-};
+		// Movement directions
+		glm::vec3 GetForward() const;
+		glm::vec3 GetRight() const;
+		glm::vec3 GetUp() const;
+
+		// Matrices
+		glm::mat4 GetViewMatrix() const;
+		glm::mat4 GetProjectionMatrix() const;
+
+	private:
+		glm::vec3 m_Position{0.0f, 0.0f, 3.0f};
+		glm::quat m_Orientation{1, 0, 0, 0}; // identity
+
+		float m_FOV;
+		float m_Aspect;
+		float m_Near, m_Far;
+	};
 
 }

@@ -1,5 +1,6 @@
 #include "Wankel/Core/Application.h"
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
+#include "Wankel/Core/Input.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h> // todo: remove, just used for testing 
@@ -32,6 +33,8 @@ namespace Wankel {
 
 	void Application::Run() {
 		while (m_Running) {
+			//Input::Update();
+
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 

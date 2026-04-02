@@ -74,6 +74,11 @@ namespace Wankel {
 		    std::cout << "Failed to initialize GLAD\n";
 		    exit(-1);
 		}
+
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+		if (glfwRawMouseMotionSupported())
+		    glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 		//m_Context = GraphicsContext::Create(m_Window);
 		//m_Context->Init();
 
@@ -159,12 +164,22 @@ namespace Wankel {
 			MouseScrolledEvent event((float)xOffset, (float)yOffset);
 			data.EventCallback(event);
 		});
-
-		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos) {
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			MouseMovedEvent event((float)xPos, (float)yPos);
-			data.EventCallback(event);
+		
+		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
+		{
+		    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		
+		    static double lastX = xPos;
+		    static double lastY = yPos;
+		
+		    float deltaX = (float)(xPos - lastX);
+		    float deltaY = (float)(lastY - yPos);
+		
+		    lastX = xPos;
+		    lastY = yPos;
+		
+		    MouseMovedEvent event(deltaX, deltaY); // 🔥 SEND DELTA, NOT POSITION
+		    data.EventCallback(event);
 		});
 	}
 

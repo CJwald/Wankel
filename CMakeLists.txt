@@ -31,12 +31,11 @@ target_link_libraries(Wankel
 	    glfw
 )
 
+target_compile_definitions(Wankel PUBLIC GLM_ENABLE_EXPERIMENTAL)
+
 # Make glad headers available to Wankel (and thus to Sandbox)
 target_include_directories(Wankel PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
 )
 
-#target_include_directories(Wankel PUBLIC
-#    "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui"
-#)
 
