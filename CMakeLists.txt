@@ -7,6 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Add external dependencies first
 add_subdirectory(external)
+include(cmake/imgui.cmake)
 
 # Collect all engine sources
 file(GLOB_RECURSE WANKEL_SOURCES "src/Wankel/*.cpp")
@@ -37,5 +38,6 @@ target_compile_definitions(Wankel PUBLIC GLM_ENABLE_EXPERIMENTAL)
 target_include_directories(Wankel PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
 )
+
 
 
