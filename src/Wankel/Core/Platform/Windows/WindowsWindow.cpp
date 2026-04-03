@@ -4,16 +4,12 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-//#include "Wankel/Core/Input.h"
-
 #include "Wankel/Core/Events/ApplicationEvent.h"
 #include "Wankel/Core/Events/MouseEvent.h"
 #include "Wankel/Core/Events/KeyEvent.h"
 
 #include "Wankel/Core/Input.h"
-//#include "Wankel/Renderer/Renderer.h"
 
-//#include "Platform/OpenGL/OpenGLContext.h"
 
 namespace Wankel {
 	
@@ -24,20 +20,14 @@ namespace Wankel {
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props) {
-		//WK_PROFILE_FUNCTION();
-
 		Init(props);
 	}
 
 	WindowsWindow::~WindowsWindow() {
-		//WK_PROFILE_FUNCTION();
-
 		Shutdown();
 	}
 
 	void WindowsWindow::Init(const WindowProps& props) {
-		//WK_PROFILE_FUNCTION();
-
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
@@ -46,11 +36,9 @@ namespace Wankel {
 		WK_CORE_INFO("Creating window {0} ({1}, {2})", props.Title, props.Width, props.Height);
 
 		if (s_GLFWWindowCount == 0) {
-			//WK_PROFILE_SCOPE("glfwInit");
 			int success = glfwInit();
 			WK_CORE_ASSERT(success, "Could not initialize GLFW!");
 			s_GLFWWindowCount = 1;
-			//glfwSetErrorCallback(GLFWErrorCallback);
 		} else {
 			++s_GLFWWindowCount;
 		}
@@ -77,8 +65,6 @@ namespace Wankel {
 
 		if (glfwRawMouseMotionSupported())
 		    glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-		//m_Context = GraphicsContext::Create(m_Window);
-		//m_Context->Init();
 
 		// Load GLAD - this must come AFTER MakeContextCurrent
 		if (!gladLoadGL(glfwGetProcAddress)) {
@@ -151,8 +137,6 @@ namespace Wankel {
 		        return;
 		    }
 		
-		    //float deltaX = static_cast<float>(xPos - lastX);
-		    //float deltaY = static_cast<float>(yPos - lastY);
 			float deltaX = static_cast<float>(xPos - lastX);
 			float deltaY = static_cast<float>(yPos - lastY);
 			
@@ -165,12 +149,6 @@ namespace Wankel {
 		
 		    lastX = xPos;
 		    lastY = yPos;
-			//if (std::abs(deltaX) > 500 || std::abs(deltaY) > 500)
-			//{
-			//    lastX = xPos;
-			//    lastY = yPos;
-			//    return; // 🚨 discard bad frame
-			//}
 		
 		    // Update Input system
 		    Wankel::Input::SetMouseDelta(deltaX, -deltaY);   // negative Y for natural look
@@ -182,8 +160,6 @@ namespace Wankel {
 	}
 
 	void WindowsWindow::Shutdown() {
-		//WK_PROFILE_FUNCTION();
-
 		glfwDestroyWindow(m_Window);
 		if (--s_GLFWWindowCount == 0)
     		glfwTerminate();
@@ -194,16 +170,11 @@ namespace Wankel {
 	}
 
 	void WindowsWindow::OnUpdate() {
-		//WK_PROFILE_FUNCTION();
-
 		glfwPollEvents();
 		glfwSwapBuffers(m_Window);
-		//m_Context->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled) {
-		//WK_PROFILE_FUNCTION();
-
 		m_Data.VSync = enabled;
 		glfwSwapInterval(enabled ? 1 : 0);
 	}

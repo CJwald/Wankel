@@ -13,8 +13,8 @@ namespace Wankel {
 		uint32_t Height;
 
 		WindowProps(const std::string& title = "WANKEL", 
-		             uint32_t width = 1600,
-		             uint32_t height = 900)
+		             uint32_t width = 800,
+		             uint32_t height = 450)
 			: Title(title), Width(width), Height(height) {
 		}
 	};

@@ -5,8 +5,7 @@
 
 namespace Wankel {
 
-	static unsigned int CompileShader(unsigned int type, const std::string& src)
-	{
+	static unsigned int CompileShader(unsigned int type, const std::string& src) {
 	    unsigned int id = glCreateShader(type);
 	    const char* source = src.c_str();
 	    glShaderSource(id, 1, &source, nullptr);
@@ -14,8 +13,7 @@ namespace Wankel {
 	
 	    int result;
 	    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-	    if (!result)
-	    {
+	    if (!result) {
 	        char info[512];
 	        glGetShaderInfoLog(id, 512, nullptr, info);
 	        std::cout << "Shader compile error:\n" << info << std::endl;
@@ -24,8 +22,7 @@ namespace Wankel {
 	    return id;
 	}
 	
-	Shader::Shader(const std::string& vertexSrc, const std::string& fragmentSrc)
-	{
+	Shader::Shader(const std::string& vertexSrc, const std::string& fragmentSrc) {
 	    unsigned int program = glCreateProgram();
 	
 	    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
@@ -42,16 +39,14 @@ namespace Wankel {
 	    m_RendererID = program;
 	}
 	
-	Shader::~Shader()
-	{
+	Shader::~Shader() {
 	    glDeleteProgram(m_RendererID);
 	}
 	
 	void Shader::Bind() const { glUseProgram(m_RendererID); }
 	void Shader::Unbind() const { glUseProgram(0); }
 
-	void Shader::SetMat4(const std::string& name, const glm::mat4& matrix)
-	{
+	void Shader::SetMat4(const std::string& name, const glm::mat4& matrix) {
 	    int loc = glGetUniformLocation(m_RendererID, name.c_str());
 	    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(matrix));
 	}

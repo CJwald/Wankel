@@ -2,12 +2,12 @@
 
 namespace Wankel {
 
-class VertexArray;
-
-class Renderer {
-public:
-    static void Clear();
-	static void Draw(VertexArray* vao, int count);
-};
+	class VertexArray;
+	
+	class Renderer {
+	public:
+	    static void Clear();
+		static void Draw(VertexArray* vao, int count);
+	};
 
 }

@@ -9,8 +9,7 @@
 #endif
 
 namespace Wankel { 
-	Scope<Window> Window::Create(const WindowProps& props)
-	{
+	Scope<Window> Window::Create(const WindowProps& props) {
 	#ifdef WK_PLATFORM_WINDOWS
 	    return CreateScope<WindowsWindow>(props);
 	#elif defined(WK_PLATFORM_LINUX)
