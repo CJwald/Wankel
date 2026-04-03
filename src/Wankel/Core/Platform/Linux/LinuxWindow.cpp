@@ -113,30 +113,6 @@ namespace Wankel {
 			data.EventCallback(event);
 		});
 
-		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
-		{
-		    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-		
-		    if (data.FirstMouse)
-		    {
-		        data.LastMouseX = xPos;
-		        data.LastMouseY = yPos;
-		        data.FirstMouse = false;
-		        return;
-		    }
-		
-		    float deltaX = static_cast<float>(xPos - data.LastMouseX);
-		    float deltaY = static_cast<float>(yPos - data.LastMouseY);
-		
-		    data.LastMouseX = xPos;
-		    data.LastMouseY = yPos;
-		
-		    Wankel::Input::SetMouseDelta(deltaX, -deltaY);
-		
-		    MouseMovedEvent event(deltaX, deltaY);
-		    data.EventCallback(event);
-		});
-
 		glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods) {
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
@@ -160,6 +136,7 @@ namespace Wankel {
 			MouseScrolledEvent event((float)xOffset, (float)yOffset);
 			data.EventCallback(event);
 		});
+
 		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
 		{
 		    auto* data = static_cast<WindowData*>(glfwGetWindowUserPointer(window));

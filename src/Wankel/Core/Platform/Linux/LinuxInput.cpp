@@ -41,8 +41,8 @@ namespace Wankel {
 
 	void Input::SetMouseDelta(float dx, float dy)
 	{
-		s_MouseDeltaX = dx;
-		s_MouseDeltaY = dy;
+		s_MouseDeltaX += dx;
+		s_MouseDeltaY += dy;
 	}
 
 	// Reset every frame after use
