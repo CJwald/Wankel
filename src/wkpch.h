@@ -28,6 +28,6 @@
 
 //#include "Wankel/Core/Debug/Instrumentor.h"
 
-#ifdef WK_PLATFORM_WINDOWS
-	#include <Windows.h>
-#endif
+//#ifdef WK_PLATFORM_WINDOWS
+//#include <Windows.h>
+//#endif

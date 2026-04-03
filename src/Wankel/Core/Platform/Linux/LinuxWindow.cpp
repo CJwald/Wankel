@@ -19,9 +19,6 @@ namespace Wankel {
 	
 	static uint8_t s_GLFWWindowCount = 0;
 
-	Window* Window::Create(const WindowProps& props) {
-		return new LinuxWindow(props);
-	}
 	static void GLFWErrorCallback(int error, const char* description) {
 		WK_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
@@ -154,11 +151,26 @@ namespace Wankel {
 		        return;
 		    }
 		
-		    float deltaX = static_cast<float>(xPos - lastX);
-		    float deltaY = static_cast<float>(yPos - lastY);
+		    //float deltaX = static_cast<float>(xPos - lastX);
+		    //float deltaY = static_cast<float>(yPos - lastY);
+			float deltaX = static_cast<float>(xPos - lastX);
+			float deltaY = static_cast<float>(yPos - lastY);
+			
+			// 🚨 clamp insane jumps
+			const float MAX_DELTA = 100.0f;
+			
+			deltaX = std::clamp(deltaX, -MAX_DELTA, MAX_DELTA);
+			deltaY = std::clamp(deltaY, -MAX_DELTA, MAX_DELTA);
+
 		
 		    lastX = xPos;
 		    lastY = yPos;
+			//if (std::abs(deltaX) > 500 || std::abs(deltaY) > 500)
+			//{
+			//    lastX = xPos;
+			//    lastY = yPos;
+			//    return; // 🚨 discard bad frame
+			//}
 		
 		    // Update Input system
 		    Wankel::Input::SetMouseDelta(deltaX, -deltaY);   // negative Y for natural look

@@ -10,9 +10,22 @@ add_subdirectory(external)
 include(cmake/imgui.cmake)
 
 # Collect all engine sources
-file(GLOB_RECURSE WANKEL_SOURCES "src/Wankel/*.cpp")
+#file(GLOB_RECURSE WANKEL_SOURCES "src/Wankel/*.cpp")
+# All sources
+file(GLOB_RECURSE WANKEL_SOURCES
+    "src/Wankel/*.cpp"
+)
+
+# Remove the WRONG platform
+if (WIN32)
+    list(FILTER WANKEL_SOURCES EXCLUDE REGEX "Platform/Linux/")
+elseif(UNIX)
+    list(FILTER WANKEL_SOURCES EXCLUDE REGEX "Platform/Windows/")
+endif()
 
 add_library(Wankel STATIC ${WANKEL_SOURCES})
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${WANKEL_SOURCES})
 
 # Include directories
 target_include_directories(Wankel PUBLIC
