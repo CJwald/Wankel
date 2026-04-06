@@ -12,14 +12,11 @@ using namespace Wankel;
 
 class CubeLayer : public Layer {
 public:
-	CubeLayer()
-		: Layer("Cube"), m_Controller(1280.0f / 720.0f)
-	{
+	CubeLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 		glEnable(GL_DEPTH_TEST);
 
 		// Lock cursor (one-time setup)
-		GLFWwindow* window = static_cast<GLFWwindow*>(
-			Application::Get().GetWindow().GetNativeWindow());
+		GLFWwindow* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -64,8 +61,7 @@ public:
 			uniform mat4 view;
 			uniform mat4 projection;
 
-			void main()
-			{
+			void main() {
 				gl_Position = projection * view * model * vec4(aPos, 1.0);
 			}
 		)";
@@ -74,8 +70,7 @@ public:
 			#version 330 core
 			out vec4 FragColor;
 
-			void main()
-			{
+			void main() {
 				FragColor = vec4(0.6, 1.0, 0.0, 1.0);
 			}
 		)";
@@ -86,8 +81,8 @@ public:
 		m_Controller.GetCamera().SetPosition({0.0f, 0.0f, 3.0f});
 	}
 
-	void OnUpdate() override
-	{
+
+	void OnUpdate() override {
 		float time = glfwGetTime();
 		float deltaTime = time - m_LastFrame;
 		m_LastFrame = time;
@@ -119,16 +114,16 @@ private:
 	float m_LastFrame = 0.0f;
 };
 
+
 class CubeApp : public Application {
 public:
-	CubeApp()
-	{
+	CubeApp() {
 		PushLayer(new CubeLayer());
 	}
 };
 
-Application* Wankel::CreateApplication()
-{
+
+Application* Wankel::CreateApplication() {
 	return new CubeApp();
 }
 
