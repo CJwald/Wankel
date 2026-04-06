@@ -62,7 +62,8 @@ namespace Wankel {
 		    exit(-1);
 		}
 
-		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		//glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 		if (glfwRawMouseMotionSupported())
 		    glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -129,9 +130,6 @@ namespace Wankel {
 		    auto* data = static_cast<WindowData*>(glfwGetWindowUserPointer(window));
 		    if (!data) return;
 		
-		    //static double lastX = 0.0;
-		    //static double lastY = 0.0;
-		    //static bool firstMouse = true;
 			if (data->FirstMouse) {
 			    data->LastMouseX = xPos;
 			    data->LastMouseY = yPos;
@@ -139,32 +137,19 @@ namespace Wankel {
 			    return;
 			}
 			
-			float deltaX = static_cast<float>(xPos - data->LastMouseX);
-			float deltaY = static_cast<float>(yPos - data->LastMouseY);
+			float prevX = data->LastMouseX;
+			float prevY = data->LastMouseY;
+			float deltaX = static_cast<float>(xPos - data->LastMouseX) * 0.002f;
+			float deltaY = static_cast<float>(yPos - data->LastMouseY) * 0.002f;
 			
 			data->LastMouseX = xPos;
 			data->LastMouseY = yPos;
 		
-		    //if (firstMouse) {
-		    //    lastX = xPos;
-		    //    lastY = yPos;
-		    //    firstMouse = false;
-		    //    return;
-		    //}
-		
-			//WK_CLIENT_TRACE("Mouse Input: {0:.3f}, yPos={1:.3f}, lastX={2:.3f}, lastY={3:.3f}", xPos, yPos, lastX, lastY);
-			//float deltaX = static_cast<float>(xPos - lastX);
-			//float deltaY = static_cast<float>(yPos - lastY);
-			
-			// 🚨 clamp insane jumps
-			const float MAX_DELTA = 100.0f;
-			
-			//deltaX = std::clamp(deltaX, -MAX_DELTA, MAX_DELTA);
-			//deltaY = std::clamp(deltaY, -MAX_DELTA, MAX_DELTA);
-		
-		    //lastX = xPos;
-		    //lastY = yPos;
-		
+			WK_CLIENT_TRACE(
+			    "x={0:.3f}, y={1:.3f}, prevX={2:.3f}, prevY={3:.3f}, dX={4:.3f}, dY={5:.3f}",
+			    xPos, yPos, prevX, prevY, deltaX, deltaY
+			);
+
 		    // Update Input system
 		    Wankel::Input::SetMouseDelta(deltaX, -deltaY);   // negative Y for natural look
 		
@@ -187,7 +172,7 @@ namespace Wankel {
 
 	//
 	void LinuxWindow::OnUpdate() {
-		glfwPollEvents();
+		//glfwPollEvents();
 		glfwSwapBuffers(m_Window);
 	}
 

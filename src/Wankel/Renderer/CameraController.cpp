@@ -28,8 +28,8 @@ namespace Wankel {
 	    if (Input::IsKeyPressed(Key::S)) position -= forward * velocity;
 	    if (Input::IsKeyPressed(Key::D)) position += right * velocity;
 	    if (Input::IsKeyPressed(Key::A)) position -= right * velocity;
-	    if (Input::IsKeyPressed(Key::E)) position += up * velocity;
-	    if (Input::IsKeyPressed(Key::Q)) position -= up * velocity;
+	    if (Input::IsKeyPressed(Key::Space)) position += up * velocity;
+	    if (Input::IsKeyPressed(Key::LeftControl)) position -= up * velocity;
 
 	    // ========================
 	    // Mouse look
@@ -38,10 +38,7 @@ namespace Wankel {
 	    float dy = Input::GetMouseDeltaY();
 
 	    if (dx != 0.0f || dy != 0.0f) {
-	        WK_CLIENT_INFO("Mouse Delta this frame: dx={0:.3f}, dy={1:.3f}", dx, dy);
-	    }
-
-	    if (dx != 0.0f || dy != 0.0f) {
+	        //WK_CLIENT_INFO("Mouse Delta this frame: dx={0:.3f}, dy={1:.3f}", dx, dy);
 
 	        // --- YAW (world up, always stable) ---
 	        glm::quat yaw = glm::angleAxis(
@@ -68,12 +65,12 @@ namespace Wankel {
 	    // ========================
 	    glm::vec3 currentForward = m_Orientation * glm::vec3(0, 0, -1);
 
-	    if (Input::IsKeyPressed(Key::Z))
+	    if (Input::IsKeyPressed(Key::E))
 	        m_Orientation = glm::normalize(
 	            glm::angleAxis(m_RollSpeed * dt, currentForward) * m_Orientation
 	        );
 
-	    if (Input::IsKeyPressed(Key::C))
+	    if (Input::IsKeyPressed(Key::Q))
 	        m_Orientation = glm::normalize(
 	            glm::angleAxis(-m_RollSpeed * dt, currentForward) * m_Orientation
 	        );
