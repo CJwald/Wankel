@@ -10,9 +10,9 @@
 
 using namespace Wankel;
 
-class CubeLayer : public Layer {
+class SandboxLayer : public Layer {
 public:
-	CubeLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
+	SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 		glEnable(GL_DEPTH_TEST);
 
 		// Lock cursor (one-time setup)
@@ -115,16 +115,16 @@ private:
 };
 
 
-class CubeApp : public Application {
+class SandboxApp : public Application {
 public:
-	CubeApp() {
-		PushLayer(new CubeLayer());
+	SandboxApp() {
+		PushLayer(new SandboxLayer());
 	}
 };
 
 
 Application* Wankel::CreateApplication() {
-	return new CubeApp();
+	return new SandboxApp();
 }
 
 

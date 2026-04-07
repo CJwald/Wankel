@@ -11,6 +11,6 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 REM ---- Build (parallel) ----
 cmake --build . --config Debug -- /m
 
-echo Done. Run: build\bin\Debug\Cube.exe
+echo Done. Run: build\bin\Debug\Sandbox.exe
 
 endlocal
