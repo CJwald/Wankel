@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 ./scripts/build.sh
-cd SandboxApp
+cd Sandbox
 ./build.sh
 ./run.sh
