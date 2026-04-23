@@ -40,6 +40,7 @@ target_link_libraries(Wankel
 		imgui
 	    glm::glm #TODO: make Private
 	    glad::glad #TODO: make Private
+		entt
 	PRIVATE
 	    SDL3::SDL3
 	    glfw
@@ -50,6 +51,7 @@ target_compile_definitions(Wankel PUBLIC GLM_ENABLE_EXPERIMENTAL)
 # Make glad headers available to Wankel (and thus to Sandbox)
 target_include_directories(Wankel PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
+	"${CMAKE_CURRENT_SOURCE_DIR}/external/entt/src"
 )
 
 

@@ -3,26 +3,39 @@
 #include <Wankel/Renderer/Shader.h>
 #include <Wankel/Renderer/CameraController.h>
 
+// ECS
+#include <Wankel/ECS/Scene.h>
+#include <Wankel/ECS/Components.h>
+
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 using namespace Wankel;
 
 class SandboxLayer : public Layer {
 public:
-	SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
+	SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f)
+	{
 		glEnable(GL_DEPTH_TEST);
 
-		// Lock cursor (one-time setup)
+		// Lock cursor
 		GLFWwindow* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-		// Cube vertices
+		// -----------------------------
+		// FIX: viewport (4K / HiDPI fix)
+		// -----------------------------
+		int fbWidth, fbHeight;
+		glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+		glViewport(0, 0, fbWidth, fbHeight);
+
+		// -----------------------------
+		// Cube geometry
+		// -----------------------------
 		float vertices[] = {
-			// positions
 			-0.5f,-0.5f,-0.5f,  0.5f,-0.5f,-0.5f,  0.5f, 0.5f,-0.5f,
 			 0.5f, 0.5f,-0.5f, -0.5f, 0.5f,-0.5f, -0.5f,-0.5f,-0.5f,
 
@@ -52,7 +65,9 @@ public:
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 		glEnableVertexAttribArray(0);
 
-		// Inline shaders (no file headaches)
+		// -----------------------------
+		// Shader
+		// -----------------------------
 		const std::string vertexSrc = R"(
 			#version 330 core
 			layout(location = 0) in vec3 aPos;
@@ -77,32 +92,62 @@ public:
 
 		m_Shader = new Shader(vertexSrc, fragmentSrc);
 
-		// Start camera slightly back so cube is visible
+		// -----------------------------
+		// Camera
+		// -----------------------------
 		m_Controller.GetCamera().SetPosition({0.0f, 0.0f, 3.0f});
+
+		// -----------------------------
+		// ECS: create cube entity
+		// -----------------------------
+		auto cube = m_Scene.CreateEntity();
+
+		auto& transform = cube.AddComponent<TransformComponent>();
+		transform.Position = {0.0f, 0.0f, 0.0f};
+		transform.Scale = {1.0f, 1.0f, 1.0f};
 	}
 
-
-	void OnUpdate() override {
+	void OnUpdate() override
+	{
 		float time = glfwGetTime();
 		float deltaTime = time - m_LastFrame;
 		m_LastFrame = time;
 
 		m_Controller.OnUpdate(deltaTime);
 
+		// -----------------------------
+		// CLEAR
+		// -----------------------------
 		glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		auto& cam = m_Controller.GetCamera();
 
-		glm::mat4 model = glm::mat4(1.0f);
-
 		m_Shader->Bind();
-		m_Shader->SetMat4("model", model);
 		m_Shader->SetMat4("view", cam.GetViewMatrix());
 		m_Shader->SetMat4("projection", cam.GetProjectionMatrix());
 
 		glBindVertexArray(m_VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// -----------------------------
+		// ECS RENDER LOOP
+		// -----------------------------
+		auto& registry = m_Scene.Registry();
+
+		auto view = registry.view<TransformComponent>();
+
+		for (auto entity : view)
+		{
+			auto& transform = view.get<TransformComponent>(entity);
+
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::translate(model, transform.Position);
+			model = glm::scale(model, transform.Scale);
+
+			m_Shader->SetMat4("model", model);
+
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
 	}
 
 private:
@@ -111,9 +156,10 @@ private:
 
 	CameraController m_Controller;
 
+	Scene m_Scene;
+
 	float m_LastFrame = 0.0f;
 };
-
 
 class SandboxApp : public Application {
 public:
@@ -122,11 +168,8 @@ public:
 	}
 };
 
-
 Application* Wankel::CreateApplication() {
 	return new SandboxApp();
 }
 
-
 #include <Wankel/Core/EntryPoint.h>
-

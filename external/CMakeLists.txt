@@ -13,6 +13,7 @@ add_subdirectory(glad EXCLUDE_FROM_ALL)
 add_subdirectory(glm EXCLUDE_FROM_ALL)
 add_subdirectory(spdlog EXCLUDE_FROM_ALL)
 add_subdirectory(glfw EXCLUDE_FROM_ALL)
+add_subdirectory(entt)
 
 if(NOT TARGET SDL3::SDL3)
     message(FATAL_ERROR "SDL3::SDL3 missing!")
