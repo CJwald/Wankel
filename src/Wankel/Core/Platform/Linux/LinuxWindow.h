@@ -28,12 +28,13 @@ namespace Wankel {
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();
+
 	private:
 		GLFWwindow* m_Window;
 
-		double m_LastMouseX = 0.0;
-    	double m_LastMouseY = 0.0;
-		bool m_FirstMouse = true;
+		double m_LastMouseX = 0.0; // TODO: Remove? Set in WindowData
+    	double m_LastMouseY = 0.0; // TODO: Remove? Set in WindowData
+		bool m_FirstMouse = true;  // TODO: Remove? Set in WindowData
 
 		struct WindowData {
 			std::string Title;

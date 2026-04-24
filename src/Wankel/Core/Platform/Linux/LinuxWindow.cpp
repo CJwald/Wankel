@@ -58,12 +58,14 @@ namespace Wankel {
 
 		glfwMakeContextCurrent(m_Window);
 		if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
-		    std::cout << "Failed to initialize GLAD\n";
-		    exit(-1);
+		    //std::cout << "Failed to initialize GLAD\n";
+		    //exit(-1);
+		    WK_CORE_ERROR("Failed to initialize GLAD");
+		    throw std::runtime_error("GLFW initialization failed");
 		}
 
-		//glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		//glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 		if (glfwRawMouseMotionSupported())
 		    glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -83,7 +85,7 @@ namespace Wankel {
 		SetVSync(true);
 
 		// Set GLFW callbacks
-		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
+		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) { 
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 			data.Width = width;
 			data.Height = height;
