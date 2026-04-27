@@ -24,3 +24,7 @@ target_compile_definitions(Sandbox PRIVATE WANKEL_CLIENT)
 set_target_properties(Sandbox PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+
+# Copy shaders to bin dir
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+     DESTINATION ${CMAKE_BINARY_DIR}/bin)

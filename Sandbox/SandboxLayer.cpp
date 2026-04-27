@@ -10,6 +10,21 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <fstream>
+#include <sstream>
+#include <string>
+
+// For reading shaders
+static std::string ReadFile(const std::string& filepath) {
+	std::ifstream in(filepath, std::ios::in | std::ios::binary);
+	if (!in)
+		throw std::runtime_error("Failed to open file: " + filepath);
+
+	std::stringstream ss;
+	ss << in.rdbuf();
+	return ss.str();
+}
+
 
 namespace Wankel {
 
@@ -39,27 +54,8 @@ SandboxLayer::SandboxLayer()
 	glEnableVertexAttribArray(0);
 
 	// Shader
-	const std::string vertexSrc = R"(
-		#version 330 core
-		layout(location = 0) in vec3 aPos;
-
-		uniform mat4 model;
-		uniform mat4 view;
-		uniform mat4 projection;
-
-		void main() {
-			gl_Position = projection * view * model * vec4(aPos, 1.0);
-		}
-	)";
-
-	const std::string fragmentSrc = R"(
-		#version 330 core
-		out vec4 FragColor;
-
-		void main() {
-			FragColor = vec4(0.6, 1.0, 0.0, 1.0);
-		}
-	)";
+	std::string vertexSrc = ReadFile("shaders/cube.vert");
+	std::string fragmentSrc = ReadFile("shaders/cube.frag");
 
 	m_Shader = new Shader(vertexSrc, fragmentSrc);
 
