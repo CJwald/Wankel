@@ -1,10 +1,11 @@
 #pragma once
 
+// WANKEL PRECOMPILED HEADER
+
 #include "Wankel/Core/PlatformDetection.h"
 
 #ifdef WK_PLATFORM_WINDOWS
 	#ifndef NOMINMAX
-		// See github.com/skypjack/entt/wiki/Frequently-Asked-Questions#warning-c4003-the-min-the-max-and-the-macro
 		#define NOMINMAX
 	#endif
 #endif
@@ -14,7 +15,6 @@
 #include <utility>
 #include <algorithm>
 #include <functional>
-
 #include <string>
 #include <sstream>
 #include <array>
@@ -23,11 +23,7 @@
 #include <unordered_set>
 
 #include "Wankel/Core/Base.h"
-
 #include "Wankel/Core/Log.h"
 
-//#include "Wankel/Core/Debug/Instrumentor.h"
 
-//#ifdef WK_PLATFORM_WINDOWS
-//#include <Windows.h>
-//#endif
+

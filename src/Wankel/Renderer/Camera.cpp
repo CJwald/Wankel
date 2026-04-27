@@ -1,3 +1,4 @@
+#include "wkpch.h"
 #include "Wankel/Renderer/Camera.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>

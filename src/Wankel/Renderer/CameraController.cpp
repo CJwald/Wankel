@@ -1,9 +1,10 @@
+#include "wkpch.h"
 #include "Wankel/Renderer/CameraController.h"
 #include "Wankel/Core/Input.h"
 #include "Wankel/Core/KeyCodes.h"
+#include "Wankel/Core/Log.h"
 
 #include <glm/gtx/quaternion.hpp>
-#include "Wankel/Core/Log.h"
 
 namespace Wankel {
 
