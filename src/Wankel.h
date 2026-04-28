@@ -16,8 +16,6 @@
 #include "Wankel/Core/Events/KeyEvent.h"
 #include "Wankel/Core/Events/MouseEvent.h"
 #include "Wankel/Core/Events/ControllerEvent.h"
-#include "Wankel/Core/"
-#include "Wankel/Core/"
 
 // -----------------------------
 // ECS
@@ -34,5 +32,5 @@
 #include "Wankel/Renderer/Camera.h"
 #include "Wankel/Renderer/CameraController.h"
 
-#include "Wankel/ImGui/ImGuiLayer.h"
+#include "Wankel/Core/ImGui/ImGuiLayer.h"
 
