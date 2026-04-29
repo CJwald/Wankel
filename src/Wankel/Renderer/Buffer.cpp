@@ -3,10 +3,10 @@
 
 namespace Wankel {
 
-	VertexBuffer::VertexBuffer(float* vertices, unsigned int size) {
+	VertexBuffer::VertexBuffer(const void* data, unsigned int size) {
 	    glGenBuffers(1, &m_ID);
 	    glBindBuffer(GL_ARRAY_BUFFER, m_ID);
-	    glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+	    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 	}
 	
 	VertexBuffer::~VertexBuffer() {

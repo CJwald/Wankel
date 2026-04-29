@@ -16,7 +16,9 @@ namespace Wankel {
 	}
 	
 	void VertexArray::AddLayout() {
-	    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	    glBindVertexArray(m_ID);
+
+	    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	    glEnableVertexAttribArray(0);
 	}
 

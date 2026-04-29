@@ -13,9 +13,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <memory>
-
-
 
 namespace Wankel {
 
@@ -23,19 +20,18 @@ SandboxLayer::SandboxLayer()
 	: Layer("Cube"), m_Controller(1280.0f / 720.0f)
 {
 
-	// Vertex setup
-	m_VertexArray = std::make_unique<VertexArray>();
-	m_VertexBuffer = std::make_unique<VertexBuffer>(
-		Geometry::CubeVertices,
-		sizeof(Geometry::CubeVertices)
-	);
-
-	m_VertexArray->Bind();
-	m_VertexBuffer->Bind();
-	m_VertexArray->AddLayout();
+	// Mesh setup
+	m_CubeMesh = std::make_unique<Mesh>(
+        Geometry::CubeVertices,
+        sizeof(Geometry::CubeVertices),
+        36
+    );
 
 	// Shader
-	m_Shader = std::make_unique<Shader>("shaders/cube.vert", "shaders/cube.frag");
+	m_Shader = std::make_unique<Shader>(
+		"shaders/cube.vert", 
+		"shaders/cube.frag"
+	);
 
 	// Camera
 	m_Controller.GetCamera().SetPosition({0.0f, 0.0f, 3.0f});
@@ -54,7 +50,7 @@ void SandboxLayer::OnUpdate() {
 
 	m_Controller.OnUpdate(deltaTime);
 
-	Renderer::Clear();
+	Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
 
 	auto& cam = m_Controller.GetCamera();
 	Renderer::BeginScene(cam);

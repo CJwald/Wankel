@@ -6,19 +6,22 @@
 #include <Wankel/Renderer/Buffer.h>
 #include <Wankel/Renderer/CameraController.h>
 #include <Wankel/ECS/Scene.h>
+#include <memory>
 
 namespace Wankel {
 
+class VertexArray;
+class VertexBuffer;
+class Mesh;
+	
 class SandboxLayer : public Layer {
 public:
 	SandboxLayer();
 	virtual void OnUpdate() override;
 
 private:
-	#include <memory>
 
-	std::unique_ptr<VertexArray> m_VertexArray;
-	std::unique_ptr<VertexBuffer> m_VertexBuffer;
+	std::unique_ptr<Mesh> m_CubeMesh;
 	std::unique_ptr<Shader> m_Shader;
 
 	CameraController m_Controller;

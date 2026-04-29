@@ -9,7 +9,7 @@ namespace Wankel {
 	
 	    void Bind() const;
 	
-	    void AddLayout(); // 👈 NEW
+	    void AddLayout();
 	
 	private:
 	    unsigned int m_ID;

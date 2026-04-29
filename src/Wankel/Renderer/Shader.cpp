@@ -38,8 +38,8 @@ namespace Wankel {
 	Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcFile) {
 	    unsigned int program = glCreateProgram();
 	
-		std::string& vertexSrc = ReadFile(vertexSrcFile);
-		std::string& fragmentSrc = ReadFile(fragmentSrcFile);
+		std::string vertexSrc = ReadFile(vertexSrcFile);
+		std::string fragmentSrc = ReadFile(fragmentSrcFile);
 
 	    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
 	    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);

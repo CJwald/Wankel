@@ -4,7 +4,7 @@ namespace Wankel {
 
 	class VertexBuffer {
 	public:
-	    VertexBuffer(float* vertices, unsigned int size);
+	    VertexBuffer(const void* data, unsigned int size);
 	    ~VertexBuffer();
 	
 	    void Bind() const;

@@ -3,6 +3,7 @@
 #include "VertexArray.h"
 #include "Shader.h"
 #include "Camera.h"
+#include "Mesh.h"
 
 #include <glad/gl.h>
 
@@ -31,18 +32,21 @@ namespace Wankel {
 	    // Currently nothing (reserved for batching / flush systems later)
 	}
 
-	void Renderer::Submit(const glm::mat4& transform, VertexArray* vao, Shader* shader) {
+	void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader) {
 	    shader->Bind();
 		shader->SetMat4("view", s_Data.View);
 		shader->SetMat4("projection", s_Data.Projection);
 	    shader->SetMat4("model", transform);
 	
-	    vao->Bind();
-	    glDrawArrays(GL_TRIANGLES, 0, 36); // Temporary Cube assumption:
-		                                   //  This should become VertexBuffer + IndexBuffer
-		                                   //  or Mesh::GetIndexCount()
+    	mesh.Bind();
+
+    	glDrawArrays(GL_TRIANGLES, 0, mesh.GetVertexCount());
 	}
 
+	void Renderer::Draw(const Mesh& mesh) {
+	    mesh.Bind();
+	    glDrawArrays(GL_TRIANGLES, 0, mesh.GetVertexCount());
+	}
 
 
 	void Renderer::Clear(float r, float g, float b, float a) {

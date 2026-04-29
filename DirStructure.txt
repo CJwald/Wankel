@@ -1,0 +1,110 @@
+This is the Wankel Engine Dir structure excluding all of the contents of the external library dirs
+.
+├── cmake
+├── CMakeLists.txt
+├── DirStructure.txt
+├── external
+├── LICENSE
+├── README.md
+├── Sandbox
+├── scripts
+└── src
+
+5 directories, 4 files
+external
+├── CMakeLists.txt
+├── entt
+├── glad
+├── glfw
+├── glm
+├── imgui
+├── SDL3
+└── spdlog
+
+7 directories, 1 file
+src
+├── Wankel
+│   ├── Client
+│   ├── Core
+│   │   ├── Application.cpp
+│   │   ├── Application.h
+│   │   ├── Assert.h
+│   │   ├── Base.h
+│   │   ├── Engine.cpp
+│   │   ├── Engine.h
+│   │   ├── EntryPoint.h
+│   │   ├── Events
+│   │   │   ├── ApplicationEvent.h
+│   │   │   ├── ControllerAxisEvent.h
+│   │   │   ├── ControllerButtonEvent.h
+│   │   │   ├── ControllerConnectionEvent.h
+│   │   │   ├── ControllerEvent.h
+│   │   │   ├── Event.h
+│   │   │   ├── KeyEvent.h
+│   │   │   └── MouseEvent.h
+│   │   ├── ImGui
+│   │   │   ├── ImGuiLayer.cpp
+│   │   │   └── ImGuiLayer.h
+│   │   ├── Input.h
+│   │   ├── KeyCodes.h
+│   │   ├── Layer.cpp
+│   │   ├── Layer.h
+│   │   ├── LayerStack.cpp
+│   │   ├── LayerStack.h
+│   │   ├── Log.cpp
+│   │   ├── Log.h
+│   │   ├── MouseCodes.h
+│   │   ├── Platform
+│   │   │   ├── Linux
+│   │   │   │   ├── LinuxInput.cpp
+│   │   │   │   ├── LinuxWindow.cpp
+│   │   │   │   └── LinuxWindow.h
+│   │   │   ├── OpenGL
+│   │   │   └── Windows
+│   │   │       ├── WindowsInput.cpp
+│   │   │       ├── WindowsWindow.cpp
+│   │   │       └── WindowsWindow.h
+│   │   ├── PlatformDetection.h
+│   │   ├── Time.cpp
+│   │   ├── Time.h
+│   │   ├── Window.cpp
+│   │   └── Window.h
+│   ├── ECS
+│   │   ├── Components.h
+│   │   ├── Entity.h
+│   │   └── Scene.h
+│   ├── Renderer
+│   │   ├── Buffer.cpp
+│   │   ├── Buffer.h
+│   │   ├── CameraController.cpp
+│   │   ├── CameraController.h
+│   │   ├── Camera.cpp
+│   │   ├── Camera.h
+│   │   ├── Renderer.cpp
+│   │   ├── Renderer.h
+│   │   ├── Shader.cpp
+│   │   ├── Shader.h
+│   │   ├── VertexArray.cpp
+│   │   └── VertexArray.h
+│   └── Server
+│       └── Networking
+│           ├── ClientConnection.cpp
+│           ├── Packet.h
+│           └── Server.cpp
+├── Wankel.h
+├── wkpch.cpp
+└── wkpch.h
+
+13 directories, 58 files
+SandboxApp [error opening dir]
+
+0 directories, 0 files
+scripts
+├── bc.sh
+├── build-all.sh
+├── build.bat
+├── build.sh
+├── bwsr.sh
+└── treeDir.sh
+
+0 directories, 6 files
