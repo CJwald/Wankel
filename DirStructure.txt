@@ -1,5 +1,6 @@
 This is the Wankel Engine Dir structure excluding all of the contents of the external library dirs
 .
+├── build
 ├── cmake
 ├── CMakeLists.txt
 ├── DirStructure.txt
@@ -10,7 +11,7 @@ This is the Wankel Engine Dir structure excluding all of the contents of the ext
 ├── scripts
 └── src
 
-5 directories, 4 files
+6 directories, 4 files
 external
 ├── CMakeLists.txt
 ├── entt
@@ -80,12 +81,15 @@ src
 │   │   ├── CameraController.h
 │   │   ├── Camera.cpp
 │   │   ├── Camera.h
+│   │   ├── Mesh.cpp
+│   │   ├── Mesh.h
 │   │   ├── Renderer.cpp
 │   │   ├── Renderer.h
 │   │   ├── Shader.cpp
 │   │   ├── Shader.h
 │   │   ├── VertexArray.cpp
-│   │   └── VertexArray.h
+│   │   ├── VertexArray.h
+│   │   └── VertexBufferLayout.h
 │   └── Server
 │       └── Networking
 │           ├── ClientConnection.cpp
@@ -95,7 +99,7 @@ src
 ├── wkpch.cpp
 └── wkpch.h
 
-13 directories, 58 files
+13 directories, 61 files
 SandboxApp [error opening dir]
 
 0 directories, 0 files

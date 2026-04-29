@@ -54,4 +54,9 @@ namespace Wankel {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
+
+	void Renderer::OnWindowResize(uint32_t width, uint32_t height) {
+	    glViewport(0, 0, width, height);
+	}
+
 }

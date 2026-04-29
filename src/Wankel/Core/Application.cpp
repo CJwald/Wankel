@@ -56,6 +56,7 @@ namespace Wankel {
 	void Application::OnEvent(Event& event) { 
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); ) {
 			(*--it)->OnEvent(event);
@@ -67,6 +68,11 @@ namespace Wankel {
 	bool Application::OnWindowClose(WindowCloseEvent& e) {
 		m_Running = false;
 		return true;
+	}
+
+	bool Application::OnWindowResize(WindowResizeEvent& e) {
+	    Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+	    return false;
 	}
 
 	Application* Application::s_Instance = nullptr;

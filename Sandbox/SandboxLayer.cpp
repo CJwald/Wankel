@@ -44,14 +44,15 @@ SandboxLayer::SandboxLayer()
 
 void SandboxLayer::OnUpdate() {
 	float time = Time::GetTime();
-	float deltaTime = time - m_LastFrame;
+	float dt = time - m_LastFrame;
 	m_LastFrame = time;
 
-	m_Controller.OnUpdate(deltaTime);
+	m_Controller.OnUpdate(dt);
 
 	Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
 
 	auto& cam = m_Controller.GetCamera();
+
 	Renderer::BeginScene(cam);
 
 	auto view = m_Scene.Registry().view<TransformComponent>();
