@@ -1,4 +1,5 @@
 #include "Buffer.h"
+#include "VertexBufferLayout.h"
 #include <glad/gl.h>
 
 namespace Wankel {
@@ -15,6 +16,10 @@ namespace Wankel {
 	
 	void VertexBuffer::Bind() const {
 	    glBindBuffer(GL_ARRAY_BUFFER, m_ID);
+	}
+
+	void VertexBuffer::SetLayout(const VertexBufferLayout& layout) {
+		m_Layout = layout;
 	}
 
 }

@@ -6,6 +6,7 @@ namespace Wankel {
 
 class VertexArray;
 class VertexBuffer;
+class VertexBufferLayout;
 
 class Mesh {
 public:
@@ -15,7 +16,6 @@ public:
     void Bind() const;
 
     uint32_t GetVertexCount() const { return m_VertexCount; }
-    VertexArray* GetVertexArray() const { return m_VertexArray.get(); }
 
 private:
     std::unique_ptr<VertexArray> m_VertexArray;

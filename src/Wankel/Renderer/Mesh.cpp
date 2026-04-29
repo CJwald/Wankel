@@ -3,6 +3,7 @@
 
 #include "VertexArray.h"
 #include "Buffer.h"
+#include "VertexBufferLayout.h"
 
 namespace Wankel {
 
@@ -11,12 +12,16 @@ Mesh::Mesh(const void* vertices, uint32_t size, uint32_t vertexCount)
 {
     m_VertexArray = std::make_unique<VertexArray>();
     m_VertexBuffer = std::make_unique<VertexBuffer>(vertices, size);
+	
+	VertexBufferLayout layout;
 
-    m_VertexArray->Bind();
-    m_VertexBuffer->Bind();
+	// cube = position only right now
+	layout.PushFloat(3, "a_Position");
 
-    // your existing cube layout function
-    m_VertexArray->AddLayout();
+	m_VertexBuffer->SetLayout(layout);
+
+	m_VertexArray->Bind();
+	m_VertexArray->AddVertexBuffer(*m_VertexBuffer);
 }
 
 Mesh::~Mesh() {}

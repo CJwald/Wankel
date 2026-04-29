@@ -11,7 +11,7 @@ namespace Wankel {
         }
 
         void DestroyEntity(Entity entity) {
-            m_Registry.destroy((entt::entity)entity);
+            m_Registry.destroy(entity.GetHandle());
         }
 
         entt::registry& Registry() { return m_Registry; }

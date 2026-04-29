@@ -26,6 +26,8 @@ namespace Wankel {
 
         operator bool() const { return m_EntityHandle != entt::null; }
 
+        entt::entity GetHandle() const { return m_EntityHandle; }
+
     private:
         entt::entity m_EntityHandle{ entt::null };
         entt::registry* m_Registry = nullptr;

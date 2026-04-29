@@ -1,4 +1,5 @@
 #include "VertexArray.h"
+#include "Buffer.h"
 #include <glad/gl.h>
 
 namespace Wankel {
@@ -15,11 +16,28 @@ namespace Wankel {
 	    glBindVertexArray(m_ID);
 	}
 	
-	void VertexArray::AddLayout() {
-	    glBindVertexArray(m_ID);
-
-	    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	    glEnableVertexAttribArray(0);
+	void VertexArray::AddVertexBuffer(const VertexBuffer& vb) {
+		glBindVertexArray(m_ID);
+		vb.Bind();
+	
+		const auto& layout = vb.GetLayout();
+		const auto& elements = layout.GetElements();
+	
+		uint32_t index = 0;
+	
+		for (const auto& e : elements) {
+			glEnableVertexAttribArray(index);
+	
+			glVertexAttribPointer(
+				index,
+				e.Count,
+				e.Type,
+				e.Normalized ? GL_TRUE : GL_FALSE,
+				layout.GetStride(),
+				(const void*)(intptr_t)e.Offset
+			);
+	
+			index++;
+		}
 	}
-
 }

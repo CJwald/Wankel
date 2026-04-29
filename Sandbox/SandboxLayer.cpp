@@ -4,10 +4,9 @@
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
 #include <Wankel/ECS/Components.h>
-#include <Wankel/Renderer/VertexArray.h>
-#include <Wankel/Renderer/Buffer.h>
 #include <Wankel/Renderer/Renderer.h>
 #include <Wankel/Renderer/Shader.h>
+#include <Wankel/Renderer/Mesh.h>
 
 // To-be removed eventually
 #include <glm/glm.hpp>
@@ -64,7 +63,7 @@ void SandboxLayer::OnUpdate() {
 		model = glm::translate(model, transform.Position);
 		model = glm::scale(model, transform.Scale);
 
-		Renderer::Submit(model, m_VertexArray.get(), m_Shader.get());
+		Renderer::Submit(model, *m_CubeMesh, m_Shader.get());
 	}
 	
 	Renderer::EndScene();
