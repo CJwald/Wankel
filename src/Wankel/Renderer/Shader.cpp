@@ -1,7 +1,20 @@
 #include "Shader.h"
 #include <glad/gl.h>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
 #include <glm/gtc/type_ptr.hpp>
+
+// For reading shaders 
+static std::string ReadFile(const std::string& filepath) { 
+	std::ifstream in(filepath, std::ios::in | std::ios::binary); 
+	if (!in) 
+		throw std::runtime_error("Failed to open file: " + filepath); 
+	std::stringstream ss; 
+	ss << in.rdbuf(); 
+	return ss.str(); 
+}
 
 namespace Wankel {
 
@@ -22,9 +35,12 @@ namespace Wankel {
 	    return id;
 	}
 	
-	Shader::Shader(const std::string& vertexSrc, const std::string& fragmentSrc) {
+	Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcFile) {
 	    unsigned int program = glCreateProgram();
 	
+		std::string& vertexSrc = ReadFile(vertexSrcFile);
+		std::string& fragmentSrc = ReadFile(fragmentSrcFile);
+
 	    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
 	    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
 	

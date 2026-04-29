@@ -2,6 +2,8 @@
 
 #include <Wankel/Core/Layer.h>
 #include <Wankel/Renderer/Shader.h>
+#include <Wankel/Renderer/VertexArray.h>
+#include <Wankel/Renderer/Buffer.h>
 #include <Wankel/Renderer/CameraController.h>
 #include <Wankel/ECS/Scene.h>
 
@@ -13,8 +15,11 @@ public:
 	virtual void OnUpdate() override;
 
 private:
-	unsigned int m_VAO = 0, m_VBO = 0;
-	Shader* m_Shader = nullptr;
+	#include <memory>
+
+	std::unique_ptr<VertexArray> m_VertexArray;
+	std::unique_ptr<VertexBuffer> m_VertexBuffer;
+	std::unique_ptr<Shader> m_Shader;
 
 	CameraController m_Controller;
 	Scene m_Scene;

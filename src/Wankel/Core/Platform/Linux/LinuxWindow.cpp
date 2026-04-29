@@ -174,7 +174,7 @@ namespace Wankel {
 
 	//
 	void LinuxWindow::OnUpdate() {
-		//glfwPollEvents();
+		glfwPollEvents();
 		glfwSwapBuffers(m_Window);
 	}
 

@@ -12,7 +12,7 @@ namespace Wankel {
 		static void BeginScene(const Camera camera);
 		static void EndScene();
 		static void Submit(const glm::mat4& transform, VertexArray* vao, Shader* shader);
-	    static void Clear();
+	    static void Clear(float r, float g, float b, float a);
 		static void Draw(VertexArray* vao, int count);
 	};
 

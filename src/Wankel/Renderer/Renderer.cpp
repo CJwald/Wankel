@@ -5,12 +5,12 @@
 #include "Camera.h"
 
 #include <glad/gl.h>
-#include <glm/glm.h>
 
 namespace Wankel {
 
 	struct RendererData {
-	    glm::mat4 ViewProjection;
+    	glm::mat4 View;
+    	glm::mat4 Projection;
 	};
 	
 	static RendererData s_Data;
@@ -22,7 +22,8 @@ namespace Wankel {
 	}
 
 	void Renderer::BeginScene(const Camera& camera) {
-	    s_Data.ViewProjection = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+		s_Data.View = camera.GetViewMatrix();
+		s_Data.Projection = camera.GetProjectionMatrix();
 		// This should eventually change to Camera::GetViewProjection()
 	}
 
@@ -32,6 +33,8 @@ namespace Wankel {
 
 	void Renderer::Submit(const glm::mat4& transform, VertexArray* vao, Shader* shader) {
 	    shader->Bind();
+		shader->SetMat4("view", s_Data.View);
+		shader->SetMat4("projection", s_Data.Projection);
 	    shader->SetMat4("model", transform);
 	
 	    vao->Bind();
@@ -42,13 +45,9 @@ namespace Wankel {
 
 
 
-	void Renderer::Clear() {
-    	glClear(GL_COLOR_BUFFER_BIT);
-	}
-
-	void Renderer::Draw(VertexArray* vao, int count) {
-		vao->Bind();
-		glDrawArrays(GL_TRIANGLES, 0, count);
+	void Renderer::Clear(float r, float g, float b, float a) {
+		glClearColor(r, g, b, a);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
 }

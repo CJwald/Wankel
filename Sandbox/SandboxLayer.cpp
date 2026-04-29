@@ -2,13 +2,18 @@
 #include "cube.h"
 
 #include <Wankel/Core/Application.h>
+#include <Wankel/Core/Time.h>
 #include <Wankel/ECS/Components.h>
+#include <Wankel/Renderer/VertexArray.h>
+#include <Wankel/Renderer/Buffer.h>
+#include <Wankel/Renderer/Renderer.h>
+#include <Wankel/Renderer/Shader.h>
 
 // To-be removed eventually
-#include <glad/gl.h>
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <memory>
 
 
 
@@ -17,33 +22,20 @@ namespace Wankel {
 SandboxLayer::SandboxLayer()
 	: Layer("Cube"), m_Controller(1280.0f / 720.0f)
 {
-	glEnable(GL_DEPTH_TEST);
 
-	// Lock cursor
-	GLFWwindow* window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	// Vertex setup
+	m_VertexArray = std::make_unique<VertexArray>();
+	m_VertexBuffer = std::make_unique<VertexBuffer>(
+		Geometry::CubeVertices,
+		sizeof(Geometry::CubeVertices)
+	);
 
-	// Viewport fix
-	int fbWidth, fbHeight;
-	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-	glViewport(0, 0, fbWidth, fbHeight);
-
-	// VAO/VBO
-	glGenVertexArrays(1, &m_VAO);
-	glBindVertexArray(m_VAO);
-
-	glGenBuffers(1, &m_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Geometry::CubeVertices), Geometry::CubeVertices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-	glEnableVertexAttribArray(0);
+	m_VertexArray->Bind();
+	m_VertexBuffer->Bind();
+	m_VertexArray->AddLayout();
 
 	// Shader
-	std::string vertexSrc = ReadFile("shaders/cube.vert");
-	std::string fragmentSrc = ReadFile("shaders/cube.frag");
-
-	m_Shader = new Shader(vertexSrc, fragmentSrc);
+	m_Shader = std::make_unique<Shader>("shaders/cube.vert", "shaders/cube.frag");
 
 	// Camera
 	m_Controller.GetCamera().SetPosition({0.0f, 0.0f, 3.0f});
@@ -56,23 +48,16 @@ SandboxLayer::SandboxLayer()
 }
 
 void SandboxLayer::OnUpdate() {
-	float time = glfwGetTime();
+	float time = Time::GetTime();
 	float deltaTime = time - m_LastFrame;
 	m_LastFrame = time;
 
 	m_Controller.OnUpdate(deltaTime);
 
 	Renderer::Clear();
-	//glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	auto& cam = m_Controller.GetCamera();
-
 	Renderer::BeginScene(cam);
-	//m_Shader->Bind();
-	//m_Shader->SetMat4("view", cam.GetViewMatrix());
-	//m_Shader->SetMat4("projection", cam.GetProjectionMatrix());
-	//glBindVertexArray(m_VAO);
 
 	auto view = m_Scene.Registry().view<TransformComponent>();
 
@@ -83,9 +68,7 @@ void SandboxLayer::OnUpdate() {
 		model = glm::translate(model, transform.Position);
 		model = glm::scale(model, transform.Scale);
 
-		Renderer::Submit(model, m_VAO, m_Shader);
-		//m_Shader->SetMat4("model", model);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		Renderer::Submit(model, m_VertexArray.get(), m_Shader.get());
 	}
 	
 	Renderer::EndScene();

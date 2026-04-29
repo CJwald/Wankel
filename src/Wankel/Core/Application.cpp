@@ -2,9 +2,8 @@
 #include "Wankel/Core/Application.h"
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
 #include "Wankel/Core/Input.h"
+#include "Wankel/Renderer/Renderer.h"
 
-#include <glad/gl.h>
-#include <GLFW/glfw3.h> // todo: remove, just used for testing 
 
 namespace Wankel {
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
@@ -14,6 +13,8 @@ namespace Wankel {
 
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
+
+		Renderer::Init();
 		
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
@@ -35,10 +36,7 @@ namespace Wankel {
 	void Application::Run() {
 		while (m_Running) {
 
-			glfwPollEvents();
-
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
+			Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
@@ -51,15 +49,13 @@ namespace Wankel {
     		m_ImGuiLayer->End();
 
 			m_Window->OnUpdate();
-			Input::ResetMouseDelta();
+			Input::ResetMouseDelta(); // TODO: This may need to be removed
 		}
 	}
 	
 	void Application::OnEvent(Event& event) { 
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
-
-		//WK_CORE_TRACE("{0}", event.ToString());	
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); ) {
 			(*--it)->OnEvent(event);
