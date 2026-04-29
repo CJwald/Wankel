@@ -21,10 +21,11 @@ SandboxLayer::SandboxLayer()
 
 	// Mesh setup
 	m_CubeMesh = std::make_unique<Mesh>(
-        Geometry::CubeVertices,
-        sizeof(Geometry::CubeVertices),
-        36
-    );
+	    Geometry::CubeVertices,
+	    sizeof(Geometry::CubeVertices),
+	    Geometry::CubeIndices,
+	    36
+	);
 
 	// Shader
 	m_Shader = std::make_unique<Shader>(

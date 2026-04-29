@@ -2,8 +2,6 @@
 
 #include <Wankel/Core/Layer.h>
 #include <Wankel/Renderer/Shader.h>
-#include <Wankel/Renderer/VertexArray.h>
-#include <Wankel/Renderer/Buffer.h>
 #include <Wankel/Renderer/CameraController.h>
 #include <Wankel/ECS/Scene.h>
 #include <memory>

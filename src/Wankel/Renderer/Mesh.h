@@ -6,21 +6,22 @@ namespace Wankel {
 
 class VertexArray;
 class VertexBuffer;
-class VertexBufferLayout;
+class IndexBuffer;
 
 class Mesh {
 public:
-    Mesh(const void* vertices, uint32_t size, uint32_t vertexCount);
+    Mesh(const void* vertices, uint32_t size, const uint32_t* indices, uint32_t indexCount);
     ~Mesh();
 
     void Bind() const;
 
-    uint32_t GetVertexCount() const { return m_VertexCount; }
+	uint32_t GetIndexCount() const;
 
 private:
     std::unique_ptr<VertexArray> m_VertexArray;
     std::unique_ptr<VertexBuffer> m_VertexBuffer;
-    uint32_t m_VertexCount = 0;
+	std::unique_ptr<IndexBuffer> m_IndexBuffer;
+	uint32_t m_IndexCount = 0;
 };
 
 }

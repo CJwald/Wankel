@@ -40,12 +40,12 @@ namespace Wankel {
 	
     	mesh.Bind();
 
-    	glDrawArrays(GL_TRIANGLES, 0, mesh.GetVertexCount());
+		glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
 	void Renderer::Draw(const Mesh& mesh) {
 	    mesh.Bind();
-	    glDrawArrays(GL_TRIANGLES, 0, mesh.GetVertexCount());
+		glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
 

@@ -5,6 +5,7 @@
 namespace Wankel {
 
 	class VertexBuffer;
+	class IndexBuffer;
 
 	class VertexArray {
 	public:
@@ -16,6 +17,7 @@ namespace Wankel {
 	    void AddLayout();
 
 		void AddVertexBuffer(const VertexBuffer& vb);
+		void SetIndexBuffer(const IndexBuffer& ib);
 	
 	private:
 	    unsigned int m_ID;

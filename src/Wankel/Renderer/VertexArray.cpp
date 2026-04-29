@@ -1,5 +1,6 @@
 #include "VertexArray.h"
 #include "Buffer.h"
+#include "IndexBuffer.h"
 #include <glad/gl.h>
 
 namespace Wankel {
@@ -39,5 +40,10 @@ namespace Wankel {
 	
 			index++;
 		}
+	}
+
+	void VertexArray::SetIndexBuffer(const IndexBuffer& ib) {
+	    glBindVertexArray(m_ID);
+	    ib.Bind(); // IMPORTANT: binds to VAO
 	}
 }
