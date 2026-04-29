@@ -10,20 +10,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <fstream>
-#include <sstream>
-#include <string>
-
-// For reading shaders
-static std::string ReadFile(const std::string& filepath) {
-	std::ifstream in(filepath, std::ios::in | std::ios::binary);
-	if (!in)
-		throw std::runtime_error("Failed to open file: " + filepath);
-
-	std::stringstream ss;
-	ss << in.rdbuf();
-	return ss.str();
-}
 
 
 namespace Wankel {
@@ -69,39 +55,40 @@ SandboxLayer::SandboxLayer()
 	transform.Scale = {1.0f, 1.0f, 1.0f};
 }
 
-void SandboxLayer::OnUpdate()
-{
+void SandboxLayer::OnUpdate() {
 	float time = glfwGetTime();
 	float deltaTime = time - m_LastFrame;
 	m_LastFrame = time;
 
 	m_Controller.OnUpdate(deltaTime);
 
-	glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	Renderer::Clear();
+	//glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	auto& cam = m_Controller.GetCamera();
 
-	m_Shader->Bind();
-	m_Shader->SetMat4("view", cam.GetViewMatrix());
-	m_Shader->SetMat4("projection", cam.GetProjectionMatrix());
-
-	glBindVertexArray(m_VAO);
+	Renderer::BeginScene(cam);
+	//m_Shader->Bind();
+	//m_Shader->SetMat4("view", cam.GetViewMatrix());
+	//m_Shader->SetMat4("projection", cam.GetProjectionMatrix());
+	//glBindVertexArray(m_VAO);
 
 	auto view = m_Scene.Registry().view<TransformComponent>();
 
-	for (auto entity : view)
-	{
+	for (auto entity : view) {
 		auto& transform = view.get<TransformComponent>(entity);
 
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, transform.Position);
 		model = glm::scale(model, transform.Scale);
 
-		m_Shader->SetMat4("model", model);
-
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		Renderer::Submit(model, m_VAO, m_Shader);
+		//m_Shader->SetMat4("model", model);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
+	
+	Renderer::EndScene();
 }
 
 }
