@@ -20,6 +20,7 @@ public:
 private:
 
 	std::unique_ptr<Mesh> m_CubeMesh;
+	std::unique_ptr<Mesh> m_TriangleMesh;
 	std::unique_ptr<Shader> m_Shader;
 
 	CameraController m_Controller;

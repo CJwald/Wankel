@@ -1,5 +1,6 @@
 #include "SandboxLayer.h"
 #include "cube.h"
+#include "triangle.h"
 
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
@@ -26,6 +27,12 @@ SandboxLayer::SandboxLayer()
 	    Geometry::CubeIndices,
 	    36
 	);
+	m_TriangleMesh = std::make_unique<Mesh>(
+	    Geometry::TriangleVertices,
+	    sizeof(Geometry::TriangleVertices),
+	    Geometry::TriangleIndices,
+	    36
+	);
 
 	// Shader
 	m_Shader = std::make_unique<Shader>(
@@ -37,8 +44,10 @@ SandboxLayer::SandboxLayer()
 	m_Controller.GetCamera().SetPosition({0.0f, 0.0f, 3.0f});
 
 	// ECS
-	auto cube = m_Scene.CreateEntity();
-	auto& transform = cube.AddComponent<TransformComponent>();
+	//auto cube = m_Scene.CreateEntity();
+	//auto& transform = cube.AddComponent<TransformComponent>();
+	auto triangle = m_Scene.CreateEntity();
+	auto& transform = triangle.AddComponent<TransformComponent>();
 	transform.Position = {0.0f, 0.0f, 0.0f};
 	transform.Scale = {1.0f, 1.0f, 1.0f};
 }
@@ -65,7 +74,8 @@ void SandboxLayer::OnUpdate() {
 		model = glm::translate(model, transform.Position);
 		model = glm::scale(model, transform.Scale);
 
-		Renderer::Submit(model, *m_CubeMesh, m_Shader.get());
+		//Renderer::Submit(model, *m_CubeMesh, m_Shader.get());
+		Renderer::Submit(model, *m_TriangleMesh, m_Shader.get());
 	}
 	
 	Renderer::EndScene();
