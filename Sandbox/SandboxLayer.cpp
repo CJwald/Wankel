@@ -31,7 +31,7 @@ SandboxLayer::SandboxLayer()
 	    Geometry::TriangleVertices,
 	    sizeof(Geometry::TriangleVertices),
 	    Geometry::TriangleIndices,
-	    36
+	    12
 	);
 
 	// Shader

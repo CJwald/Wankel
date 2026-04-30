@@ -18,6 +18,7 @@ Mesh::Mesh(const void* vertices, uint32_t size,
 
     VertexBufferLayout layout;
     layout.PushFloat(3, "a_Position");
+    layout.PushFloat(4, "a_Color");
 
     m_VertexBuffer->SetLayout(layout);
 

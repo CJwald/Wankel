@@ -81,6 +81,8 @@ src
 │   │   ├── CameraController.h
 │   │   ├── Camera.cpp
 │   │   ├── Camera.h
+│   │   ├── IndexBuffer.cpp
+│   │   ├── IndexBuffer.h
 │   │   ├── Mesh.cpp
 │   │   ├── Mesh.h
 │   │   ├── Renderer.cpp
@@ -99,7 +101,7 @@ src
 ├── wkpch.cpp
 └── wkpch.h
 
-13 directories, 61 files
+13 directories, 63 files
 SandboxApp [error opening dir]
 
 0 directories, 0 files
