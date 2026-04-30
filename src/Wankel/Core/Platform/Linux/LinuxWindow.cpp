@@ -57,6 +57,10 @@ namespace Wankel {
 
 
 		glfwMakeContextCurrent(m_Window);
+		int fbWidth, fbHeight;
+		glfwGetFramebufferSize(m_Window, &fbWidth, &fbHeight);
+		m_Data.Width = fbWidth;
+		m_Data.Height = fbHeight;
 		if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
 		    //std::cout << "Failed to initialize GLAD\n";
 		    //exit(-1);
@@ -85,13 +89,36 @@ namespace Wankel {
 		SetVSync(true);
 
 		// Set GLFW callbacks
-		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) { 
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-			data.Width = width;
-			data.Height = height;
+		//glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) { 
+		//	WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		//	data.Width = width;
+		//	data.Height = height;
 
-			WindowResizeEvent event(width, height);
-			data.EventCallback(event);
+		//	WindowResizeEvent event(width, height);
+		//	data.EventCallback(event);
+		//});
+		
+
+		//glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) { 
+		//    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		//
+		//    int fbWidth, fbHeight;
+		//    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+		//
+		//    data.Width = fbWidth;
+		//    data.Height = fbHeight;
+		//
+		//    WindowResizeEvent event(fbWidth, fbHeight);
+		//    data.EventCallback(event);
+		//});
+		glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
+		    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+		
+		    data.Width = width;
+		    data.Height = height;
+		
+		    WindowResizeEvent event(width, height);
+		    data.EventCallback(event);
 		});
 
 		//
