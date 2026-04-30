@@ -158,11 +158,12 @@ namespace Wankel {
 			);
 
 		    // Update Input system
-		    Wankel::Input::SetMouseDelta(deltaX, -deltaY);   // negative Y for natural look
+		    Wankel::Input::SetMouseDelta(deltaX, deltaY);   // negative Y for natural look
 		
 		    // Optional: fire event
 		    MouseMovedEvent event(deltaX, deltaY);
 		    data->EventCallback(event);
+		    //Wankel::Input::SetMouseDelta(0.0f, 0.0f);   // negative Y for natural look
 		});
 	}
 
