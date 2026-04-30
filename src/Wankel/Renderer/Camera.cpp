@@ -13,6 +13,14 @@ namespace Wankel {
 		m_Position = position;
 	}
 
+	void Camera::SetFOV(const float& fov) {
+		m_FOV = fov;
+	}
+
+	void Camera::SetAspect(const float& aspect) {
+		m_Aspect = aspect;
+	}
+
 	const glm::vec3& Camera::GetPosition() const {
 		return m_Position;
 	}

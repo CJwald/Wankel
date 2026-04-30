@@ -42,6 +42,7 @@ SandboxLayer::SandboxLayer()
 
 	// Camera
 	m_Controller.GetCamera().SetPosition({0.0f, 0.0f, 3.0f});
+	m_Controller.GetCamera().SetFOV(70.0f);
 
 	// ECS
 	//auto cube = m_Scene.CreateEntity();

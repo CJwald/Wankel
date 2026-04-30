@@ -89,28 +89,6 @@ namespace Wankel {
 		SetVSync(true);
 
 		// Set GLFW callbacks
-		//glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) { 
-		//	WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-		//	data.Width = width;
-		//	data.Height = height;
-
-		//	WindowResizeEvent event(width, height);
-		//	data.EventCallback(event);
-		//});
-		
-
-		//glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) { 
-		//    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-		//
-		//    int fbWidth, fbHeight;
-		//    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-		//
-		//    data.Width = fbWidth;
-		//    data.Height = fbHeight;
-		//
-		//    WindowResizeEvent event(fbWidth, fbHeight);
-		//    data.EventCallback(event);
-		//});
 		glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
 		    WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 		
@@ -201,6 +179,18 @@ namespace Wankel {
 
 	//
 	void LinuxWindow::OnUpdate() {
+		int fbWidth, fbHeight;
+    	glfwGetFramebufferSize(m_Window, &fbWidth, &fbHeight);
+
+    	// Only update if changed (avoids redundant calls)
+    	if ((int)m_Data.Width != fbWidth || (int)m_Data.Height != fbHeight) {
+    	    m_Data.Width = fbWidth;
+    	    m_Data.Height = fbHeight;
+
+    	    WindowResizeEvent event(fbWidth, fbHeight);
+    	    m_Data.EventCallback(event);
+    	}
+
 		glfwPollEvents();
 		glfwSwapBuffers(m_Window);
 	}

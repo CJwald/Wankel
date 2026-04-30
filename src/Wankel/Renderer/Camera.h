@@ -11,6 +11,8 @@ namespace Wankel {
 
 		// Position
 		void SetPosition(const glm::vec3& position);
+		void SetFOV(const float& fov);
+		void SetAspect(const float& aspect);
 		const glm::vec3& GetPosition() const;
 
 		// Rotation
