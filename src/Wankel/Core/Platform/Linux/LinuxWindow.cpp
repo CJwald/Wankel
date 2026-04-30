@@ -57,16 +57,16 @@ namespace Wankel {
 
 
 		glfwMakeContextCurrent(m_Window);
+		if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
+		    WK_CORE_ERROR("Failed to initialize GLAD");
+		    throw std::runtime_error("GLFW initialization failed");
+		}
 		int fbWidth, fbHeight;
 		glfwGetFramebufferSize(m_Window, &fbWidth, &fbHeight);
 		m_Data.Width = fbWidth;
 		m_Data.Height = fbHeight;
-		if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
-		    //std::cout << "Failed to initialize GLAD\n";
-		    //exit(-1);
-		    WK_CORE_ERROR("Failed to initialize GLAD");
-		    throw std::runtime_error("GLFW initialization failed");
-		}
+
+		glViewport(0, 0, fbWidth, fbHeight);
 
 		//glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
