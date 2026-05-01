@@ -38,8 +38,8 @@ namespace Wankel {
 	struct PlayerControllerComponent {
         float MoveSpeed = 5.0f;
         float WindowSensitivity = 0.002f; 
-        float MouseSensitivity = 1.5f; 
-        float RollSpeed = 1.5f; 
+        float MouseSensitivity = 2.5f; 
+        float RollSpeed = 2.5f; 
         glm::quat Orientation{1,0,0,0};
     };
 

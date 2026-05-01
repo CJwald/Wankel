@@ -15,26 +15,35 @@ namespace Wankel {
         // =========================
         // Player Movement System
         // =========================
-        auto view = m_Registry.view<TransformComponent, PlayerControllerComponent>();
+		auto view = m_Registry.view<TransformComponent, PlayerControllerComponent, RigidbodyComponent>();
 
         for (auto entity : view) {
             auto& transform = view.get<TransformComponent>(entity);
             auto& controller = view.get<PlayerControllerComponent>(entity);
+			auto& rb = view.get<RigidbodyComponent>(entity);
 
 			// these may need testing to fix
             glm::vec3 forward = controller.Orientation * glm::vec3(0,0,-1);
             glm::vec3 right   = controller.Orientation * glm::vec3(1,0,0);
             glm::vec3 up      = controller.Orientation * glm::vec3(0,1,0);
+			
+			glm::vec3 moveDir(0.0f);
 
-            float velocity = controller.MoveSpeed * dt;
+        	if (Input::IsKeyPressed(Key::W)) moveDir += forward;
+        	if (Input::IsKeyPressed(Key::S)) moveDir -= forward;
+        	if (Input::IsKeyPressed(Key::D)) moveDir += right;
+        	if (Input::IsKeyPressed(Key::A)) moveDir -= right;
+        	if (Input::IsKeyPressed(Key::Space)) moveDir += up;
+        	if (Input::IsKeyPressed(Key::LeftControl)) moveDir -= up;
+		
+			if (glm::length(moveDir) > 0.0f)
+        	    moveDir = glm::normalize(moveDir);
 
-            if (Input::IsKeyPressed(Key::W)) transform.Position += forward * velocity;
-            if (Input::IsKeyPressed(Key::S)) transform.Position -= forward * velocity;
-            if (Input::IsKeyPressed(Key::D)) transform.Position += right * velocity;
-            if (Input::IsKeyPressed(Key::A)) transform.Position -= right * velocity;
-	    	if (Input::IsKeyPressed(Key::Space)) transform.Position += up * velocity;
-	    	if (Input::IsKeyPressed(Key::LeftControl)) transform.Position -= up * velocity;
+        	rb.Velocity = moveDir * controller.MoveSpeed;
 
+        	// =========================
+        	// MOUSE LOOK
+        	// =========================
             float dx = Input::GetMouseDeltaX() * controller.WindowSensitivity;
             float dy = Input::GetMouseDeltaY() * controller.WindowSensitivity;
 

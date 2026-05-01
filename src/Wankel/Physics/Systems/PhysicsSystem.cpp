@@ -1,4 +1,3 @@
-#include "wkpch.h"
 #include "PhysicsSystem.h"
 
 #include "../Collision/BroadPhase/AABB.h"
@@ -7,21 +6,46 @@
 #include <Wankel/ECS/Components.h>
 #include <Wankel/ECS/Scene.h>
 
+#include <glm/glm.hpp>
+
 namespace Wankel {
 
 void PhysicsSystem::Update(Scene& scene, float dt)
 {
     auto& registry = scene.Registry();
 
-    auto view = registry.view<TransformComponent, AABBComponent>();
+    // =========================
+    // INTEGRATE VELOCITY
+    // =========================
+    {
+        auto view = registry.view<TransformComponent, RigidbodyComponent>();
 
-    // Iterate pairs ONCE (no double resolution)
+        for (auto entity : view)
+        {
+            auto& t = view.get<TransformComponent>(entity);
+            auto& rb = view.get<RigidbodyComponent>(entity);
+
+            if (rb.IsStatic)
+                continue;
+
+            t.Position += rb.Velocity * dt;
+        }
+    }
+
+    // =========================
+    // COLLISION RESOLUTION
+    // =========================
+    auto view = registry.view<TransformComponent, AABBComponent, RigidbodyComponent>();
+
+    const float slop = 0.01f;
+
     for (auto itA = view.begin(); itA != view.end(); ++itA)
     {
-        auto entityA = *itA;
+        auto a = *itA;
 
-        auto& ta = registry.get<TransformComponent>(entityA);
-        auto& ca = registry.get<AABBComponent>(entityA);
+        auto& ta = registry.get<TransformComponent>(a);
+        auto& ca = registry.get<AABBComponent>(a);
+        auto& rba = registry.get<RigidbodyComponent>(a);
 
         AABB aabbA = AABB::FromCenterHalfSize(ta.Position, ca.HalfSize);
 
@@ -30,53 +54,58 @@ void PhysicsSystem::Update(Scene& scene, float dt)
 
         for (; itB != view.end(); ++itB)
         {
-            auto entityB = *itB;
+            auto b = *itB;
 
-            auto& tb = registry.get<TransformComponent>(entityB);
-            auto& cb = registry.get<AABBComponent>(entityB);
+            auto& tb = registry.get<TransformComponent>(b);
+            auto& cb = registry.get<AABBComponent>(b);
+            auto& rbb = registry.get<RigidbodyComponent>(b);
 
             AABB aabbB = AABB::FromCenterHalfSize(tb.Position, cb.HalfSize);
 
-            CollisionManifold manifold = AABBvsAABB(aabbA, aabbB);
+            auto manifold = AABBvsAABB(aabbA, aabbB);
 
-            if (!manifold.Colliding) {
-                continue;
-			} else {
-				WK_CORE_INFO("COLLIDING");
-			}
-
-            // =========================
-            // STATIC / DYNAMIC HANDLING
-            // =========================
-            bool aStatic = false;
-            bool bStatic = false;
-
-            if (registry.all_of<RigidbodyComponent>(entityA))
-                aStatic = registry.get<RigidbodyComponent>(entityA).IsStatic;
-
-            if (registry.all_of<RigidbodyComponent>(entityB))
-                bStatic = registry.get<RigidbodyComponent>(entityB).IsStatic;
-
-            // both static → do nothing
-            if (aStatic && bStatic)
+            if (!manifold.Colliding)
                 continue;
 
             // =========================
-            // RESOLUTION
+            // POSITION CORRECTION
             // =========================
-            if (aStatic)
+            glm::vec3 correction =
+                manifold.Normal *
+                std::max(manifold.Penetration - slop, 0.0f);
+
+            if (rba.IsStatic && rbb.IsStatic)
+                continue;
+
+            if (rba.IsStatic)
             {
-                tb.Position += manifold.Normal * manifold.Penetration;
+                tb.Position += correction;
             }
-            else if (bStatic)
+            else if (rbb.IsStatic)
             {
-                ta.Position -= manifold.Normal * manifold.Penetration;
+                ta.Position -= correction;
             }
             else
             {
-                // split movement
-                ta.Position -= manifold.Normal * manifold.Penetration * 0.5f;
-                tb.Position += manifold.Normal * manifold.Penetration * 0.5f;
+                ta.Position -= correction * 0.5f;
+                tb.Position += correction * 0.5f;
+            }
+
+            // =========================
+            // VELOCITY RESPONSE (IMPULSE STYLE)
+            // =========================
+            glm::vec3 relativeVel = rba.Velocity - rbb.Velocity;
+            float velAlongNormal = glm::dot(relativeVel, manifold.Normal);
+
+            if (velAlongNormal < 0.0f)
+            {
+                glm::vec3 impulse = manifold.Normal * velAlongNormal;
+
+                if (!rba.IsStatic)
+                    rba.Velocity -= impulse;
+
+                if (!rbb.IsStatic)
+                    rbb.Velocity += impulse;
             }
         }
     }

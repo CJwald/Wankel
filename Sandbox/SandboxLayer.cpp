@@ -69,6 +69,9 @@ SandboxLayer::SandboxLayer()
 	// Collider
 	auto& collider = player.AddComponent<AABBComponent>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
+	auto& rb = player.AddComponent<RigidbodyComponent>();
+	rb.Velocity = {0,0,0};
+	rb.IsStatic = false;	
 
 
 	// =========================
