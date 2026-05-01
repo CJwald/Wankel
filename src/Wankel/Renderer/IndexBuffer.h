@@ -9,6 +9,7 @@ public:
     ~IndexBuffer();
 
     void Bind() const;
+	unsigned int GetID() const { return m_ID; }
 
     uint32_t GetCount() const { return m_Count; }
 

@@ -26,14 +26,15 @@ SandboxLayer::SandboxLayer()
 	    Geometry::CubeVertices,
 	    sizeof(Geometry::CubeVertices),
 	    Geometry::CubeIndices,
-	    36
+	    sizeof(Geometry::CubeIndices)
 	);
-	m_TriangleMesh = std::make_unique<Mesh>(
-	    Geometry::TriangleVertices,
-	    sizeof(Geometry::TriangleVertices),
-	    Geometry::TriangleIndices,
-	    12
-	);
+	// ADDING TWO OF THESE SEEMS TO BREAK THE FIRST. DONT KNOW WHY
+	//m_TriangleMesh = std::make_unique<Mesh>(
+	//    Geometry::TriangleVertices,
+	//    sizeof(Geometry::TriangleVertices),
+	//    Geometry::TriangleIndices,
+	//    sizeof(Geometry::TriangleIndices)
+	//);
 
 	// Shader
 	m_Shader = std::make_unique<Shader>(
@@ -41,17 +42,53 @@ SandboxLayer::SandboxLayer()
 		"shaders/cube.frag"
 	);
 
-	// Camera
-	m_Controller.GetCamera().SetPosition({0.0f, 0.0f, 3.0f});
-	m_Controller.GetCamera().SetFOV(70.0f);
+	// =========================
+    // PLAYER ENTITY
+    // =========================
+    auto player = m_Scene.CreateEntity();
+	auto& pt = player.AddComponent<TransformComponent>();
+    pt.Position = {0,0,0};
 
-	// ECS
-	//auto cube = m_Scene.CreateEntity();
-	//auto& transform = cube.AddComponent<TransformComponent>();
-	auto triangle = m_Scene.CreateEntity();
-	auto& transform = triangle.AddComponent<TransformComponent>();
-	transform.Position = {0.0f, 0.0f, 0.0f};
-	transform.Scale = {1.0f, 1.0f, 1.0f};
+    //player.AddComponent<MeshComponent>().MeshPtr = m_TriangleMesh.get();
+    player.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
+    player.AddComponent<PlayerControllerComponent>();
+
+    // CAMERA ENTITY
+    auto camEntity = m_Scene.CreateEntity();
+    camEntity.AddComponent<TransformComponent>();
+    auto& follow = camEntity.AddComponent<FollowCameraComponent>();
+
+    follow.Target = player;
+    follow.Offset = {-0.25f, 1.0f, 3.0f};
+	float roll = 0.0f; float pitch = -4.0f; float yaw = -1.0f; 
+	follow.RotationOffset =
+    	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(yaw), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(roll), glm::vec3(0,0,1));
+
+
+	// =========================
+    // OTHER OBJECTS
+    // =========================
+    for (int i = 0; i < 5; i++) {
+        auto e = m_Scene.CreateEntity();
+
+        auto& t = e.AddComponent<TransformComponent>();
+        t.Position = {i * 2.0f, 0.0f, -5.0f};
+
+        e.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
+    }
+
+
+
+
+	//// ECS
+	////auto cube = m_Scene.CreateEntity();
+	////auto& transform = cube.AddComponent<TransformComponent>();
+	//auto triangle = m_Scene.CreateEntity();
+	//auto& transform = triangle.AddComponent<TransformComponent>();
+	//transform.Position = {0.0f, 0.0f, 0.0f};
+	//transform.Scale = {1.0f, 1.0f, 1.0f};
 }
 
 void SandboxLayer::OnUpdate() {
@@ -59,25 +96,27 @@ void SandboxLayer::OnUpdate() {
 	float dt = time - m_LastFrame;
 	m_LastFrame = time;
 
-	m_Controller.OnUpdate(dt);
+	//m_Controller.OnUpdate(dt);
+    m_Scene.OnUpdate(dt, m_Controller.GetCamera());
 
 	Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
 
-	auto& cam = m_Controller.GetCamera();
+	//auto& cam = m_Controller.GetCamera();
 
-	Renderer::BeginScene(cam);
+	//Renderer::BeginScene(cam);
+    Renderer::BeginScene(m_Controller.GetCamera());
 
-	auto view = m_Scene.Registry().view<TransformComponent>();
+	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
 
 	for (auto entity : view) {
 		auto& transform = view.get<TransformComponent>(entity);
+        auto& mesh = view.get<MeshComponent>(entity);
 
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, transform.Position);
-		model = glm::scale(model, transform.Scale);
+		glm::mat4 model = transform.GetTransform();
 
 		//Renderer::Submit(model, *m_CubeMesh, m_Shader.get());
-		Renderer::Submit(model, *m_TriangleMesh, m_Shader.get());
+		//Renderer::Submit(model, *m_TriangleMesh, m_Shader.get());
+        Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
 	}
 	
 	Renderer::EndScene();

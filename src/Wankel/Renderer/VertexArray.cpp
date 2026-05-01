@@ -44,6 +44,9 @@ namespace Wankel {
 
 	void VertexArray::SetIndexBuffer(const IndexBuffer& ib) {
 	    glBindVertexArray(m_ID);
-	    ib.Bind(); // IMPORTANT: binds to VAO
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib.GetID());
+	    //ib.Bind();
+
+		m_IndexBufferID = ib.GetID();
 	}
 }

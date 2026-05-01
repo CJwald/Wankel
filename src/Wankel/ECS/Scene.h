@@ -1,6 +1,6 @@
 #pragma once
 #include "Entity.h"
-//#include <entt/entt.hpp>
+#include "Wankel/Renderer/Camera.h"
 
 namespace Wankel {
 
@@ -13,6 +13,8 @@ namespace Wankel {
         void DestroyEntity(Entity entity) {
             m_Registry.destroy(entity.GetHandle());
         }
+
+		void OnUpdate(float dt, Camera& camera);
 
         entt::registry& Registry() { return m_Registry; }
 

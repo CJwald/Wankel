@@ -21,6 +21,7 @@ namespace Wankel {
 	
 	private:
 	    unsigned int m_ID;
+		unsigned int m_IndexBufferID = 0;
 	};
 
 }

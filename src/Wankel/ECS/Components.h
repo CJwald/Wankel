@@ -1,23 +1,45 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include "Wankel/Renderer/Mesh.h"
 
 namespace Wankel {
 
     struct TransformComponent {
         glm::vec3 Position{0.0f};
-        glm::vec3 Rotation{0.0f};
+		glm::quat Orientation{1,0,0,0};
         glm::vec3 Scale{1.0f};
+
+		glm::mat4 GetTransform() const {
+            return glm::translate(glm::mat4(1.0f), Position)
+                 * glm::toMat4(Orientation)
+                 * glm::scale(glm::mat4(1.0f), Scale);
+        }
+    };
+
+	struct MeshComponent {
+        Mesh* MeshPtr = nullptr;
     };
 
     struct CameraComponent {
-        float FOV = 45.0f;
+        float FOV = 66.0f; // Vertical FOV ~= 100 Horizontal on 16:9
         float Near = 0.1f;
         float Far = 1000.0f;
     };
 
-    struct MeshComponent {
-        // pointer/handle to your existing mesh
-        void* Mesh = nullptr;
+	struct FollowCameraComponent {
+        Entity Target;
+        glm::vec3 Offset{0.0f, 2.0f, 5.0f};
+        glm::quat RotationOffset{1, 0, 0, 0};
+    };
+
+	struct PlayerControllerComponent {
+        float MoveSpeed = 5.0f;
+        float WindowSensitivity = 0.002f; 
+        float MouseSensitivity = 1.5f; 
+        float RollSpeed = 1.5f; 
+        glm::quat Orientation{1,0,0,0};
     };
 
 }

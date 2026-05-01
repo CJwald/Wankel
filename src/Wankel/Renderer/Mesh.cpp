@@ -31,7 +31,7 @@ Mesh::~Mesh() {}
 
 void Mesh::Bind() const {
     m_VertexArray->Bind();
-    m_VertexBuffer->Bind();
+    //m_VertexBuffer->Bind();
 }
 
 uint32_t Mesh::GetIndexCount() const {
