@@ -1,3 +1,4 @@
+#include "wkpch.h"
 #include "PhysicsSystem.h"
 
 #include "../Collision/BroadPhase/AABB.h"
@@ -66,6 +67,10 @@ void PhysicsSystem::Update(Scene& scene, float dt)
 
             if (!manifold.Colliding)
                 continue;
+			if (manifold.Colliding)
+			{
+				WK_CORE_INFO("HIT: X: {0:.8f}  Y: {1:.8f}  Z: {2:.8f}  PEN: {3:.8f}", manifold.Normal.x, manifold.Normal.y, manifold.Normal.z, manifold.Penetration);
+			}
 
             // =========================
             // POSITION CORRECTION
