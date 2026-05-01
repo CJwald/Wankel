@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include "Wankel/Renderer/Camera.h"
+#include "Wankel/Physics/Systems/PhysicsSystem.h"
 
 namespace Wankel {
 
@@ -20,6 +21,7 @@ namespace Wankel {
 
     private:
         entt::registry m_Registry;
+		PhysicsSystem m_PhysicsSystem;
     };
 
 }

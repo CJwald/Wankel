@@ -66,6 +66,10 @@ SandboxLayer::SandboxLayer()
     	glm::angleAxis(glm::radians(yaw), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(roll), glm::vec3(0,0,1));
 
+	// Collider
+	auto& collider = player.AddComponent<AABBComponent>();
+	collider.HalfSize = {0.5f, 0.5f, 0.5f};
+
 
 	// =========================
     // OTHER OBJECTS
@@ -75,8 +79,14 @@ SandboxLayer::SandboxLayer()
 
         auto& t = e.AddComponent<TransformComponent>();
         t.Position = {i * 2.0f, 0.0f, -5.0f};
+	e.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
 
-        e.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
+        auto& rb = e.AddComponent<RigidbodyComponent>();
+        rb.IsStatic = true;
+	
+        // Collider
+        auto& collider = e.AddComponent<AABBComponent>();
+        collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
 

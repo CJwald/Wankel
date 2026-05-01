@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include "Wankel/Renderer/Mesh.h"
+#include "Entity.h"
 
 namespace Wankel {
 
@@ -58,6 +59,10 @@ namespace Wankel {
 	    // union or variant later
 	    glm::vec3 Size;   // AABB
 	    float Radius;     // Sphere
+	};
+
+	struct AABBComponent {
+    	glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f}; // matches cube mesh
 	};
 
 }

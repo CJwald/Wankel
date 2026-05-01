@@ -122,18 +122,9 @@ namespace Wankel {
 
     		glm::quat cameraRot = glm::quat_cast(rotMat);
     		camera.SetOrientation(cameraRot);
-    		//glm::vec3 rotatedOffset = targetTransform.Orientation * follow.Offset;
-    		//glm::vec3 cameraPos = targetTransform.Position + rotatedOffset;
-
-            //camera.SetPosition(cameraPos);
-
-			//glm::quat camRot = glm::quatLookAt(
-    		//    glm::normalize(targetTransform.Position - cameraPos),
-    		//    targetTransform.Orientation * glm::vec3(0,1,0)
-    		//);
-
-            //camera.SetOrientation(camRot);
         }
+
+		m_PhysicsSystem.Update(*this, dt);
     }
 
 }
