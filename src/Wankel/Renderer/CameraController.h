@@ -9,6 +9,7 @@ namespace Wankel {
 		CameraController(float aspect);
 
 		void OnUpdate(float deltaTime);
+		void OnResize(float width, float height);
 
 		Camera& GetCamera() { return m_Camera; }
 
@@ -18,6 +19,7 @@ namespace Wankel {
 		float m_MoveSpeed = 5.0f;
 		float m_RotationSpeed = 1.5f;
 		float m_RollSpeed = 1.5f;
+		float m_WindowSensitivity = 0.002f;
 
 		glm::quat m_Orientation{1,0,0,0};
 	};

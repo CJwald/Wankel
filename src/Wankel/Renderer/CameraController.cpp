@@ -35,18 +35,15 @@ namespace Wankel {
 	    // ========================
 	    // Mouse look
 	    // ========================
-	    float dx = Input::GetMouseDeltaX();
-	    float dy = Input::GetMouseDeltaY();
+	    float dx = Input::GetMouseDeltaX() * m_WindowSensitivity;
+	    float dy = Input::GetMouseDeltaY() * m_WindowSensitivity;
 
 	    if (dx != 0.0f || dy != 0.0f) {
-	        //WK_CLIENT_INFO("Mouse Delta this frame: dx={0:.3f}, dy={1:.3f}", dx, dy);
-
 	        // --- YAW (world up, always stable) ---
 	        glm::quat yaw = glm::angleAxis(
 	            -dx * m_RotationSpeed,
 	            glm::vec3(0.0f, 1.0f, 0.0f)
 	        );
-
 	        m_Orientation = glm::normalize(yaw * m_Orientation);
 
 	        // --- recompute right AFTER yaw ---
@@ -57,7 +54,6 @@ namespace Wankel {
 	            -dy * m_RotationSpeed,
 	            newRight
 	        );
-
 	        m_Orientation = glm::normalize(pitch * m_Orientation);
 	    }
 
@@ -81,5 +77,9 @@ namespace Wankel {
 	    // ========================
 	    m_Camera.SetPosition(position);
 	    m_Camera.SetOrientation(m_Orientation);
+	}
+
+	void CameraController::OnResize(float width, float height) {
+	    m_Camera.SetAspect(width / height);
 	}
 }

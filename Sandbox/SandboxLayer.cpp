@@ -4,6 +4,7 @@
 
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
+#include <Wankel/Core/Events/Event.h>
 #include <Wankel/ECS/Components.h>
 #include <Wankel/Renderer/Renderer.h>
 #include <Wankel/Renderer/Shader.h>
@@ -80,6 +81,15 @@ void SandboxLayer::OnUpdate() {
 	}
 	
 	Renderer::EndScene();
+}
+
+void SandboxLayer::OnEvent(Event& e) { // I DONT THINK THIS SHOULD BE HERE:
+    EventDispatcher dispatcher(e);
+
+    dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e) {
+        m_Controller.OnResize((float)e.GetWidth(), (float)e.GetHeight());
+        return false;
+    });
 }
 
 }

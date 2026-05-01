@@ -72,6 +72,10 @@ namespace Wankel {
 
 	bool Application::OnWindowResize(WindowResizeEvent& e) {
 	    Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+		
+		for (Layer* layer : m_LayerStack)
+        	layer->OnEvent(e); // propagate resize
+
 	    return false;
 	}
 

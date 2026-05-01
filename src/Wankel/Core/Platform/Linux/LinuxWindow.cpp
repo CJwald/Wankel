@@ -68,7 +68,7 @@ namespace Wankel {
 
 		glViewport(0, 0, fbWidth, fbHeight);
 
-		//glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		//glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // This is giving large jumps on WSL
 		glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 		if (glfwRawMouseMotionSupported())
@@ -136,34 +136,28 @@ namespace Wankel {
 		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos) {
 		    auto* data = static_cast<WindowData*>(glfwGetWindowUserPointer(window));
 		    if (!data) return;
-		
-			if (data->FirstMouse) {
-			    data->LastMouseX = xPos;
-			    data->LastMouseY = yPos;
-			    data->FirstMouse = false;
-			    return;
-			}
 			
-			float prevX = data->LastMouseX;
-			float prevY = data->LastMouseY;
-			float deltaX = static_cast<float>(xPos - data->LastMouseX) * 0.002f;
-			float deltaY = static_cast<float>(yPos - data->LastMouseY) * 0.002f;
+			float dx, dy;
+
+    		if (data->FirstMouse) {
+    		    data->LastMouseX = xPos;
+    		    data->LastMouseY = yPos;
+    		    data->FirstMouse = false;
+    		    return;
+    		}
+
+    		dx = (float)(xPos - data->LastMouseX);
+    		dy = (float)(yPos - data->LastMouseY);
 			
-			data->LastMouseX = xPos;
-			data->LastMouseY = yPos;
-		
 			WK_CLIENT_TRACE(
 			    "x={0:.3f}, y={1:.3f}, prevX={2:.3f}, prevY={3:.3f}, dX={4:.3f}, dY={5:.3f}",
-			    xPos, yPos, prevX, prevY, deltaX, deltaY
+			    xPos, yPos, data->LastMouseX, data->LastMouseY, dx, dy
 			);
 
-		    // Update Input system
-		    Wankel::Input::SetMouseDelta(deltaX, deltaY);   // negative Y for natural look
-		
-		    // Optional: fire event
-		    MouseMovedEvent event(deltaX, deltaY);
-		    data->EventCallback(event);
-		    //Wankel::Input::SetMouseDelta(0.0f, 0.0f);   // negative Y for natural look
+    		data->LastMouseX = xPos;
+    		data->LastMouseY = yPos;
+
+    		Wankel::Input::SetMouseDelta(dx, dy);	
 		});
 	}
 
