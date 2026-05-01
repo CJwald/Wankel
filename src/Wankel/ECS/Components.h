@@ -42,4 +42,22 @@ namespace Wankel {
         glm::quat Orientation{1,0,0,0};
     };
 
+	struct RigidbodyComponent {
+	    glm::vec3 Velocity;
+	    float Mass = 1.0f;
+	    bool IsStatic = false;
+	};
+	
+	struct ColliderComponent {
+	    enum class Type {
+	        AABB,
+	        Sphere,
+	        Capsule
+	    } Type;
+	
+	    // union or variant later
+	    glm::vec3 Size;   // AABB
+	    float Radius;     // Sphere
+	};
+
 }

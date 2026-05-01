@@ -101,9 +101,6 @@ void SandboxLayer::OnUpdate() {
 
 	Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
 
-	//auto& cam = m_Controller.GetCamera();
-
-	//Renderer::BeginScene(cam);
     Renderer::BeginScene(m_Controller.GetCamera());
 
 	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
@@ -114,8 +111,6 @@ void SandboxLayer::OnUpdate() {
 
 		glm::mat4 model = transform.GetTransform();
 
-		//Renderer::Submit(model, *m_CubeMesh, m_Shader.get());
-		//Renderer::Submit(model, *m_TriangleMesh, m_Shader.get());
         Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
 	}
 	
