@@ -17,6 +17,7 @@ namespace Wankel {
 		Camera m_Camera;
 
 		float m_MoveSpeed = 5.0f;
+		float m_Boost = 4.2f;
 		float m_RotationSpeed = 1.5f;
 		float m_RollSpeed = 1.5f;
 		float m_WindowSensitivity = 0.002f;

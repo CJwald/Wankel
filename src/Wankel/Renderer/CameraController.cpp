@@ -9,7 +9,7 @@
 namespace Wankel {
 
 	CameraController::CameraController(float aspect)
-		: m_Camera(45.0f, aspect, 0.1f, 100.0f)
+		: m_Camera(45.0f, aspect, 0.1f, 1000.0f)
 	{}
 
 	void CameraController::OnUpdate(float dt) {
@@ -25,6 +25,7 @@ namespace Wankel {
 	    // ========================
 	    // Keyboard movement
 	    // ========================
+	    if (Input::IsKeyPressed(Key::LeftShift)) velocity = velocity * m_Boost; // doesnt work
 	    if (Input::IsKeyPressed(Key::W)) position += forward * velocity;
 	    if (Input::IsKeyPressed(Key::S)) position -= forward * velocity;
 	    if (Input::IsKeyPressed(Key::D)) position += right * velocity;
@@ -40,14 +41,19 @@ namespace Wankel {
 
 	    if (dx != 0.0f || dy != 0.0f) {
 	        // --- YAW (world up, always stable) ---
+	        //glm::quat yaw = glm::angleAxis(
+	        //    -dx * m_RotationSpeed,
+	        //    glm::vec3(0.0f, 1.0f, 0.0f)
+	        //);
 	        glm::quat yaw = glm::angleAxis(
 	            -dx * m_RotationSpeed,
-	            glm::vec3(0.0f, 1.0f, 0.0f)
+	           	up 
 	        );
 	        m_Orientation = glm::normalize(yaw * m_Orientation);
 
 	        // --- recompute right AFTER yaw ---
-	        glm::vec3 newRight = m_Orientation * glm::vec3(1, 0, 0);
+	        //glm::vec3 newRight = m_Orientation * glm::vec3(1, 0, 0);
+	        glm::vec3 newRight = m_Orientation * right;
 
 	        // --- PITCH (local right, stable now) ---
 	        glm::quat pitch = glm::angleAxis(

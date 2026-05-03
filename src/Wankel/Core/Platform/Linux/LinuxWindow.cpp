@@ -68,7 +68,7 @@ namespace Wankel {
 
 		glViewport(0, 0, fbWidth, fbHeight);
 
-		//glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // This is giving large jumps on WSL
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // This is giving large jumps on WSL
 		glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 		if (glfwRawMouseMotionSupported())

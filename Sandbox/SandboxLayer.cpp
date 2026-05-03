@@ -13,7 +13,16 @@
 // To-be removed eventually
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <random>
 
+float RandomFloat()
+{
+    static std::random_device rd;  // seed
+    static std::mt19937 gen(rd()); // Mersenne Twister RNG
+    static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+
+    return dist(gen);
+}
 
 namespace Wankel {
 
@@ -77,12 +86,21 @@ SandboxLayer::SandboxLayer()
 	// =========================
     // OTHER OBJECTS
     // =========================
-    for (int i = 0; i < 5; i++) {
+	int numCubes = 1000;
+	float spawnRange = 100.f;
+    for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
 
         auto& t = e.AddComponent<TransformComponent>();
-        t.Position = {i * 2.0f, 0.0f, -5.0f};
-	e.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
+		float X = RandomFloat() * spawnRange;
+		float Y = RandomFloat() * spawnRange;
+		float Z = RandomFloat() * spawnRange;
+        t.Position = {X, Y, Z};
+        t.Orientation = 
+    		glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(1,0,0)) *
+    		glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(0,1,0)) *
+    		glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(0,0,1));
+		e.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
 
         auto& rb = e.AddComponent<RigidbodyComponent>();
         rb.IsStatic = true;

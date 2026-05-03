@@ -28,7 +28,7 @@ namespace Wankel {
             glm::vec3 up      = controller.Orientation * glm::vec3(0,1,0);
 			
 			glm::vec3 moveDir(0.0f);
-
+			
         	if (Input::IsKeyPressed(Key::W)) moveDir += forward;
         	if (Input::IsKeyPressed(Key::S)) moveDir -= forward;
         	if (Input::IsKeyPressed(Key::D)) moveDir += right;
@@ -51,7 +51,7 @@ namespace Wankel {
 	    	    // --- YAW (world up, always stable) ---
 	    	    glm::quat yaw = glm::angleAxis(
 	    	        -dx * controller.MouseSensitivity,
-	    	        glm::vec3(0.0f, 1.0f, 0.0f)
+	    	        up
 	    	    );
 	    	    controller.Orientation = glm::normalize(yaw * controller.Orientation);
 
