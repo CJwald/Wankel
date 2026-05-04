@@ -35,3 +35,36 @@ compile_commands.json   # (optional – keep if you use clangd)
 # Testing / temporary
 *.log
 *.tmp
+
+# Documents
+*.pdf
+
+# Core LaTeX junk
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Bibliography
+*.bbl
+*.blg
+
+# Index/glossary
+*.idx
+*.ilg
+*.ind
+
+# Misc
+*.nav
+*.snm
+*.vrb
+
+# Editor junk
+*~
+*.swp
+.DS_Store
