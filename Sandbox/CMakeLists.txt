@@ -30,3 +30,7 @@ set_target_properties(Sandbox PROPERTIES
 # Copy shaders to bin dir
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
      DESTINATION ${CMAKE_BINARY_DIR}/bin)
+
+# Copy Mesh to bin dir
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/Assets
+     DESTINATION ${CMAKE_BINARY_DIR}/bin)

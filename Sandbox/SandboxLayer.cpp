@@ -1,6 +1,7 @@
 #include "SandboxLayer.h"
 #include "cube.h"
 #include "triangle.h"
+#include "PLYLoader.h"
 
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
@@ -30,13 +31,23 @@ SandboxLayer::SandboxLayer()
 	: Layer("Cube"), m_Controller(1280.0f / 720.0f)
 {
 
-	// Mesh setup
+	auto meshData = PLYLoader::Load("Assets/Mesh/SK_Ship.ply");
+	std::cout << "Verts: " << meshData.Vertices.size() << std::endl;
+	std::cout << "Indices: " << meshData.Indices.size() << std::endl;
 	m_CubeMesh = std::make_unique<Mesh>(
-	    Geometry::CubeVertices,
-	    sizeof(Geometry::CubeVertices),
-	    Geometry::CubeIndices,
-	    sizeof(Geometry::CubeIndices)
+	    meshData.Vertices.data(),
+	    meshData.Vertices.size() * sizeof(float),
+	    meshData.Indices.data(),
+	    meshData.Indices.size() * sizeof(uint32_t)
 	);
+
+	//// Mesh setup
+	//m_CubeMesh = std::make_unique<Mesh>(
+	//    Geometry::CubeVertices,
+	//    sizeof(Geometry::CubeVertices),
+	//    Geometry::CubeIndices,
+	//    sizeof(Geometry::CubeIndices)
+	//);
 	// ADDING TWO OF THESE SEEMS TO BREAK THE FIRST. DONT KNOW WHY
 	//m_TriangleMesh = std::make_unique<Mesh>(
 	//    Geometry::TriangleVertices,
@@ -68,7 +79,8 @@ SandboxLayer::SandboxLayer()
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    follow.Offset = {-0.25f, 1.0f, 3.0f};
+    //follow.Offset = {-0.125f, 0.5f, 1.5f};
+    follow.Offset = {-0.0125f, 0.25f, 0.5f};
 	float roll = 0.0f; float pitch = -4.0f; float yaw = -1.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
@@ -86,8 +98,8 @@ SandboxLayer::SandboxLayer()
 	// =========================
     // OTHER OBJECTS
     // =========================
-	int numCubes = 1000;
-	float spawnRange = 100.f;
+	int numCubes = 100;
+	float spawnRange = 50.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
 
