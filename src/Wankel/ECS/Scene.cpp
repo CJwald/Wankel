@@ -2,9 +2,8 @@
 #include "Scene.h"
 #include "Components.h"
 
-#include "Wankel/Core/Input.h"
-#include "Wankel/Core/KeyCodes.h"
 #include "Wankel/Renderer/Camera.h"
+#include "Wankel/Core/Input.h"
 
 #include <glm/gtx/quaternion.hpp>
 
@@ -27,19 +26,29 @@ namespace Wankel {
             glm::vec3 right   = controller.Orientation * glm::vec3(1,0,0);
             glm::vec3 up      = controller.Orientation * glm::vec3(0,1,0);
 			
-			glm::vec3 moveDir(0.0f);
+			glm::vec3 moveDir = controller.MoveInput;
 			
-        	if (Input::IsKeyPressed(Key::W)) moveDir += forward;
-        	if (Input::IsKeyPressed(Key::S)) moveDir -= forward;
-        	if (Input::IsKeyPressed(Key::D)) moveDir += right;
-        	if (Input::IsKeyPressed(Key::A)) moveDir -= right;
-        	if (Input::IsKeyPressed(Key::Space)) moveDir += up;
-        	if (Input::IsKeyPressed(Key::LeftControl)) moveDir -= up;
-		
+			// Convert from LOCAL → WORLD using orientation
+			moveDir =
+			      moveDir.z * forward
+			    + moveDir.x * right
+			    + moveDir.y * up;
+			
 			if (glm::length(moveDir) > 0.0f)
-        	    moveDir = glm::normalize(moveDir);
-
-			rb.ForcedVelocity = moveDir * controller.MoveSpeed;
+			    moveDir = glm::normalize(moveDir);
+			
+			// Apply boost
+			float speed = controller.MoveSpeed;
+			if (controller.Boost)
+			    speed *= controller.BoostMultiplier;
+			
+			rb.ForcedVelocity = moveDir * speed;
+			
+			float rollMag = controller.RollInput;
+			if (rollMag > 1.0f)
+				rollMag = 1.0f;
+			if (rollMag < -1.0f)
+				rollMag = -1.0f;
 
         	// =========================
         	// MOUSE LOOK
@@ -71,14 +80,9 @@ namespace Wankel {
 	    	// ========================
 	    	glm::vec3 currentForward = controller.Orientation * glm::vec3(0, 0, -1);
 
-	    	if (Input::IsKeyPressed(Key::E))
+	    	if (rollMag != 0.0f)
 	    	    controller.Orientation = glm::normalize(
-	    	        glm::angleAxis(controller.RollSpeed * dt, currentForward) * controller.Orientation 
-	    	    );
-
-	    	if (Input::IsKeyPressed(Key::Q))
-	    	    controller.Orientation = glm::normalize(
-	    	        glm::angleAxis(-controller.RollSpeed * dt, currentForward) * controller.Orientation 
+	    	        glm::angleAxis(rollMag * controller.RollSpeed * dt, currentForward) * controller.Orientation 
 	    	    );
 
 			transform.Orientation = controller.Orientation;

@@ -6,6 +6,8 @@
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
 #include <Wankel/Core/Events/Event.h>
+#include "Wankel/Core/Input.h"
+#include "Wankel/Core/KeyCodes.h"
 #include <Wankel/ECS/Components.h>
 #include <Wankel/Renderer/Renderer.h>
 #include <Wankel/Renderer/Shader.h>
@@ -139,7 +141,33 @@ void SandboxLayer::OnUpdate() {
 	float dt = time - m_LastFrame;
 	m_LastFrame = time;
 
-	//m_Controller.OnUpdate(dt);
+	 // =========================
+    // INPUT → CONTROLLER (GAME LOGIC)
+    // =========================
+ 	auto controllerView = m_Scene.Registry().view<PlayerControllerComponent>();
+
+    for (auto entity : controllerView) {
+        auto& controller = controllerView.get<PlayerControllerComponent>(entity);
+
+        glm::vec3 input(0.0f);
+		float rollInput(0.0f);
+
+        if (Input::IsKeyPressed(Key::W)) input.z += 1.0f;
+        if (Input::IsKeyPressed(Key::S)) input.z -= 1.0f;
+        if (Input::IsKeyPressed(Key::D)) input.x += 1.0f;
+        if (Input::IsKeyPressed(Key::A)) input.x -= 1.0f;
+        if (Input::IsKeyPressed(Key::Space)) input.y += 1.0f;
+        if (Input::IsKeyPressed(Key::LeftControl)) input.y -= 1.0f;
+        if (Input::IsKeyPressed(Key::Q)) rollInput = -1.0f;
+        if (Input::IsKeyPressed(Key::E)) rollInput = 1.0f;
+
+        controller.MoveInput = input;
+        controller.RollInput = rollInput;
+
+        // BOOST
+        controller.Boost = Input::IsKeyPressed(Key::LeftShift);
+    }
+
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());
 
 	Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
