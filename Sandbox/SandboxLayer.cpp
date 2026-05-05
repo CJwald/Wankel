@@ -31,7 +31,7 @@ SandboxLayer::SandboxLayer()
 	: Layer("Cube"), m_Controller(1280.0f / 720.0f)
 {
 
-	auto meshData = PLYLoader::Load("Assets/Mesh/SK_Ship.ply");
+	auto meshData = PLYLoader::Load("Assets/Mesh/ShipGrey.ply");
 	std::cout << "Verts: " << meshData.Vertices.size() << std::endl;
 	std::cout << "Indices: " << meshData.Indices.size() << std::endl;
 	m_CubeMesh = std::make_unique<Mesh>(
