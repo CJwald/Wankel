@@ -9,13 +9,12 @@ public:
     ~IndexBuffer();
 
     void Bind() const;
-	unsigned int GetID() const { return m_ID; }
-
-    uint32_t GetCount() const { return m_Count; }
+    uint32_t GetCount() const;
+	uint32_t GetID() const;
 
 private:
-    uint32_t m_ID;
     uint32_t m_Count;
+    uint32_t m_ID;
 };
 
 }

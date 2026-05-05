@@ -34,20 +34,20 @@ SandboxLayer::SandboxLayer()
 	auto meshData = PLYLoader::Load("Assets/Mesh/ShipGrey.ply");
 	std::cout << "Verts: " << meshData.Vertices.size() << std::endl;
 	std::cout << "Indices: " << meshData.Indices.size() << std::endl;
-	m_CubeMesh = std::make_unique<Mesh>(
+	m_ShipMesh = std::make_unique<Mesh>(
 	    meshData.Vertices.data(),
 	    meshData.Vertices.size() * sizeof(float),
 	    meshData.Indices.data(),
 	    meshData.Indices.size() * sizeof(uint32_t)
 	);
 
-	//// Mesh setup
-	//m_CubeMesh = std::make_unique<Mesh>(
-	//    Geometry::CubeVertices,
-	//    sizeof(Geometry::CubeVertices),
-	//    Geometry::CubeIndices,
-	//    sizeof(Geometry::CubeIndices)
-	//);
+	// Mesh setup
+	m_CubeMesh = std::make_unique<Mesh>(
+	    Geometry::CubeVertices,
+	    sizeof(Geometry::CubeVertices),
+	    Geometry::CubeIndices,
+	    sizeof(Geometry::CubeIndices)
+	);
 	// ADDING TWO OF THESE SEEMS TO BREAK THE FIRST. DONT KNOW WHY
 	//m_TriangleMesh = std::make_unique<Mesh>(
 	//    Geometry::TriangleVertices,
@@ -70,7 +70,7 @@ SandboxLayer::SandboxLayer()
     pt.Position = {0,0,0};
 
     //player.AddComponent<MeshComponent>().MeshPtr = m_TriangleMesh.get();
-    player.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
+    player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
 
     // CAMERA ENTITY

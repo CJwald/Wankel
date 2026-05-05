@@ -36,7 +36,8 @@ namespace Wankel {
 	void Application::Run() {
 		while (m_Running) {
 
-			//Input::ResetMouseDelta(); // TODO: This may need to be removed
+			m_Window->OnUpdate();
+			
 			Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
 
 			for (Layer* layer : m_LayerStack)
@@ -48,8 +49,6 @@ namespace Wankel {
     		    layer->OnImGuiRender(); // optional but recommended
 
     		m_ImGuiLayer->End();
-
-			m_Window->OnUpdate();
 		}
 	}
 	

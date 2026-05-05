@@ -19,4 +19,12 @@ void IndexBuffer::Bind() const {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
 }
 
+uint32_t IndexBuffer::GetCount() const {
+    return m_Count;
+}
+
+uint32_t IndexBuffer::GetID() const {
+    return m_ID;
+}
+
 }

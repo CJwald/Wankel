@@ -39,7 +39,7 @@ namespace Wankel {
 			if (glm::length(moveDir) > 0.0f)
         	    moveDir = glm::normalize(moveDir);
 
-        	rb.Velocity = moveDir * controller.MoveSpeed;
+			rb.ForcedVelocity = moveDir * controller.MoveSpeed;
 
         	// =========================
         	// MOUSE LOOK
@@ -83,6 +83,8 @@ namespace Wankel {
 
 			transform.Orientation = controller.Orientation;
 		}
+
+		m_PhysicsSystem.Update(*this, dt);
 
         // =========================
         // Follow Camera System
@@ -133,7 +135,6 @@ namespace Wankel {
     		camera.SetOrientation(cameraRot);
         }
 
-		m_PhysicsSystem.Update(*this, dt);
     }
 
 }

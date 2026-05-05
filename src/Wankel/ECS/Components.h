@@ -44,7 +44,8 @@ namespace Wankel {
     };
 
 	struct RigidbodyComponent {
-	    glm::vec3 Velocity;
+	    glm::vec3 Velocity{0.0f};
+	    glm::vec3 ForcedVelocity{0.0f};
 	    float Mass = 1.0f;
 	    bool IsStatic = false;
 	};
