@@ -6,7 +6,7 @@ namespace Wankel {
     public:
         static void Init();
         static void Shutdown();
-        static void PollEvents();
+        static void PollControllers();
     };
 
 }

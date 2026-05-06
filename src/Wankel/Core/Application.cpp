@@ -2,9 +2,9 @@
 #include "Wankel/Core/Application.h"
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
 #include "Wankel/Core/Input.h"
-#include "Wankel/Core/ControllerInput.h" 
-#include "Wankel/Core/Events/ControllerAxisEvent.h"
-#include "Wankel/Core/Events/ControllerButtonEvent.h"
+//#include "Wankel/Core/ControllerInput.h" 
+//#include "Wankel/Core/Events/ControllerAxisEvent.h"
+//#include "Wankel/Core/Events/ControllerButtonEvent.h"
 #include "Wankel/Renderer/Renderer.h"
 #include "Wankel/Core/InputSystem.h"
 
@@ -42,7 +42,7 @@ namespace Wankel {
 	void Application::Run() {
 		while (m_Running) {
 
-			InputSystem::PollEvents();
+			InputSystem::PollControllers();
 			
 			m_Window->OnUpdate();
 			
