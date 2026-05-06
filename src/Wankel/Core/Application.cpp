@@ -2,7 +2,11 @@
 #include "Wankel/Core/Application.h"
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
 #include "Wankel/Core/Input.h"
+#include "Wankel/Core/ControllerInput.h" 
+#include "Wankel/Core/Events/ControllerAxisEvent.h"
+#include "Wankel/Core/Events/ControllerButtonEvent.h"
 #include "Wankel/Renderer/Renderer.h"
+#include "Wankel/Core/InputSystem.h"
 
 
 namespace Wankel {
@@ -15,12 +19,14 @@ namespace Wankel {
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
 		Renderer::Init();
+		InputSystem::Init();
 		
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application() {
+		InputSystem::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer) {
@@ -36,6 +42,8 @@ namespace Wankel {
 	void Application::Run() {
 		while (m_Running) {
 
+			InputSystem::PollEvents();
+			
 			m_Window->OnUpdate();
 			
 			Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
@@ -54,6 +62,7 @@ namespace Wankel {
 	
 	void Application::OnEvent(Event& event) { 
 		EventDispatcher dispatcher(event);
+		
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
 

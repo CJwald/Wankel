@@ -7,6 +7,7 @@
 #include <Wankel/Core/Time.h>
 #include <Wankel/Core/Events/Event.h>
 #include "Wankel/Core/Input.h"
+#include "Wankel/Core/ControllerInput.h"
 #include "Wankel/Core/KeyCodes.h"
 #include <Wankel/ECS/Components.h>
 #include <Wankel/Renderer/Renderer.h>
@@ -50,7 +51,6 @@ SandboxLayer::SandboxLayer()
 	    Geometry::CubeIndices,
 	    sizeof(Geometry::CubeIndices)
 	);
-	// ADDING TWO OF THESE SEEMS TO BREAK THE FIRST. DONT KNOW WHY
 	//m_TriangleMesh = std::make_unique<Mesh>(
 	//    Geometry::TriangleVertices,
 	//    sizeof(Geometry::TriangleVertices),
@@ -100,8 +100,8 @@ SandboxLayer::SandboxLayer()
 	// =========================
     // OTHER OBJECTS
     // =========================
-	int numCubes = 100;
-	float spawnRange = 50.f;
+	int numCubes = 1000;
+	float spawnRange = 100.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
 
@@ -123,25 +123,15 @@ SandboxLayer::SandboxLayer()
         auto& collider = e.AddComponent<AABBComponent>();
         collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
-
-
-
-
-	//// ECS
-	////auto cube = m_Scene.CreateEntity();
-	////auto& transform = cube.AddComponent<TransformComponent>();
-	//auto triangle = m_Scene.CreateEntity();
-	//auto& transform = triangle.AddComponent<TransformComponent>();
-	//transform.Position = {0.0f, 0.0f, 0.0f};
-	//transform.Scale = {1.0f, 1.0f, 1.0f};
 }
+
 
 void SandboxLayer::OnUpdate() {
 	float time = Time::GetTime();
 	float dt = time - m_LastFrame;
 	m_LastFrame = time;
 
-	 // =========================
+	// =========================
     // INPUT → CONTROLLER (GAME LOGIC)
     // =========================
  	auto controllerView = m_Scene.Registry().view<PlayerControllerComponent>();
@@ -151,6 +141,9 @@ void SandboxLayer::OnUpdate() {
 
         glm::vec3 input(0.0f);
 		float rollInput(0.0f);
+		
+        // BOOST
+		controller.BoostMultiplier = 2.0f;
 
         if (Input::IsKeyPressed(Key::W)) input.z += 1.0f;
         if (Input::IsKeyPressed(Key::S)) input.z -= 1.0f;
@@ -160,12 +153,50 @@ void SandboxLayer::OnUpdate() {
         if (Input::IsKeyPressed(Key::LeftControl)) input.y -= 1.0f;
         if (Input::IsKeyPressed(Key::Q)) rollInput = -1.0f;
         if (Input::IsKeyPressed(Key::E)) rollInput = 1.0f;
+        controller.Boost = Input::IsKeyPressed(Key::LeftShift);
 
+		// =========================
+	    // CONTROLLER (Player 0)
+	    // =========================
+	    int pad = 0;
+
+	    float lx = ControllerInput::GetAxis(pad, 0); // LEFT_X
+	    float ly = ControllerInput::GetAxis(pad, 1); // LEFT_Y
+	    float rx = ControllerInput::GetAxis(pad, 2); // RIGHT_X
+	    float ry = ControllerInput::GetAxis(pad, 3); // RIGHT_Y
+
+	    // Movement (left stick)
+	    input.x += lx;
+	    input.z += -ly; // invert Y (forward)
+
+	    // Vertical movement via triggers
+	    float lt = ControllerInput::GetAxis(pad, 4);
+	    float rt = ControllerInput::GetAxis(pad, 5);
+	    input.y += rt - lt;
+	    
+	    // Look (right stick)
+    	controller.LookDeltaX = rx * 10.0f; // scale to feel like mouse
+    	controller.LookDeltaY = ry * 10.0f;
+
+    	// Roll (optional: shoulder buttons)
+    	if (ControllerInput::IsButtonPressed(pad, 4)) rollInput = -1.0f; // LB
+    	if (ControllerInput::IsButtonPressed(pad, 5)) rollInput = 1.0f;  // RB
+
+    	// BOOST (R3 click)
+	    controller.Boost = ControllerInput::IsButtonPressed(pad, 9);
+    
+    
+    
+    
+    
+    
         controller.MoveInput = input;
         controller.RollInput = rollInput;
+        if (rx == 0.0f && ry == 0.0f) {
+			controller.LookDeltaX = Input::GetMouseDeltaX();
+			controller.LookDeltaY = Input::GetMouseDeltaY();
+		}
 
-        // BOOST
-        controller.Boost = Input::IsKeyPressed(Key::LeftShift);
     }
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());

@@ -7,6 +7,11 @@
 #include "Wankel/Core/Events/ApplicationEvent.h"
 #include "Wankel/Core/Events/MouseEvent.h"
 #include "Wankel/Core/Events/KeyEvent.h"
+#include "Wankel/Core/Events/ControllerAxisEvent.h"
+#include "Wankel/Core/Events/ControllerButtonEvent.h"
+#include "Wankel/Core/ControllerCodes.h"
+
+
 
 #include "Wankel/Core/Input.h"
 
@@ -187,6 +192,54 @@ namespace Wankel {
     	}
 
 		glfwPollEvents();
+		
+		// =========================
+		// CONTROLLER POLLING
+		// =========================
+		for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_4; jid++) {
+
+			if (!glfwJoystickIsGamepad(jid))
+				continue;
+
+			GLFWgamepadstate state;
+			if (!glfwGetGamepadState(jid, &state))
+				continue;
+
+			int controllerID = jid;
+
+			// -------------------------
+			// AXES
+			// -------------------------
+			for (int axis = 0; axis < GLFW_GAMEPAD_AXIS_LAST + 1; axis++) {
+				float value = state.axes[axis];
+
+				ControllerAxisMovedEvent event(controllerID, axis, value);
+				m_Data.EventCallback(event);
+			}
+
+			// -------------------------
+			// BUTTONS
+			// -------------------------
+			for (int button = 0; button < GLFW_GAMEPAD_BUTTON_LAST + 1; button++) {
+
+				static bool prevButtons[4][32] = {};
+
+				bool pressed = state.buttons[button] == GLFW_PRESS;
+				bool prev = prevButtons[controllerID][button];
+
+				if (pressed && !prev) {
+				    ControllerButtonPressedEvent event(controllerID, button);
+				    m_Data.EventCallback(event);
+				}
+				else if (!pressed && prev) {
+				    ControllerButtonReleasedEvent event(controllerID, button);
+				    m_Data.EventCallback(event);
+				}
+
+				prevButtons[controllerID][button] = pressed;
+			}
+		}
+
 		glfwSwapBuffers(m_Window);
 	}
 

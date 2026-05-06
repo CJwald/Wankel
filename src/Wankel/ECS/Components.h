@@ -37,13 +37,17 @@ namespace Wankel {
 
 	struct PlayerControllerComponent {
         float MoveSpeed = 5.0f;
-	    float BoostMultiplier = 0.2f;
+	    float BoostMultiplier = 1.2f;
+	    float BoostDurration = 10.0f;
+	    float BoostCooldown = 5.0f;
 	    bool Boost = false;
 	    
 		float WindowSensitivity = 0.002f; 
 	    float MouseSensitivity = 2.5f; 
 	    float RollSpeed = 2.5f; 
 	    
+		float LookDeltaX = 0.0f;
+		float LookDeltaY = 0.0f;
 		glm::vec3 MoveInput{0.0f};
 	    float RollInput = 0.0f; 
 	    

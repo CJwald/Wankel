@@ -3,7 +3,6 @@
 #include "Components.h"
 
 #include "Wankel/Renderer/Camera.h"
-#include "Wankel/Core/Input.h"
 
 #include <glm/gtx/quaternion.hpp>
 
@@ -53,8 +52,8 @@ namespace Wankel {
         	// =========================
         	// MOUSE LOOK
         	// =========================
-            float dx = Input::GetMouseDeltaX() * controller.WindowSensitivity;
-            float dy = Input::GetMouseDeltaY() * controller.WindowSensitivity;
+            float dx = controller.LookDeltaX * controller.WindowSensitivity;
+            float dy = controller.LookDeltaY * controller.WindowSensitivity;
 
 	    	if (dx != 0.0f || dy != 0.0f) {
 	    	    // --- YAW (world up, always stable) ---
