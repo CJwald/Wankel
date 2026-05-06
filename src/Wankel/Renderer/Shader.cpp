@@ -67,4 +67,14 @@ namespace Wankel {
 	    glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 
+	void Shader::SetVec3(const std::string& name, const glm::vec3& value) {
+	    int loc = glGetUniformLocation(m_RendererID, name.c_str());
+	    glUniform3fv(loc, 1, glm::value_ptr(value));
+	}
+	
+	void Shader::SetFloat(const std::string& name, float value) {
+	    int loc = glGetUniformLocation(m_RendererID, name.c_str());
+	    glUniform1f(loc, value);
+	}
+
 }

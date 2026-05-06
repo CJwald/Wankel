@@ -12,6 +12,7 @@ namespace Wankel {
 	struct RendererData {
     	glm::mat4 View;
     	glm::mat4 Projection;
+		glm::vec3 CameraPos;
 	};
 	
 	static RendererData s_Data;
@@ -29,6 +30,7 @@ namespace Wankel {
 	void Renderer::BeginScene(const Camera& camera) {
 		s_Data.View = camera.GetViewMatrix();
 		s_Data.Projection = camera.GetProjectionMatrix();
+		s_Data.CameraPos = camera.GetPosition();
 		// This should eventually change to Camera::GetViewProjection()
 	}
 
@@ -41,6 +43,9 @@ namespace Wankel {
 		shader->SetMat4("view", s_Data.View);
 		shader->SetMat4("projection", s_Data.Projection);
 	    shader->SetMat4("model", transform);
+		shader->SetVec3("u_CameraPos", s_Data.CameraPos);
+		shader->SetVec3("u_FogColor", glm::vec3(0.5f, 0.6f, 0.7f));
+		shader->SetFloat("u_FogDensity", 0.02f);
 	
     	mesh.Bind();
 
