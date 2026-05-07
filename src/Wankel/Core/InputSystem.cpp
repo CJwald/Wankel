@@ -26,8 +26,62 @@ namespace Wankel {
         for (int i = 0; i < count; i++) {
             SDL_Gamepad* pad = SDL_OpenGamepad(ids[i]);
             if (pad) {
-                s_Gamepads.push_back(pad);
-                WK_CORE_INFO("Controller connected: {0}", SDL_GetGamepadName(pad));
+				// =========================
+    			// AXES
+    			// =========================
+
+    			ControllerInput::SetAxis(
+    			    (int)i,
+    			    (int)GamepadAxis::LeftX,
+    			    SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX) / 32767.0f
+    			);
+
+    			ControllerInput::SetAxis(
+    			    (int)i,
+    			    (int)GamepadAxis::LeftY,
+    			    SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f
+    			);
+
+    			ControllerInput::SetAxis(
+    			    (int)i,
+    			    (int)GamepadAxis::RightX,
+    			    SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTX) / 32767.0f
+    			);
+
+    			ControllerInput::SetAxis(
+    			    (int)i,
+    			    (int)GamepadAxis::RightY,
+    			    SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTY) / 32767.0f
+    			);
+
+    			ControllerInput::SetAxis(
+    			    (int)i,
+    			    (int)GamepadAxis::L2,
+    			    SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) / 32767.0f
+    			);
+
+    			ControllerInput::SetAxis(
+    			    (int)i,
+    			    (int)GamepadAxis::R2,
+    			    SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) / 32767.0f
+    			);
+
+    			// =========================
+    			// BUTTONS
+    			// =========================
+
+    			for (int b = 0; b < SDL_GAMEPAD_BUTTON_COUNT; b++) {
+    			    bool pressed = SDL_GetGamepadButton(
+    			        pad,
+    			        (SDL_GamepadButton)b
+    			    );
+
+    			    ControllerInput::SetButton(
+    			        (int)i,
+    			        b,
+    			        pressed
+    			    );
+    			}
             }
         }
 

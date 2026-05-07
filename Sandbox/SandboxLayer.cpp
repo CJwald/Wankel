@@ -163,30 +163,31 @@ void SandboxLayer::OnUpdate() {
 	    // =========================
 	    int pad = 0;
 
-	    float lx = ControllerInput::GetAxis(pad, 0); // LEFT_X
-	    float ly = ControllerInput::GetAxis(pad, 1); // LEFT_Y
-	    float rx = ControllerInput::GetAxis(pad, 2); // RIGHT_X
-	    float ry = ControllerInput::GetAxis(pad, 3); // RIGHT_Y
+	    float lx = ControllerInput::GetAxis(pad, GamepadAxis::LeftX); // LEFT_X
+	    float ly = ControllerInput::GetAxis(pad, GamepadAxis::LeftY); // LEFT_Y
+	    float rx = ControllerInput::GetAxis(pad, GamepadAxis::RightX); // RIGHT_X
+	    float ry = ControllerInput::GetAxis(pad, GamepadAxis::RightY); // RIGHT_Y
 
 	    // Movement (left stick)
 	    input.x += lx;
 	    input.z += -ly; // invert Y (forward)
 
-	    // Vertical movement via triggers
-	    float lt = ControllerInput::GetAxis(pad, 4);
-	    float rt = ControllerInput::GetAxis(pad, 5);
-	    input.y += rt - lt;
+	    // Vertical movement
+	    float Cross = ControllerInput::IsButtonPressed(pad, GamepadButton::Cross); // Up
+	    float Circle = ControllerInput::IsButtonPressed(pad, GamepadButton::Circle); // Down
+	    input.y += Cross - Circle;
 	    
 	    // Look (right stick)
     	controller.LookDeltaX = rx * 10.0f; // scale to feel like mouse
     	controller.LookDeltaY = ry * 10.0f;
 
     	// Roll (optional: shoulder buttons)
-    	if (ControllerInput::IsButtonPressed(pad, 4)) rollInput = -1.0f; // LB
-    	if (ControllerInput::IsButtonPressed(pad, 5)) rollInput = 1.0f;  // RB
+    	float LRoll = -ControllerInput::GetAxis(pad, GamepadAxis::L2); // L Trigger
+    	float RRoll =  ControllerInput::GetAxis(pad, GamepadAxis::R2); // R Trigger
+		rollInput = LRoll + RRoll;
 
-    	// BOOST (R3 click)
-		if (ControllerInput::IsButtonPressed(pad, 9) || Input::IsKeyPressed(Key::LeftShift)) { 
+    	// BOOST (L3 click)
+		if (ControllerInput::IsButtonPressed(pad, GamepadButton::L3) || Input::IsKeyPressed(Key::LeftShift)) { 
 	    	controller.Boost = true;
 		} else {
         	controller.Boost = false;
@@ -200,7 +201,7 @@ void SandboxLayer::OnUpdate() {
 			controller.LookDeltaY = Input::GetMouseDeltaY();
 		}
 
-		WK_CORE_INFO("INPUT: [{0:.3f}3 {1:.3f}] | [{2:.3f}, {3:.3f}]", lx, ly, rx, ry);
+		WK_CORE_INFO("INPUT: [{0:.3f}, {1:.3f}] | [{2:.3f}, {3:.3f}]", lx, ly, rx, ry);
     }
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());

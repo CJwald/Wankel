@@ -1,6 +1,6 @@
 #pragma once
 
-#include <array>
+#include "GamepadCodes.h"
 
 namespace Wankel {
 
@@ -10,18 +10,34 @@ namespace Wankel {
         static constexpr int MaxAxes = 8;
         static constexpr int MaxButtons = 32;
 
-        // -----------------------------
-        // Query
-        // -----------------------------
-        static float GetAxis(int controller, int axis);
-        static bool IsButtonPressed(int controller, int button);
+        // =========================
+        // GAMEPLAY API
+        // =========================
 
-        // -----------------------------
-        // Internal (called by platform/event system)
-        // -----------------------------
-        static void SetAxis(int controller, int axis, float value);
-        static void SetButton(int controller, int button, bool pressed);
+        static float GetAxis(int controller, GamepadAxis axis);
 
+        static bool IsButtonPressed(
+            int controller,
+            GamepadButton button
+        );
+
+        // =========================
+        // INTERNAL ENGINE API
+        // =========================
+
+        static void SetAxis(
+            int controller,
+            int axis,
+            float value
+        );
+
+        static void SetButton(
+            int controller,
+            int button,
+            bool pressed
+        );
+
+    private:
         static void ApplyDeadzone(float& value, float deadzone = 0.05f);
 
     private:
