@@ -37,11 +37,7 @@ private:
 	// =========================
 	// IMGUI / DEBUG
 	// =========================
-
-	// CHANGE: persistent fog settings
 	FogSettings m_Fog;
-
-	// CHANGE: whether user is controlling game
 	bool m_GameFocused = true;
 };
 

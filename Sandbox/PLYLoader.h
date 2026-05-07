@@ -78,6 +78,11 @@ public:
 			// read position
 			ss >> x >> y >> z;
 			
+			// Blender -> Engine conversion
+			float ex = -y;
+			float ey = z;
+			float ez = -x;
+			
 			// read color (IMPORTANT: uchar = int)
 			ss >> r >> g >> b >> a;
 			
@@ -88,9 +93,9 @@ public:
 			float af = a / 255.0f;
 			
 			// push vertex
-			data.Vertices.push_back(x);
-			data.Vertices.push_back(y);
-			data.Vertices.push_back(z);
+			data.Vertices.push_back(ex);
+			data.Vertices.push_back(ey);
+			data.Vertices.push_back(ez);
 			
 			data.Vertices.push_back(rf);
 			data.Vertices.push_back(gf);

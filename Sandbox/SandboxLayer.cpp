@@ -37,7 +37,8 @@ SandboxLayer::SandboxLayer()
 	: Layer("Cube"), m_Controller(1280.0f / 720.0f)
 {
 
-	auto meshData = PLYLoader::Load("Assets/Mesh/ShipGrey.ply");
+	//auto meshData = PLYLoader::Load("Assets/Mesh/ShipGrey.ply");
+	auto meshData = PLYLoader::Load("Assets/Mesh/Ship02.ply");
 	std::cout << "Verts: " << meshData.Vertices.size() << std::endl;
 	std::cout << "Indices: " << meshData.Indices.size() << std::endl;
 	m_ShipMesh = std::make_unique<Mesh>(
@@ -74,7 +75,6 @@ SandboxLayer::SandboxLayer()
 	auto& pt = player.AddComponent<TransformComponent>();
     pt.Position = {0,0,0};
 
-    //player.AddComponent<MeshComponent>().MeshPtr = m_TriangleMesh.get();
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
 
