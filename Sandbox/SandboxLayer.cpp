@@ -81,8 +81,6 @@ SandboxLayer::SandboxLayer()
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    //follow.Offset = {-0.125f, 0.5f, 1.5f};
-    //follow.Offset = {-0.05f, 0.25f, 0.5f};
     follow.Offset = {-0.0f, 0.25f, 0.5f};
 	float roll = 0.0f; float pitch = -4.0f; float yaw = 0.0f; //-1.0f; 
 	follow.RotationOffset =
@@ -132,6 +130,11 @@ void SandboxLayer::OnUpdate() {
 	float dt = time - m_LastFrame;
 	m_LastFrame = time;
 
+	// FOG
+	FogSettings fog;
+	fog.Color = {0.12f, 0.1f, 0.2f};
+	fog.Density = 0.01f;
+
 	// =========================
     // INPUT → CONTROLLER (GAME LOGIC)
     // =========================
@@ -154,7 +157,6 @@ void SandboxLayer::OnUpdate() {
         if (Input::IsKeyPressed(Key::LeftControl)) input.y -= 1.0f;
         if (Input::IsKeyPressed(Key::Q)) rollInput = -1.0f;
         if (Input::IsKeyPressed(Key::E)) rollInput = 1.0f;
-        controller.Boost = Input::IsKeyPressed(Key::LeftShift);
 
 		// =========================
 	    // CONTROLLER (Player 0)
@@ -184,13 +186,13 @@ void SandboxLayer::OnUpdate() {
     	if (ControllerInput::IsButtonPressed(pad, 5)) rollInput = 1.0f;  // RB
 
     	// BOOST (R3 click)
-	    controller.Boost = ControllerInput::IsButtonPressed(pad, 9);
-    
-    
-    
-    
-    
-    
+		if (ControllerInput::IsButtonPressed(pad, 9) || Input::IsKeyPressed(Key::LeftShift)) { 
+	    	controller.Boost = true;
+		} else {
+        	controller.Boost = false;
+		}
+
+		// Set Inputs 
         controller.MoveInput = input;
         controller.RollInput = rollInput;
         if (rx == 0.0f && ry == 0.0f) {
@@ -199,12 +201,11 @@ void SandboxLayer::OnUpdate() {
 		}
 
 		WK_CORE_INFO("INPUT: [{0:.3f}3 {1:.3f}] | [{2:.3f}, {3:.3f}]", lx, ly, rx, ry);
-
     }
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());
-
-	Renderer::Clear(0.12f, 0.1f, 0.2f, 1.0f);
+	
+	Renderer::SetFog(fog);
 
     Renderer::BeginScene(m_Controller.GetCamera());
 

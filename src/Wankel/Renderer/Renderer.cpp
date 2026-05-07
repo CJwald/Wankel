@@ -13,6 +13,8 @@ namespace Wankel {
     	glm::mat4 View;
     	glm::mat4 Projection;
 		glm::vec3 CameraPos;
+
+		FogSettings Fog;
 	};
 	
 	static RendererData s_Data;
@@ -44,9 +46,8 @@ namespace Wankel {
 		shader->SetMat4("projection", s_Data.Projection);
 	    shader->SetMat4("model", transform);
 		shader->SetVec3("u_CameraPos", s_Data.CameraPos);
-		//shader->SetVec3("u_FogColor", glm::vec3(0.5f, 0.6f, 0.7f));
-		shader->SetVec3("u_FogColor", glm::vec3(0.12f, 0.1f, 0.2f));
-		shader->SetFloat("u_FogDensity", 0.01f);
+		shader->SetVec3("u_FogColor", s_Data.Fog.Color);
+		shader->SetFloat("u_FogDensity", s_Data.Fog.Density);
 	
     	mesh.Bind();
 
@@ -59,14 +60,20 @@ namespace Wankel {
 	}
 
 
-	void Renderer::Clear(float r, float g, float b, float a) {
-		glClearColor(r, g, b, a);
+	void Renderer::Clear() {
+		const auto& fog = s_Data.Fog;
+
+	    glClearColor(fog.Color.r, fog.Color.g, fog.Color.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height) {
 	    glViewport(0, 0, width, height);
+	}
+
+	void Renderer::SetFog(const FogSettings& fog) {
+    	s_Data.Fog = fog;
 	}
 
 }

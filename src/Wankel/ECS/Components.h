@@ -38,8 +38,6 @@ namespace Wankel {
 	struct PlayerControllerComponent {
         float MoveSpeed = 5.0f;
 	    float BoostMultiplier = 1.2f;
-	    float BoostDurration = 10.0f;
-	    float BoostCooldown = 5.0f;
 	    bool Boost = false;
 	    
 		float WindowSensitivity = 0.002f; 
