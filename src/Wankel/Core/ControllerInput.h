@@ -22,7 +22,7 @@ namespace Wankel {
         static void SetAxis(int controller, int axis, float value);
         static void SetButton(int controller, int button, bool pressed);
 
-        static void ApplyDeadzone(float& value, float deadzone = 0.1f);
+        static void ApplyDeadzone(float& value, float deadzone = 0.05f);
 
     private:
         static float s_Axes[MaxControllers][MaxAxes];

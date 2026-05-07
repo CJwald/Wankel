@@ -81,9 +81,13 @@ namespace Wankel {
 
             float lx = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX) / 32767.0f;
             float ly = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f;
+            float rx = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTX) / 32767.0f;
+            float ry = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTY) / 32767.0f;
 
             ControllerInput::SetAxis((int)i, 0, lx);
             ControllerInput::SetAxis((int)i, 1, ly);
+            ControllerInput::SetAxis((int)i, 2, rx);
+            ControllerInput::SetAxis((int)i, 3, ry);
         }
     }
 

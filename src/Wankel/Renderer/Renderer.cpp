@@ -44,8 +44,9 @@ namespace Wankel {
 		shader->SetMat4("projection", s_Data.Projection);
 	    shader->SetMat4("model", transform);
 		shader->SetVec3("u_CameraPos", s_Data.CameraPos);
-		shader->SetVec3("u_FogColor", glm::vec3(0.5f, 0.6f, 0.7f));
-		shader->SetFloat("u_FogDensity", 0.02f);
+		//shader->SetVec3("u_FogColor", glm::vec3(0.5f, 0.6f, 0.7f));
+		shader->SetVec3("u_FogColor", glm::vec3(0.12f, 0.1f, 0.2f));
+		shader->SetFloat("u_FogDensity", 0.01f);
 	
     	mesh.Bind();
 

@@ -82,8 +82,9 @@ SandboxLayer::SandboxLayer()
 
     follow.Target = player;
     //follow.Offset = {-0.125f, 0.5f, 1.5f};
-    follow.Offset = {-0.0125f, 0.25f, 0.5f};
-	float roll = 0.0f; float pitch = -4.0f; float yaw = -1.0f; 
+    //follow.Offset = {-0.05f, 0.25f, 0.5f};
+    follow.Offset = {-0.0f, 0.25f, 0.5f};
+	float roll = 0.0f; float pitch = -4.0f; float yaw = 0.0f; //-1.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(yaw), glm::vec3(0,1,0)) *
@@ -197,11 +198,13 @@ void SandboxLayer::OnUpdate() {
 			controller.LookDeltaY = Input::GetMouseDeltaY();
 		}
 
+		WK_CORE_INFO("INPUT: [{0:.3f}3 {1:.3f}] | [{2:.3f}, {3:.3f}]", lx, ly, rx, ry);
+
     }
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());
 
-	Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
+	Renderer::Clear(0.12f, 0.1f, 0.2f, 1.0f);
 
     Renderer::BeginScene(m_Controller.GetCamera());
 

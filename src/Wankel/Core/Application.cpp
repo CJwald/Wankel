@@ -47,6 +47,7 @@ namespace Wankel {
 			m_Window->OnUpdate();
 			
 			Renderer::Clear(0.1f, 0.1f, 0.1f, 1.0f);
+			//Renderer::Clear(0.4f, 0.1f, 0.7f, 1.0f);
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();

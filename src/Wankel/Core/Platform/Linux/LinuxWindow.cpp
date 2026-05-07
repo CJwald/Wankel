@@ -154,10 +154,10 @@ namespace Wankel {
     		dx = (float)(xPos - data->LastMouseX);
     		dy = (float)(yPos - data->LastMouseY);
 			
-			WK_CLIENT_TRACE(
-			    "x={0:.3f}, y={1:.3f}, prevX={2:.3f}, prevY={3:.3f}, dX={4:.3f}, dY={5:.3f}",
-			    xPos, yPos, data->LastMouseX, data->LastMouseY, dx, dy
-			);
+			//WK_CLIENT_TRACE(
+			//    "x={0:.3f}, y={1:.3f}, prevX={2:.3f}, prevY={3:.3f}, dX={4:.3f}, dY={5:.3f}",
+			//    xPos, yPos, data->LastMouseX, data->LastMouseY, dx, dy
+			//);
 
     		data->LastMouseX = xPos;
     		data->LastMouseY = yPos;
