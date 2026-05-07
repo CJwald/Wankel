@@ -184,7 +184,7 @@ void SandboxLayer::OnUpdate() {
     	// Roll (optional: shoulder buttons)
     	float LRoll = -ControllerInput::GetAxis(pad, GamepadAxis::L2); // L Trigger
     	float RRoll =  ControllerInput::GetAxis(pad, GamepadAxis::R2); // R Trigger
-		rollInput = LRoll + RRoll;
+		if (rollInput == 0.0f) { rollInput = LRoll + RRoll; }
 
     	// BOOST (L3 click)
 		if (ControllerInput::IsButtonPressed(pad, GamepadButton::L3) || Input::IsKeyPressed(Key::LeftShift)) { 

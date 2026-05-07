@@ -1,5 +1,5 @@
 #include "wkpch.h"
-#include "Wankel/Core/Platform/Windows/WindowsWindow.h"
+#include "Wankel/Platform/Windows/WindowsWindow.h"
 #include <glad/gl.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>

@@ -2,10 +2,10 @@
 #include "Window.h"
 
 #ifdef WK_PLATFORM_WINDOWS
-	#include "Platform/Windows/WindowsWindow.h"
+	#include "../Platform/Windows/WindowsWindow.h"
 #endif
 #ifdef WK_PLATFORM_LINUX
-	#include "Platform/Linux/LinuxWindow.h"
+	#include "../Platform/Linux/LinuxWindow.h"
 #endif
 
 namespace Wankel { 

@@ -21,6 +21,8 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <cstdint>
+#include <cmath>
 
 #include "Wankel/Core/Base.h"
 #include "Wankel/Core/Log.h"

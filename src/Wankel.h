@@ -7,6 +7,8 @@
 #include "Wankel/Core/Layer.h"
 #include "Wankel/Core/Log.h"
 #include "Wankel/Core/Input.h"
+#include "Wankel/Core/ControllerInput.h"
+#include "Wankel/Core/GamepadCodes.h"
 
 // -----------------------------
 // Events
@@ -15,7 +17,6 @@
 #include "Wankel/Core/Events/ApplicationEvent.h"
 #include "Wankel/Core/Events/KeyEvent.h"
 #include "Wankel/Core/Events/MouseEvent.h"
-#include "Wankel/Core/Events/ControllerEvent.h"
 
 // -----------------------------
 // ECS

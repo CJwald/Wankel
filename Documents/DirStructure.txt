@@ -31,22 +31,23 @@ src
 │   │   ├── Application.h
 │   │   ├── Assert.h
 │   │   ├── Base.h
+│   │   ├── ControllerInput.cpp
+│   │   ├── ControllerInput.h
 │   │   ├── Engine.cpp
 │   │   ├── Engine.h
 │   │   ├── EntryPoint.h
 │   │   ├── Events
 │   │   │   ├── ApplicationEvent.h
-│   │   │   ├── ControllerAxisEvent.h
-│   │   │   ├── ControllerButtonEvent.h
-│   │   │   ├── ControllerConnectionEvent.h
-│   │   │   ├── ControllerEvent.h
 │   │   │   ├── Event.h
 │   │   │   ├── KeyEvent.h
 │   │   │   └── MouseEvent.h
+│   │   ├── GamepadCodes.h
 │   │   ├── ImGui
 │   │   │   ├── ImGuiLayer.cpp
 │   │   │   └── ImGuiLayer.h
 │   │   ├── Input.h
+│   │   ├── InputSystem.cpp
+│   │   ├── InputSystem.h
 │   │   ├── KeyCodes.h
 │   │   ├── Layer.cpp
 │   │   ├── Layer.h
@@ -150,7 +151,7 @@ src
 ├── wkpch.cpp
 └── wkpch.h
 
-22 directories, 103 files
+22 directories, 104 files
 SandboxApp [error opening dir]
 
 0 directories, 0 files
