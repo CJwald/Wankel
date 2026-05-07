@@ -13,14 +13,17 @@
 #include <Wankel/Renderer/Renderer.h>
 #include <Wankel/Renderer/Shader.h>
 #include <Wankel/Renderer/Mesh.h>
+#include <Wankel/Core/Window.h>
+
+#include <imgui.h>
+#include <GLFW/glfw3.h>
 
 // To-be removed eventually
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <random>
 
-float RandomFloat()
-{
+float RandomFloat() {
     static std::random_device rd;  // seed
     static std::mt19937 gen(rd()); // Mersenne Twister RNG
     static std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
@@ -88,6 +91,8 @@ SandboxLayer::SandboxLayer()
     	glm::angleAxis(glm::radians(yaw), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(roll), glm::vec3(0,0,1));
 
+	m_DebugFollow = &follow;
+
 	// Collider
 	auto& collider = player.AddComponent<AABBComponent>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
@@ -122,6 +127,20 @@ SandboxLayer::SandboxLayer()
         auto& collider = e.AddComponent<AABBComponent>();
         collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
+
+	// =========================
+	// DEFAULT FOG
+	// =========================
+	m_Fog.Color = {0.12f, 0.1f, 0.2f};
+	m_Fog.Density = 0.01f;
+
+	// Lock mouse initially
+	auto& window = Application::Get().GetWindow();
+
+	GLFWwindow* glfwWindow =
+	    static_cast<GLFWwindow*>(window.GetNativeWindow());
+
+	glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 
@@ -130,10 +149,28 @@ void SandboxLayer::OnUpdate() {
 	float dt = time - m_LastFrame;
 	m_LastFrame = time;
 
-	// FOG
-	FogSettings fog;
-	fog.Color = {0.12f, 0.1f, 0.2f};
-	fog.Density = 0.01f;
+	// ADD ESC to switch to ImGui
+	static bool escPressedLastFrame = false;
+	bool escPressed = Input::IsKeyPressed(Key::Escape);
+	if (escPressed && !escPressedLastFrame) {
+		m_GameFocused = !m_GameFocused;
+		auto& window = Application::Get().GetWindow();
+		GLFWwindow* glfwWindow = static_cast<GLFWwindow*>(window.GetNativeWindow());
+		if (m_GameFocused) {
+			glfwSetInputMode(
+			    glfwWindow,
+			    GLFW_CURSOR,
+			    GLFW_CURSOR_DISABLED
+			);
+		} else {
+			glfwSetInputMode(
+			    glfwWindow,
+			    GLFW_CURSOR,
+			    GLFW_CURSOR_NORMAL
+			);
+		}
+	}
+	escPressedLastFrame = escPressed;
 
 	// =========================
     // INPUT → CONTROLLER (GAME LOGIC)
@@ -141,6 +178,10 @@ void SandboxLayer::OnUpdate() {
  	auto controllerView = m_Scene.Registry().view<PlayerControllerComponent>();
 
     for (auto entity : controllerView) {
+		// Skip if game is not focused		
+		if (!m_GameFocused)
+			continue;
+
         auto& controller = controllerView.get<PlayerControllerComponent>(entity);
 
         glm::vec3 input(0.0f);
@@ -206,7 +247,7 @@ void SandboxLayer::OnUpdate() {
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());
 	
-	Renderer::SetFog(fog);
+	Renderer::SetFog(m_Fog);
 
     Renderer::BeginScene(m_Controller.GetCamera());
 
@@ -220,8 +261,87 @@ void SandboxLayer::OnUpdate() {
 
         Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
 	}
-	
+
 	Renderer::EndScene();
+}
+
+void SandboxLayer::OnImGuiRender() {
+	if (!m_GameFocused) {
+		ImGui::Begin("Renderer Debug");
+
+		
+		// =========================
+		// FOG
+		// =========================
+		ImGui::Text("Fog");
+
+		ImGui::Text("Fog Color");
+		ImGui::SameLine();
+		ImGui::ColorPicker3("##FogColor", 
+			&m_Fog.Color[0], 
+			ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_Float
+		);
+
+		ImGui::ColorEdit3(
+		    "Fog Color",
+		    &m_Fog.Color[0],
+			ImGuiColorEditFlags_Float
+		);
+
+		ImGui::SliderFloat(
+		    "Fog Density",
+		    &m_Fog.Density,
+		    0.0001f,
+		    0.1f,
+		    "%.4f",
+		    ImGuiSliderFlags_Logarithmic
+		);
+
+		// =========================
+		// CAMERA (GLOBAL)
+		// =========================
+		ImGui::Separator();
+		ImGui::Text("Camera Controller");
+		
+		auto& cam = m_Controller.GetCamera();
+		
+		// NOTE: depends on your Camera API
+		float fov = cam.GetFOV();
+		float nearClip = cam.GetNearClip();
+		float farClip = cam.GetFarClip();
+		
+		if (ImGui::SliderFloat("FOV", &fov, 30.0f, 120.0f))
+		    cam.SetFOV(fov);
+		
+		if (ImGui::SliderFloat("Near Clip", &nearClip, 0.01f, 10.0f))
+		    cam.SetNearClip(nearClip);
+		
+		if (ImGui::SliderFloat("Far Clip", &farClip, 10.0f, 10000.0f))
+		    cam.SetFarClip(farClip);
+		
+		// =========================
+		// FOLLOW CAMERA
+		// =========================
+		if (m_DebugFollow)
+		{
+		    ImGui::Separator();
+		    ImGui::Text("Follow Camera");
+		
+		    ImGui::DragFloat3("Offset", &m_DebugFollow->Offset[0], 0.01f);
+		
+		    ImGui::DragFloat3("Rotation Offset", &m_DebugFollow->RotationOffset[0], 0.01f);
+		}
+		
+		// =========================
+		// ENGINE INFO
+		// =========================
+
+		ImGui::Separator();
+
+		ImGui::Text("Press ESC to return to game");
+
+		ImGui::End();
+	}
 }
 
 void SandboxLayer::OnEvent(Event& e) { // I DONT THINK THIS SHOULD BE HERE:

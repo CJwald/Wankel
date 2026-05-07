@@ -13,6 +13,8 @@ namespace Wankel {
 		void SetPosition(const glm::vec3& position);
 		void SetFOV(const float& fov);
 		void SetAspect(const float& aspect);
+		void SetNearClip(const float& nearClip);
+		void SetFarClip(const float& farClip);
 		const glm::vec3& GetPosition() const;
 
 		// Rotation
@@ -23,6 +25,11 @@ namespace Wankel {
 		glm::vec3 GetForward() const;
 		glm::vec3 GetRight() const;
 		glm::vec3 GetUp() const;
+		
+		float GetFOV() const;
+		float GetNearClip() const;
+		float GetFarClip() const;
+		float GetAspect() const;
 
 		// Matrices
 		glm::mat4 GetViewMatrix() const;

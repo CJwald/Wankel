@@ -21,6 +21,14 @@ namespace Wankel {
 		m_Aspect = aspect;
 	}
 
+	void Camera::SetNearClip(const float& nearClip) {
+		m_Near = nearClip;
+	}
+
+	void Camera::SetFarClip(const float& farClip) {
+		m_Far = farClip;
+	}
+
 	const glm::vec3& Camera::GetPosition() const {
 		return m_Position;
 	}
@@ -43,6 +51,22 @@ namespace Wankel {
 
 	glm::vec3 Camera::GetUp() const {
 		return m_Orientation * glm::vec3(0, 1, 0);
+	}
+
+	float Camera::GetFOV() const {
+		return m_FOV;
+	}
+
+	float Camera::GetNearClip() const {
+		return m_Near;
+	}
+
+	float Camera::GetFarClip() const {
+		return m_Far;
+	}
+
+	float Camera::GetAspect() const {
+		return m_Aspect;
 	}
 
 	glm::mat4 Camera::GetViewMatrix() const {

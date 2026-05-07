@@ -25,7 +25,6 @@ external
 7 directories, 1 file
 src
 ├── Wankel
-│   ├── Client
 │   ├── Core
 │   │   ├── Application.cpp
 │   │   ├── Application.h
@@ -56,16 +55,6 @@ src
 │   │   ├── Log.cpp
 │   │   ├── Log.h
 │   │   ├── MouseCodes.h
-│   │   ├── Platform
-│   │   │   ├── Linux
-│   │   │   │   ├── LinuxInput.cpp
-│   │   │   │   ├── LinuxWindow.cpp
-│   │   │   │   └── LinuxWindow.h
-│   │   │   ├── OpenGL
-│   │   │   └── Windows
-│   │   │       ├── WindowsInput.cpp
-│   │   │       ├── WindowsWindow.cpp
-│   │   │       └── WindowsWindow.h
 │   │   ├── PlatformDetection.h
 │   │   ├── Time.cpp
 │   │   ├── Time.h
@@ -76,6 +65,7 @@ src
 │   │   ├── Entity.h
 │   │   ├── Scene.cpp
 │   │   └── Scene.h
+│   ├── Math
 │   ├── Physics
 │   │   ├── Collision
 │   │   │   ├── BroadPhase
@@ -124,34 +114,39 @@ src
 │   │   └── Systems
 │   │       ├── PhysicsSystem.cpp
 │   │       └── PhysicsSystem.h
-│   ├── Renderer
-│   │   ├── Buffer.cpp
-│   │   ├── Buffer.h
-│   │   ├── CameraController.cpp
-│   │   ├── CameraController.h
-│   │   ├── Camera.cpp
-│   │   ├── Camera.h
-│   │   ├── IndexBuffer.cpp
-│   │   ├── IndexBuffer.h
-│   │   ├── Mesh.cpp
-│   │   ├── Mesh.h
-│   │   ├── Renderer.cpp
-│   │   ├── Renderer.h
-│   │   ├── Shader.cpp
-│   │   ├── Shader.h
-│   │   ├── VertexArray.cpp
-│   │   ├── VertexArray.h
-│   │   └── VertexBufferLayout.h
-│   └── Server
-│       └── Networking
-│           ├── ClientConnection.cpp
-│           ├── Packet.h
-│           └── Server.cpp
+│   ├── Platform
+│   │   ├── Linux
+│   │   │   ├── LinuxInput.cpp
+│   │   │   ├── LinuxWindow.cpp
+│   │   │   └── LinuxWindow.h
+│   │   ├── OpenGL
+│   │   └── Windows
+│   │       ├── WindowsInput.cpp
+│   │       ├── WindowsWindow.cpp
+│   │       └── WindowsWindow.h
+│   └── Renderer
+│       ├── Buffer.cpp
+│       ├── Buffer.h
+│       ├── CameraController.cpp
+│       ├── CameraController.h
+│       ├── Camera.cpp
+│       ├── Camera.h
+│       ├── IndexBuffer.cpp
+│       ├── IndexBuffer.h
+│       ├── Mesh.cpp
+│       ├── Mesh.h
+│       ├── Renderer.cpp
+│       ├── Renderer.h
+│       ├── Shader.cpp
+│       ├── Shader.h
+│       ├── VertexArray.cpp
+│       ├── VertexArray.h
+│       └── VertexBufferLayout.h
 ├── Wankel.h
 ├── wkpch.cpp
 └── wkpch.h
 
-22 directories, 104 files
+20 directories, 101 files
 SandboxApp [error opening dir]
 
 0 directories, 0 files
