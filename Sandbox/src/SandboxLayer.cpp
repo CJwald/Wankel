@@ -3,6 +3,7 @@
 #include "plate.h"
 #include "triangle.h"
 #include "PLYLoader.h"
+#include "Debug/DebugOverlay.h"
 
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
@@ -49,6 +50,16 @@ SandboxLayer::SandboxLayer()
 	    (uint32_t)meshData.Indices.size()
 	);
 
+	auto boxMeshData = PLYLoader::Load("Assets/Mesh/Box.ply");
+	std::cout << "Verts: " << boxMeshData.Vertices.size() << std::endl;
+	std::cout << "Indices: " << boxMeshData.Indices.size() << std::endl;
+	m_BoxMesh = std::make_unique<Mesh>(
+	    boxMeshData.Vertices.data(),
+	    boxMeshData.Vertices.size() * sizeof(float),
+	    boxMeshData.Indices.data(),
+	    (uint32_t)boxMeshData.Indices.size()
+	);
+
 	// Mesh setup
 	m_CubeMesh = std::make_unique<Mesh>(
 	    Geometry::CubeVertices,
@@ -80,7 +91,7 @@ SandboxLayer::SandboxLayer()
     // =========================
     auto player = m_Scene.CreateEntity();
 	auto& pt = player.AddComponent<TransformComponent>();
-    pt.Position = {-50,-100,0};
+    pt.Position = {0,0,150};
 
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
@@ -91,7 +102,7 @@ SandboxLayer::SandboxLayer()
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    follow.Offset = {-0.0f, 0.32f, 0.2f};
+    follow.Offset = {-0.0f, 0.32f, 0.52f};
 	float roll = 0.0f; float pitch = -4.0f; float yaw = 0.0f; //-1.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
@@ -135,22 +146,40 @@ SandboxLayer::SandboxLayer()
         collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
-	// Plate
-    auto e = m_Scene.CreateEntity();
-    auto& t = e.AddComponent<TransformComponent>();
-    t.Position = {0.0f, -150.0f, 0.0f};
-    t.Orientation = 
+	//// Plate
+    //auto e = m_Scene.CreateEntity();
+    //auto& t = e.AddComponent<TransformComponent>();
+    //t.Position = {0.0f, -150.0f, 0.0f};
+    //t.Orientation = 
+    //	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    //	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
+    //	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	//e.AddComponent<MeshComponent>().MeshPtr = m_PlateMesh.get();
+
+    //auto& rb_plate = e.AddComponent<RigidbodyComponent>();
+    //rb_plate.IsStatic = true;
+	
+    // Collider
+    //auto& collider_plate = e.AddComponent<AABBComponent>();
+    //collider_plate.HalfSize = {1000.0f, 4.0f, 1000.0f};
+
+    //Box
+	auto b = m_Scene.CreateEntity();
+    auto& tb = b.AddComponent<TransformComponent>();
+    tb.Position = {0.0f, 0.0f, 0.0f};
+    tb.Orientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-	e.AddComponent<MeshComponent>().MeshPtr = m_PlateMesh.get();
+	b.AddComponent<MeshComponent>().MeshPtr = m_BoxMesh.get();
 
-    auto& rb_plate = e.AddComponent<RigidbodyComponent>();
-    rb_plate.IsStatic = true;
+    auto& rb_box = b.AddComponent<RigidbodyComponent>();
+    rb_box.IsStatic = true;
 	
     // Collider
-    auto& collider_plate = e.AddComponent<AABBComponent>();
-    collider_plate.HalfSize = {1000.0f, 4.0f, 1000.0f};
+    //auto& collider_plate = e.AddComponent<AABBComponent>();
+    //collider_plate.HalfSize = {1000.0f, 4.0f, 1000.0f};
+
 
 	// =========================
 	// DEFAULT FOG
@@ -173,6 +202,8 @@ void SandboxLayer::OnUpdate() {
 	float time = Time::GetTime();
 	float dt = time - m_LastFrame;
 	m_LastFrame = time;
+
+	DebugOverlay::PushFrameTime(dt);
 
 	// ADD ESC to switch to ImGui
 	static bool escPressedLastFrame = false;
@@ -225,6 +256,8 @@ void SandboxLayer::OnUpdate() {
 void SandboxLayer::OnImGuiRender() {
 	if (!m_GameFocused) {
 		ImGui::Begin("Renderer Debug");
+
+		DebugOverlay::DrawFPSPanel();
 
 		
 		// =========================

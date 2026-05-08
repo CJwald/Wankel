@@ -146,13 +146,13 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
         //        Input::GetMouseDeltaY();
         //}
 
-        WK_CORE_INFO(
-            "Cross: {0:.3f} | Circle: {1:.3f} | [{2:.3f}, {3:.3f}]",
-            Cross,
-            Circle,
-            LRoll,
-            RRoll
-        );
+        //WK_CORE_INFO(
+        //    "Cross: {0:.3f} | Circle: {1:.3f} | [{2:.3f}, {3:.3f}]",
+        //    Cross,
+        //    Circle,
+        //    LRoll,
+        //    RRoll
+        //);
     }
 }
 

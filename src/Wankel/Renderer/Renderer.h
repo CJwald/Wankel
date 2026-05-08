@@ -20,10 +20,10 @@ namespace Wankel {
 	    float NoiseStrength = 0.75f;
 	    float NoiseSpeed = 0.2f;
 	
-	    int NoiseOctaves = 8;
+	    int NoiseOctaves = 4;
 	
 	    // Height fog
-	    float HeightFalloff = 0.02f;
+	    float HeightFalloff = 0.0f;
 	};
 	
 	class Renderer {
