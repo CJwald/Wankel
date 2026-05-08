@@ -10,6 +10,4 @@ if [[ ! -f "$BINARY" ]]; then
 fi
 
 echo "Launching Sandbox ..."
-
-cd "$BUILD_DIR/bin"
-exec ./Sandbox "$@"
+exec "gdb" "$BINARY" "$@"

@@ -134,14 +134,56 @@ namespace Wankel {
             if (!pad) continue;
 
             float lx = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX) / 32767.0f;
-            float ly = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f;
-            float rx = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTX) / 32767.0f;
-            float ry = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTY) / 32767.0f;
+			float ly = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f;
+			float rx = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTX) / 32767.0f;
+			float ry = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHTY) / 32767.0f;
 
-            ControllerInput::SetAxis((int)i, 0, lx);
-            ControllerInput::SetAxis((int)i, 1, ly);
-            ControllerInput::SetAxis((int)i, 2, rx);
-            ControllerInput::SetAxis((int)i, 3, ry);
+			float l2 = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) / 32767.0f;
+			float r2 = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) / 32767.0f;
+
+			ControllerInput::SetAxis((int)i, (int)GamepadAxis::LeftX, lx);
+			ControllerInput::SetAxis((int)i, (int)GamepadAxis::LeftY, ly);
+			ControllerInput::SetAxis((int)i, (int)GamepadAxis::RightX, rx);
+			ControllerInput::SetAxis((int)i, (int)GamepadAxis::RightY, ry);
+
+			ControllerInput::SetAxis((int)i, (int)GamepadAxis::L2, l2);
+			ControllerInput::SetAxis((int)i, (int)GamepadAxis::R2, r2);
+            
+            ControllerInput::SetButton(
+			    (int)i,
+			    (int)GamepadButton::Cross,
+			    SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH)
+			);
+			
+			ControllerInput::SetButton(
+			    (int)i,
+			    (int)GamepadButton::Circle,
+			    SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST)
+			);
+			
+			ControllerInput::SetButton(
+			    (int)i,
+			    (int)GamepadButton::Square,
+			    SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_WEST)
+			);
+			
+			ControllerInput::SetButton(
+			    (int)i,
+			    (int)GamepadButton::Triangle,
+			    SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH)
+			);
+			
+			ControllerInput::SetButton(
+			    (int)i,
+			    (int)GamepadButton::L3,
+			    SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_STICK)
+			);
+			
+			ControllerInput::SetButton(
+			    (int)i,
+			    (int)GamepadButton::R3,
+			    SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_STICK)
+			);
         }
     }
 

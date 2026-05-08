@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Systems/PlayerInputSystem.h"
+
 #include <Wankel/Core/Layer.h>
 #include <Wankel/Renderer/Shader.h>
 #include <Wankel/Renderer/CameraController.h>
@@ -31,6 +33,7 @@ private:
 	FollowCameraComponent* m_DebugFollow = nullptr;
 	CameraController m_Controller;
 	Scene m_Scene;
+	PlayerInputSystem m_PlayerInputSystem;
 
 	float m_LastFrame = 0.0f;
 

@@ -45,7 +45,7 @@ SandboxLayer::SandboxLayer()
 	    meshData.Vertices.data(),
 	    meshData.Vertices.size() * sizeof(float),
 	    meshData.Indices.data(),
-	    meshData.Indices.size() * sizeof(uint32_t)
+	    (uint32_t)meshData.Indices.size()
 	);
 
 	// Mesh setup
@@ -53,7 +53,7 @@ SandboxLayer::SandboxLayer()
 	    Geometry::CubeVertices,
 	    sizeof(Geometry::CubeVertices),
 	    Geometry::CubeIndices,
-	    sizeof(Geometry::CubeIndices)
+		sizeof(Geometry::CubeIndices) / sizeof(uint32_t)
 	);
 	//m_TriangleMesh = std::make_unique<Mesh>(
 	//    Geometry::TriangleVertices,
@@ -84,7 +84,7 @@ SandboxLayer::SandboxLayer()
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    follow.Offset = {-0.0f, 0.25f, 0.5f};
+    follow.Offset = {-0.0f, 0.32f, 0.2f};
 	float roll = 0.0f; float pitch = -4.0f; float yaw = 0.0f; //-1.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
@@ -171,79 +171,11 @@ void SandboxLayer::OnUpdate() {
 		}
 	}
 	escPressedLastFrame = escPressed;
-
-	// =========================
-    // INPUT → CONTROLLER (GAME LOGIC)
-    // =========================
- 	auto controllerView = m_Scene.Registry().view<PlayerControllerComponent>();
-
-    for (auto entity : controllerView) {
-		// Skip if game is not focused		
-		if (!m_GameFocused)
-			continue;
-
-        auto& controller = controllerView.get<PlayerControllerComponent>(entity);
-
-        glm::vec3 input(0.0f);
-		float rollInput(0.0f);
-		
-        // BOOST
-		controller.BoostMultiplier = 2.0f;
-
-        if (Input::IsKeyPressed(Key::W)) input.z += 1.0f;
-        if (Input::IsKeyPressed(Key::S)) input.z -= 1.0f;
-        if (Input::IsKeyPressed(Key::D)) input.x += 1.0f;
-        if (Input::IsKeyPressed(Key::A)) input.x -= 1.0f;
-        if (Input::IsKeyPressed(Key::Space)) input.y += 1.0f;
-        if (Input::IsKeyPressed(Key::LeftControl)) input.y -= 1.0f;
-        if (Input::IsKeyPressed(Key::Q)) rollInput = -1.0f;
-        if (Input::IsKeyPressed(Key::E)) rollInput = 1.0f;
-
-		// =========================
-	    // CONTROLLER (Player 0)
-	    // =========================
-	    int pad = 0;
-
-	    float lx = ControllerInput::GetAxis(pad, GamepadAxis::LeftX); // LEFT_X
-	    float ly = ControllerInput::GetAxis(pad, GamepadAxis::LeftY); // LEFT_Y
-	    float rx = ControllerInput::GetAxis(pad, GamepadAxis::RightX); // RIGHT_X
-	    float ry = ControllerInput::GetAxis(pad, GamepadAxis::RightY); // RIGHT_Y
-
-	    // Movement (left stick)
-	    input.x += lx;
-	    input.z += -ly; // invert Y (forward)
-
-	    // Vertical movement
-	    float Cross = ControllerInput::IsButtonPressed(pad, GamepadButton::Cross); // Up
-	    float Circle = ControllerInput::IsButtonPressed(pad, GamepadButton::Circle); // Down
-	    input.y += Cross - Circle;
-	    
-	    // Look (right stick)
-    	controller.LookDeltaX = rx * 10.0f; // scale to feel like mouse
-    	controller.LookDeltaY = ry * 10.0f;
-
-    	// Roll (optional: shoulder buttons)
-    	float LRoll = -ControllerInput::GetAxis(pad, GamepadAxis::L2); // L Trigger
-    	float RRoll =  ControllerInput::GetAxis(pad, GamepadAxis::R2); // R Trigger
-		if (rollInput == 0.0f) { rollInput = LRoll + RRoll; }
-
-    	// BOOST (L3 click)
-		if (ControllerInput::IsButtonPressed(pad, GamepadButton::L3) || Input::IsKeyPressed(Key::LeftShift)) { 
-	    	controller.Boost = true;
-		} else {
-        	controller.Boost = false;
-		}
-
-		// Set Inputs 
-        controller.MoveInput = input;
-        controller.RollInput = rollInput;
-        if (rx == 0.0f && ry == 0.0f) {
-			controller.LookDeltaX = Input::GetMouseDeltaX();
-			controller.LookDeltaY = Input::GetMouseDeltaY();
-		}
-
-		WK_CORE_INFO("INPUT: [{0:.3f}, {1:.3f}] | [{2:.3f}, {3:.3f}]", lx, ly, rx, ry);
-    }
+	m_PlayerInputSystem.Update(
+	    m_Scene,
+	    dt,
+	    m_GameFocused
+	);
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());
 	

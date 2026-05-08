@@ -11,7 +11,7 @@ This is the Wankel Engine Dir structure excluding all of the contents of the ext
 ├── scripts
 └── src
 
-7 directories, 3 files
+8 directories, 3 files
 external
 ├── CMakeLists.txt
 ├── entt
@@ -22,7 +22,7 @@ external
 ├── SDL3
 └── spdlog
 
-7 directories, 1 file
+8 directories, 1 file
 src
 ├── Wankel
 │   ├── Core
@@ -65,7 +65,6 @@ src
 │   │   ├── Entity.h
 │   │   ├── Scene.cpp
 │   │   └── Scene.h
-│   ├── Math
 │   ├── Physics
 │   │   ├── Collision
 │   │   │   ├── BroadPhase
@@ -119,7 +118,6 @@ src
 │   │   │   ├── LinuxInput.cpp
 │   │   │   ├── LinuxWindow.cpp
 │   │   │   └── LinuxWindow.h
-│   │   ├── OpenGL
 │   │   └── Windows
 │   │       ├── WindowsInput.cpp
 │   │       ├── WindowsWindow.cpp
@@ -146,8 +144,8 @@ src
 ├── wkpch.cpp
 └── wkpch.h
 
-20 directories, 101 files
-SandboxApp [error opening dir]
+19 directories, 101 files
+SandboxApp  [error opening dir]
 
 0 directories, 0 files
 scripts
@@ -158,4 +156,4 @@ scripts
 ├── bwsr.sh
 └── treeDir.sh
 
-0 directories, 6 files
+1 directory, 6 files
