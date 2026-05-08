@@ -196,9 +196,9 @@ SandboxLayer::SandboxLayer()
 	// =========================
 	// DEFAULT FOG
 	// =========================
-	//m_Fog.Color = {0.12f, 0.1f, 0.2f};
-	m_Fog.Color = {0.4f, 0.4f, 0.45f};
-	m_Fog.Density = 0.005f;
+	m_Fog.Color = {0.12f, 0.1f, 0.2f};
+	//m_Fog.Color = {0.1f, 0.1f, 0.1f};
+	m_Fog.Density = 0.01f;
 
 	// Lock mouse initially
 	auto& window = Application::Get().GetWindow();

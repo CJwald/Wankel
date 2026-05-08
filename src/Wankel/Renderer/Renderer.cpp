@@ -53,10 +53,8 @@ namespace Wankel {
 
 		shader->SetFloat("u_FogNoiseScale", s_Data.Fog.NoiseScale);
 		shader->SetFloat("u_FogNoiseStrength", s_Data.Fog.NoiseStrength);
-		shader->SetFloat("u_FogNoiseSpeed", s_Data.Fog.NoiseSpeed);
 		shader->SetInt("u_FogNoiseOctaves", s_Data.Fog.NoiseOctaves);
-		shader->SetInt("u_FogNoiseEnabled",
-		               s_Data.Fog.NoiseEnabled ? 1 : 0);
+		shader->SetInt("u_FogNoiseEnabled", s_Data.Fog.NoiseEnabled ? 1 : 0);
 		shader->SetVec3("u_FogWindDir", s_Data.Fog.WindDir);
 		shader->SetFloat("u_FogWindSpeed", s_Data.Fog.WindSpeed);
 	

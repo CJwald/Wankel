@@ -89,7 +89,7 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
 		look.y += Input::GetMouseDeltaY();
 
 		// Keyboard arrows
-		float keyLookSpeed = 180.0f * dt;
+		float keyLookSpeed = 540.0f * dt;
 
 		if (Input::IsKeyPressed(Key::Left))
 		    look.x -= keyLookSpeed;
@@ -98,10 +98,10 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
 		    look.x += keyLookSpeed;
 
 		if (Input::IsKeyPressed(Key::Up))
-		    look.y -= keyLookSpeed;
+		    look.y -= keyLookSpeed*(9.f/16.f);
 
 		if (Input::IsKeyPressed(Key::Down))
-		    look.y += keyLookSpeed;
+		    look.y += keyLookSpeed*(9.f/16.f);
 
 		// FINAL OUTPUT (ONLY ONCE)
 		controller.LookDeltaX = look.x;
