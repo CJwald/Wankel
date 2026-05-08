@@ -176,6 +176,18 @@ SandboxLayer::SandboxLayer()
     auto& rb_box = b.AddComponent<RigidbodyComponent>();
     rb_box.IsStatic = true;
 	
+    //Box
+	auto b2 = m_Scene.CreateEntity();
+    auto& tb2 = b2.AddComponent<TransformComponent>();
+    tb2.Position = {0.0f, 0.0f, 250.0f};
+    tb2.Orientation = 
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	b2.AddComponent<MeshComponent>().MeshPtr = m_BoxMesh.get();
+
+    auto& rb_box2 = b2.AddComponent<RigidbodyComponent>();
+    rb_box2.IsStatic = true;
     // Collider
     //auto& collider_plate = e.AddComponent<AABBComponent>();
     //collider_plate.HalfSize = {1000.0f, 4.0f, 1000.0f};
@@ -186,7 +198,7 @@ SandboxLayer::SandboxLayer()
 	// =========================
 	//m_Fog.Color = {0.12f, 0.1f, 0.2f};
 	m_Fog.Color = {0.4f, 0.4f, 0.45f};
-	m_Fog.Density = 0.01f;
+	m_Fog.Density = 0.005f;
 
 	// Lock mouse initially
 	auto& window = Application::Get().GetWindow();
@@ -306,13 +318,6 @@ void SandboxLayer::OnImGuiRender() {
 		    &m_Fog.NoiseStrength,
 		    0.0f,
 		    4.0f
-		);
-		
-		ImGui::SliderFloat(
-		    "Noise Speed",
-		    &m_Fog.NoiseSpeed,
-		    0.0f,
-		    1.0f
 		);
 		
 		ImGui::SliderInt(
