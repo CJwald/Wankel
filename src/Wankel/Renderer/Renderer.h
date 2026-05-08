@@ -16,11 +16,11 @@ namespace Wankel {
 	    // Noise fog
 	    bool NoiseEnabled = true;
 	
-	    float NoiseScale = 0.005f;
-	    float NoiseStrength = 0.5f;
-	    float NoiseSpeed = 0.02f;
+	    float NoiseScale = 0.05f;
+	    float NoiseStrength = 0.75f;
+	    float NoiseSpeed = 0.2f;
 	
-	    int NoiseOctaves = 4;
+	    int NoiseOctaves = 8;
 	
 	    // Height fog
 	    float HeightFalloff = 0.02f;

@@ -1,5 +1,6 @@
 #include "SandboxLayer.h"
 #include "cube.h"
+#include "plate.h"
 #include "triangle.h"
 #include "PLYLoader.h"
 
@@ -55,6 +56,12 @@ SandboxLayer::SandboxLayer()
 	    Geometry::CubeIndices,
 		sizeof(Geometry::CubeIndices) / sizeof(uint32_t)
 	);
+	m_PlateMesh = std::make_unique<Mesh>(
+	    Geometry::PlateVertices,
+	    sizeof(Geometry::PlateVertices),
+	    Geometry::PlateIndices,
+		sizeof(Geometry::PlateIndices) / sizeof(uint32_t)
+	);
 	//m_TriangleMesh = std::make_unique<Mesh>(
 	//    Geometry::TriangleVertices,
 	//    sizeof(Geometry::TriangleVertices),
@@ -73,7 +80,7 @@ SandboxLayer::SandboxLayer()
     // =========================
     auto player = m_Scene.CreateEntity();
 	auto& pt = player.AddComponent<TransformComponent>();
-    pt.Position = {0,0,0};
+    pt.Position = {-50,-100,0};
 
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
@@ -105,7 +112,7 @@ SandboxLayer::SandboxLayer()
     // OTHER OBJECTS
     // =========================
 	int numCubes = 1000;
-	float spawnRange = 50.f;
+	float spawnRange = 100.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
 
@@ -128,10 +135,28 @@ SandboxLayer::SandboxLayer()
         collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
+	// Plate
+    auto e = m_Scene.CreateEntity();
+    auto& t = e.AddComponent<TransformComponent>();
+    t.Position = {0.0f, -150.0f, 0.0f};
+    t.Orientation = 
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	e.AddComponent<MeshComponent>().MeshPtr = m_PlateMesh.get();
+
+    auto& rb_plate = e.AddComponent<RigidbodyComponent>();
+    rb_plate.IsStatic = true;
+	
+    // Collider
+    auto& collider_plate = e.AddComponent<AABBComponent>();
+    collider_plate.HalfSize = {1000.0f, 4.0f, 1000.0f};
+
 	// =========================
 	// DEFAULT FOG
 	// =========================
-	m_Fog.Color = {0.12f, 0.1f, 0.2f};
+	//m_Fog.Color = {0.12f, 0.1f, 0.2f};
+	m_Fog.Color = {0.4f, 0.4f, 0.45f};
 	m_Fog.Density = 0.01f;
 
 	// Lock mouse initially
@@ -238,7 +263,7 @@ void SandboxLayer::OnImGuiRender() {
 		    "Noise Scale",
 		    &m_Fog.NoiseScale,
 		    0.0001f,
-		    0.05f,
+		    0.1f,
 		    "%.5f",
 		    ImGuiSliderFlags_Logarithmic
 		);
@@ -247,14 +272,14 @@ void SandboxLayer::OnImGuiRender() {
 		    "Noise Strength",
 		    &m_Fog.NoiseStrength,
 		    0.0f,
-		    2.0f
+		    4.0f
 		);
 		
 		ImGui::SliderFloat(
 		    "Noise Speed",
 		    &m_Fog.NoiseSpeed,
 		    0.0f,
-		    0.2f
+		    1.0f
 		);
 		
 		ImGui::SliderInt(

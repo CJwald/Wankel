@@ -27,6 +27,7 @@ private:
 
 	std::unique_ptr<Mesh> m_ShipMesh;
 	std::unique_ptr<Mesh> m_CubeMesh;
+	std::unique_ptr<Mesh> m_PlateMesh;
 	std::unique_ptr<Mesh> m_TriangleMesh;
 	std::unique_ptr<Shader> m_Shader;
 
