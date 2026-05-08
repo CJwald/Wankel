@@ -4,6 +4,7 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Mesh.h"
+#include "Wankel/Core/Time.h"
 
 #include <glad/gl.h>
 
@@ -48,6 +49,16 @@ namespace Wankel {
 		shader->SetVec3("u_CameraPos", s_Data.CameraPos);
 		shader->SetVec3("u_FogColor", s_Data.Fog.Color);
 		shader->SetFloat("u_FogDensity", s_Data.Fog.Density);
+		shader->SetFloat("u_Time", Time::GetTime());
+
+		shader->SetFloat("u_FogNoiseScale", s_Data.Fog.NoiseScale);
+		shader->SetFloat("u_FogNoiseStrength", s_Data.Fog.NoiseStrength);
+		shader->SetFloat("u_FogNoiseSpeed", s_Data.Fog.NoiseSpeed);
+		shader->SetInt("u_FogNoiseOctaves", s_Data.Fog.NoiseOctaves);
+		shader->SetFloat("u_FogHeightFalloff",
+		                 s_Data.Fog.HeightFalloff);
+		shader->SetInt("u_FogNoiseEnabled",
+		               s_Data.Fog.NoiseEnabled ? 1 : 0);
 	
     	mesh.Bind();
 

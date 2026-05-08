@@ -35,3 +35,9 @@
 
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
 
+// -----------------------------
+// Math
+// -----------------------------
+#include "Wankel/Math/Math.h"
+#include "Wankel/Math/Random.h"
+#include "Wankel/Math/Noise.h"

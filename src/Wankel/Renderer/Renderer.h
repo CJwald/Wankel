@@ -7,9 +7,23 @@ namespace Wankel {
 	class Camera;
 	class Shader;
 	class Mesh;
+
 	struct FogSettings {
-	    glm::vec3 Color = {0.12f, 0.1f, 0.2f};
-	    float Density = 0.01f; // 0.01 gives ~100% fog at 250m
+		glm::vec3 Color = {0.12f, 0.1f, 0.2f};
+	
+	    float Density = 0.01f;
+	
+	    // Noise fog
+	    bool NoiseEnabled = true;
+	
+	    float NoiseScale = 0.005f;
+	    float NoiseStrength = 0.5f;
+	    float NoiseSpeed = 0.02f;
+	
+	    int NoiseOctaves = 4;
+	
+	    // Height fog
+	    float HeightFalloff = 0.02f;
 	};
 	
 	class Renderer {

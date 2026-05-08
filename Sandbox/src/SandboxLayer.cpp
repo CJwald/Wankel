@@ -105,7 +105,7 @@ SandboxLayer::SandboxLayer()
     // OTHER OBJECTS
     // =========================
 	int numCubes = 1000;
-	float spawnRange = 100.f;
+	float spawnRange = 50.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
 
@@ -225,6 +225,50 @@ void SandboxLayer::OnImGuiRender() {
 		    &m_Fog.Density,
 		    0.0001f,
 		    0.1f,
+		    "%.4f",
+		    ImGuiSliderFlags_Logarithmic
+		);
+
+		ImGui::Checkbox(
+		    "Noise Fog",
+		    &m_Fog.NoiseEnabled
+		);
+		
+		ImGui::SliderFloat(
+		    "Noise Scale",
+		    &m_Fog.NoiseScale,
+		    0.0001f,
+		    0.05f,
+		    "%.5f",
+		    ImGuiSliderFlags_Logarithmic
+		);
+		
+		ImGui::SliderFloat(
+		    "Noise Strength",
+		    &m_Fog.NoiseStrength,
+		    0.0f,
+		    2.0f
+		);
+		
+		ImGui::SliderFloat(
+		    "Noise Speed",
+		    &m_Fog.NoiseSpeed,
+		    0.0f,
+		    0.2f
+		);
+		
+		ImGui::SliderInt(
+		    "Noise Octaves",
+		    &m_Fog.NoiseOctaves,
+		    1,
+		    8
+		);
+		
+		ImGui::SliderFloat(
+		    "Height Falloff",
+		    &m_Fog.HeightFalloff,
+		    0.001f,
+		    0.2f,
 		    "%.4f",
 		    ImGuiSliderFlags_Logarithmic
 		);

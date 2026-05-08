@@ -14,6 +14,7 @@ namespace Wankel {
 		void SetMat4(const std::string& name, const glm::mat4& matrix);
 		void SetVec3(const std::string& name, const glm::vec3& value);
 		void SetFloat(const std::string& name, float value);
+		void SetInt(const std::string& name, int value);
 	
 	private:
 	    unsigned int m_RendererID;

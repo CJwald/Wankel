@@ -74,9 +74,39 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
 
         input.y += Cross - Circle;
 
-        // Look
-        controller.LookDeltaX = rx * 10.0f;
-        controller.LookDeltaY = ry * 10.0f;
+        // =========================
+		// LOOK INPUT (FIXED)
+		// =========================
+
+		glm::vec2 look(0.0f);
+
+		// Controller
+		look.x += rx * 10.0f;
+		look.y += ry * 10.0f;
+
+		// Mouse (always include it, don't conditionally overwrite)
+		look.x += Input::GetMouseDeltaX();
+		look.y += Input::GetMouseDeltaY();
+
+		// Keyboard arrows
+		float keyLookSpeed = 180.0f * dt;
+
+		if (Input::IsKeyPressed(Key::Left))
+		    look.x -= keyLookSpeed;
+
+		if (Input::IsKeyPressed(Key::Right))
+		    look.x += keyLookSpeed;
+
+		if (Input::IsKeyPressed(Key::Up))
+		    look.y -= keyLookSpeed;
+
+		if (Input::IsKeyPressed(Key::Down))
+		    look.y += keyLookSpeed;
+
+		// FINAL OUTPUT (ONLY ONCE)
+		controller.LookDeltaX = look.x;
+		controller.LookDeltaY = look.y;
+
 
         // Roll
         float LRoll =
@@ -106,15 +136,15 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
         controller.MoveInput = input;
         controller.RollInput = rollInput;
 
-        // Mouse fallback if no stick input
-        if (rx == 0.0f && ry == 0.0f)
-        {
-            controller.LookDeltaX =
-                Input::GetMouseDeltaX();
+        //// Mouse fallback if no stick input
+        //if (rx == 0.0f && ry == 0.0f)
+        //{
+        //    controller.LookDeltaX =
+        //        Input::GetMouseDeltaX();
 
-            controller.LookDeltaY =
-                Input::GetMouseDeltaY();
-        }
+        //    controller.LookDeltaY =
+        //        Input::GetMouseDeltaY();
+        //}
 
         WK_CORE_INFO(
             "Cross: {0:.3f} | Circle: {1:.3f} | [{2:.3f}, {3:.3f}]",
