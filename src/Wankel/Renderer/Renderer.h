@@ -18,12 +18,11 @@ namespace Wankel {
 	
 	    float NoiseScale = 0.05f;
 	    float NoiseStrength = 0.75f;
-	    float NoiseSpeed = 0.2f;
+	    float NoiseSpeed = 0.2f; //todo maybe remove
 	
 	    int NoiseOctaves = 4;
-	
-	    // Height fog
-	    float HeightFalloff = 0.0f;
+		glm::vec3 WindDir = {1.0f, 0.0f, 0.0f};
+		float WindSpeed = 0.2f;
 	};
 	
 	class Renderer {

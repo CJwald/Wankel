@@ -321,16 +321,26 @@ void SandboxLayer::OnImGuiRender() {
 		    1,
 		    8
 		);
+
+		ImGui::Text("Fog Wind");
+
+		ImGui::DragFloat3(
+		    "Wind Direction",
+		    &m_Fog.WindDir[0],
+		    0.01f
+		);
 		
 		ImGui::SliderFloat(
-		    "Height Falloff",
-		    &m_Fog.HeightFalloff,
-		    0.001f,
-		    0.2f,
-		    "%.4f",
-		    ImGuiSliderFlags_Logarithmic
+		    "Wind Speed",
+		    &m_Fog.WindSpeed,
+		    0.0f,
+		    5.0f
 		);
-
+		
+		// normalize direction to avoid weird scaling
+		if (glm::length(m_Fog.WindDir) > 0.0001f)
+		    m_Fog.WindDir = glm::normalize(m_Fog.WindDir);
+		
 		// =========================
 		// CAMERA (GLOBAL)
 		// =========================
