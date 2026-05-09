@@ -22,6 +22,55 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
         auto& controller =
             controllerView.get<PlayerControllerComponent>(entity);
 
+        int pad = 0;
+        
+        // =========================
+		// LOOK MODE TOGGLE (R3)
+		// =========================
+
+		static bool r3PressedLastFrame = false;
+
+		bool r3Pressed =
+			ControllerInput::IsButtonPressed(
+				pad,
+				GamepadButton::R3
+			);
+
+		if (r3Pressed && !r3PressedLastFrame)
+		{
+			if (controller.Mode ==
+				PlayerControllerComponent::LookMode::FPS)
+			{
+				controller.Mode =
+				    PlayerControllerComponent::LookMode::Flight;
+			}
+			else
+			{
+				controller.Mode =
+				    PlayerControllerComponent::LookMode::FPS;
+
+				// =====================================
+				// Rebuild FPS yaw/pitch from orientation
+				// so transitions feel smooth
+				// =====================================
+
+				glm::vec3 forward =
+				    controller.Orientation *
+				    glm::vec3(0,0,-1);
+
+				controller.Yaw =
+				    atan2(forward.x, -forward.z);
+
+				controller.Pitch =
+				    asin(glm::clamp(
+				        forward.y,
+				        -1.0f,
+				        1.0f
+				    ));
+			}
+		}
+
+		r3PressedLastFrame = r3Pressed;
         glm::vec3 input(0.0f);
         float rollInput = 0.0f;
 
@@ -29,7 +78,7 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
         // KEYBOARD INPUT
         // =========================
 
-        controller.BoostMultiplier = 2.0f;
+        controller.BoostMultiplier = 4.0f;
 
         if (Input::IsKeyPressed(Key::W)) input.z += 1.0f;
         if (Input::IsKeyPressed(Key::S)) input.z -= 1.0f;
@@ -47,7 +96,6 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
         // CONTROLLER INPUT
         // =========================
 
-        int pad = 0;
 
         float lx = ControllerInput::GetAxis(pad, GamepadAxis::LeftX);
         float ly = ControllerInput::GetAxis(pad, GamepadAxis::LeftY);

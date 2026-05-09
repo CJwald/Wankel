@@ -102,7 +102,7 @@ SandboxLayer::SandboxLayer()
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    follow.Offset = {-0.0f, 0.32f, 0.52f};
+    follow.Offset = {-0.0f, 0.32f, 1.52f};
 	float roll = 0.0f; float pitch = -4.0f; float yaw = 0.0f; //-1.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
@@ -122,7 +122,7 @@ SandboxLayer::SandboxLayer()
 	// =========================
     // OTHER OBJECTS
     // =========================
-	int numCubes = 1000;
+	int numCubes = 100;
 	float spawnRange = 100.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
@@ -196,7 +196,7 @@ SandboxLayer::SandboxLayer()
 	// =========================
 	// DEFAULT FOG
 	// =========================
-	m_Fog.Color = {0.12f, 0.1f, 0.2f};
+	m_Fog.Color = {0.055f, 0.05f, 0.07f};
 	//m_Fog.Color = {0.1f, 0.1f, 0.1f};
 	m_Fog.Density = 0.01f;
 

@@ -36,6 +36,11 @@ namespace Wankel {
     };
 
 	struct PlayerControllerComponent {
+		enum class LookMode {
+			FPS,
+			Flight
+		};
+
         float MoveSpeed = 5.0f;
 	    float BoostMultiplier = 1.2f;
 	    bool Boost = false;
@@ -49,6 +54,15 @@ namespace Wankel {
 		glm::vec3 MoveInput{0.0f};
 	    float RollInput = 0.0f; 
 	    
+		LookMode Mode = LookMode::FPS;
+
+		// FPS CAMERA STATE
+		float Yaw = 0.0f;
+		float Pitch = 0.0f;
+		float Roll = 0.0f;
+		float MaxPitchUp = glm::radians(85.0f);
+		float MaxPitchDown = glm::radians(-89.0f);
+
 		glm::quat Orientation{1,0,0,0};
     };
 
