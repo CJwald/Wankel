@@ -4,6 +4,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include "Wankel/Renderer/Mesh.h"
 #include "Entity.h"
+#include "Wankel/Math/SecondOrderDynamics.h"
 
 namespace Wankel {
 
@@ -87,6 +88,36 @@ namespace Wankel {
 
 	struct AABBComponent {
     	glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f}; // matches cube mesh
+	};
+
+	struct MeshAnimationComponent {
+	
+	    // FINAL VISUAL OFFSETS
+	    glm::vec3 PositionOffset{0.0f};
+	    glm::vec3 RotationOffset{0.0f};
+	
+	    // TARGETS
+	    glm::vec3 TargetPosition{0.0f};
+	    glm::vec3 TargetRotation{0.0f};
+	
+	    // SPRINGS
+	    SecondOrderDynamics PositionSpring;
+	    SecondOrderDynamics RotationSpring;
+	
+	    // TUNING
+
+		glm::vec3 PositionAmplitude{0.01f, 0.01f, 0.01f};
+    	glm::vec3 RotationAmplitude{0.5f, 0.5f, 0.5f};
+
+	    float PositionFrequency = 2.0f;
+	    float PositionDamping = 0.7f;
+	    float PositionResponse = 1.5f;
+	
+	    float RotationFrequency = 2.0f;
+	    float RotationDamping = 0.7f;
+	    float RotationResponse = 1.5f;
+	
+	    bool Initialized = false;
 	};
 
 }

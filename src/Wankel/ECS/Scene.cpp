@@ -1,7 +1,7 @@
 #include "wkpch.h"
 #include "Scene.h"
 #include "Components.h"
-
+#include "Wankel/Math/SecondOrderDynamics.h"
 #include "Wankel/Renderer/Camera.h"
 
 #include <glm/gtx/quaternion.hpp>
@@ -285,6 +285,89 @@ namespace Wankel {
         // PHYSICS
         // =========================
         m_PhysicsSystem.Update(*this, dt);
+
+        // =========================
+        // PROCEDURAL MESH ANIMATION
+        // =========================
+
+        auto animView = m_Registry.view<
+            TransformComponent,
+            RigidbodyComponent,
+            MeshAnimationComponent>();
+
+        for (auto entity : animView)
+        {
+            auto& transform =
+                animView.get<TransformComponent>(entity);
+
+            auto& rb =
+                animView.get<RigidbodyComponent>(entity);
+
+            auto& anim =
+                animView.get<MeshAnimationComponent>(entity);
+
+            // =====================================
+            // VELOCITY IN LOCAL SPACE
+            // =====================================
+
+            glm::vec3 localVelocity =
+                glm::inverse(transform.Orientation)
+                * rb.Velocity;
+
+            // =====================================
+            // TARGET POSITION OFFSET
+            // =====================================
+
+            anim.TargetPosition =
+                glm::vec3(
+                    -localVelocity.x * anim.PositionAmplitude.x,
+                    -localVelocity.y * anim.PositionAmplitude.y,
+                     localVelocity.z * anim.PositionAmplitude.z
+                );
+
+            // =====================================
+            // TARGET ROTATION OFFSET
+            // =====================================
+
+            anim.TargetRotation =
+                glm::vec3(
+                    -localVelocity.y * anim.RotationAmplitude.x,   // pitch
+                     localVelocity.x * anim.RotationAmplitude.y,   // yaw
+                     localVelocity.x * anim.RotationAmplitude.z    // roll
+                );
+
+            // =====================================
+            // UPDATE SPRING SETTINGS
+            // =====================================
+
+            anim.PositionSpring.SetDynamics(
+                anim.PositionFrequency,
+                anim.PositionDamping,
+                anim.PositionResponse
+            );
+
+            anim.RotationSpring.SetDynamics(
+                anim.RotationFrequency,
+                anim.RotationDamping,
+                anim.RotationResponse
+            );
+
+            // =====================================
+            // UPDATE SPRINGS
+            // =====================================
+
+            anim.PositionOffset =
+                anim.PositionSpring.Update(
+                    dt,
+                    anim.TargetPosition
+                );
+
+            anim.RotationOffset =
+                anim.RotationSpring.Update(
+                    dt,
+                    anim.TargetRotation
+                );
+        }
 
         // =========================
         // FOLLOW CAMERA SYSTEM

@@ -24,9 +24,10 @@ void PhysicsSystem::Update(Scene& scene, float dt)
             auto& t = view.get<TransformComponent>(e);
             auto& rb = view.get<RigidbodyComponent>(e);
 
-            if (!rb.IsStatic)
+            if (!rb.IsStatic) {
 				rb.Velocity = rb.ForcedVelocity;
                 t.Position += rb.Velocity * dt;
+			}
         }
     }
 

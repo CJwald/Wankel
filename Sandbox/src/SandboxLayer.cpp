@@ -95,6 +95,22 @@ SandboxLayer::SandboxLayer()
 
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
+    auto& anim =
+        player.AddComponent<MeshAnimationComponent>();
+
+    anim.PositionSpring = SecondOrderDynamics(
+        2.0f,
+        0.7f,
+        -0.5f,
+        glm::vec3(0.0f)
+    );
+
+    anim.RotationSpring = SecondOrderDynamics(
+        2.5f,
+        0.6f,
+        -0.3f,
+        glm::vec3(0.0f)
+    );
 
     // CAMERA ENTITY
     auto camEntity = m_Scene.CreateEntity();
@@ -251,13 +267,38 @@ void SandboxLayer::OnUpdate() {
 
     Renderer::BeginScene(m_Controller.GetCamera());
 
-	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
+	auto view = m_Scene.Registry().view<
+	    TransformComponent,
+	    MeshComponent>();
 
 	for (auto entity : view) {
+
 		auto& transform = view.get<TransformComponent>(entity);
         auto& mesh = view.get<MeshComponent>(entity);
 
 		glm::mat4 model = transform.GetTransform();
+
+		// =====================================
+		// PROCEDURAL MESH ANIMATION
+		// =====================================
+
+		if (m_Scene.Registry().all_of<MeshAnimationComponent>(entity)) {
+
+		    auto& anim = m_Scene.Registry().get<MeshAnimationComponent>(entity);
+
+			glm::vec3 rot = glm::radians(anim.RotationOffset);
+
+			glm::quat pitch = glm::angleAxis(rot.x, glm::vec3(1,0,0));
+			glm::quat yaw = glm::angleAxis(rot.y, glm::vec3(0,1,0));
+			glm::quat roll = glm::angleAxis(rot.z, glm::vec3(0,0,1));
+			
+			glm::quat animRotation = glm::normalize(roll * yaw * pitch);
+
+		    glm::mat4 animTransform = glm::translate(glm::mat4(1.0f), anim.PositionOffset) * glm::toMat4(animRotation);
+
+		    // Apply animation in LOCAL SPACE
+		    model = model * animTransform;
+		}
 
         Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
 	}
@@ -380,7 +421,97 @@ void SandboxLayer::OnImGuiRender() {
 		
 		    ImGui::DragFloat3("Rotation Offset", &m_DebugFollow->RotationOffset[0], 0.01f);
 		}
+
+		// =========================
+		// PLAYER ANIMATION
+		// =========================
 		
+		auto animView =
+		    m_Scene.Registry().view<MeshAnimationComponent>();
+		
+		for (auto entity : animView)
+		{
+		    auto& anim =
+		        animView.get<MeshAnimationComponent>(entity);
+		
+		    ImGui::Separator();
+		    ImGui::Text("Mesh Animation");
+		
+		    // =========================
+		    // POSITION AMPLITUDE
+		    // =========================
+		    ImGui::Text("Position Amplitude");
+		    ImGui::DragFloat3(
+		        "Pos Amp",
+		        &anim.PositionAmplitude[0],
+		        0.01f,
+		        0.0f,
+		        10.0f
+		    );
+		
+		    // =========================
+		    // ROTATION AMPLITUDE
+		    // =========================
+		    ImGui::Text("Rotation Amplitude");
+		    ImGui::DragFloat3(
+		        "Rot Amp",
+		        &anim.RotationAmplitude[0],
+		        0.1f,
+		        0.0f,
+		        50.0f
+		    );
+		
+		    // =========================
+		    // POSITION TUNING
+		    // =========================
+		    ImGui::SliderFloat(
+		        "Pos Frequency",
+		        &anim.PositionFrequency,
+		        0.1f,
+		        10.0f
+		    );
+		
+		    ImGui::SliderFloat(
+		        "Pos Damping",
+		        &anim.PositionDamping,
+		        0.0f,
+		        3.0f
+		    );
+		
+		    ImGui::SliderFloat(
+		        "Pos Response",
+		        &anim.PositionResponse,
+		        -3.0f,
+		        3.0f
+		    );
+		
+		    // =========================
+		    // ROTATION TUNING
+		    // =========================
+		    ImGui::SliderFloat(
+		        "Rot Frequency",
+		        &anim.RotationFrequency,
+		        0.1f,
+		        10.0f
+		    );
+		
+		    ImGui::SliderFloat(
+		        "Rot Damping",
+		        &anim.RotationDamping,
+		        0.0f,
+		        3.0f
+		    );
+		
+		    ImGui::SliderFloat(
+		        "Rot Response",
+		        &anim.RotationResponse,
+		        -3.0f,
+		        3.0f
+		    );
+		
+		    break; // keep your single-entity UI behavior
+		}
+
 		// =========================
 		// ENGINE INFO
 		// =========================

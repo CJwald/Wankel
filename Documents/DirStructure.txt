@@ -74,48 +74,17 @@ src
 │   ├── Physics
 │   │   ├── Collision
 │   │   │   ├── BroadPhase
-│   │   │   │   ├── AABB.cpp
 │   │   │   │   ├── AABB.h
-│   │   │   │   ├── BroadPhase.cpp
-│   │   │   │   ├── BroadPhase.h
-│   │   │   │   ├── DynamicAABBTree.h
 │   │   │   │   └── SpatialHashGrid.h
-│   │   │   ├── CollisionDetection.cpp
-│   │   │   ├── CollisionDetection.h
 │   │   │   ├── CollisionManifold.h
-│   │   │   ├── CollisionTypes.h
 │   │   │   └── NarrowPhase
 │   │   │       ├── AABBCollision.cpp
-│   │   │       ├── AABBCollision.h
-│   │   │       ├── CapsuleCollision.h
-│   │   │       ├── EPA.h
-│   │   │       ├── GJK.h
-│   │   │       ├── NarrowPhase.cpp
-│   │   │       ├── NarrowPhase.h
-│   │   │       ├── SAT.h
-│   │   │       └── SphereCollision.h
+│   │   │       └── AABBCollision.h
 │   │   ├── Debug
-│   │   │   ├── PhysicsDebugRenderer.cpp
-│   │   │   └── PhysicsDebugRenderer.h
 │   │   ├── Dynamics
-│   │   │   ├── Integrator.cpp
-│   │   │   ├── Integrator.h
-│   │   │   ├── RigidBody.cpp
-│   │   │   └── RigidBody.h
-│   │   ├── Physics.cpp
-│   │   ├── Physics.h
-│   │   ├── PhysicsWorld.cpp
-│   │   ├── PhysicsWorld.h
+│   │   │   └── SecondOrderDynamics.h
 │   │   ├── Raycast
-│   │   │   ├── Raycast.cpp
-│   │   │   ├── Raycast.h
-│   │   │   ├── RaycastHit.h
-│   │   │   └── Ray.h
 │   │   ├── Resolution
-│   │   │   ├── ContactResolver.cpp
-│   │   │   ├── ContactResolver.h
-│   │   │   ├── ImpactSolver.cpp
-│   │   │   └── ImpactSolver.h
 │   │   └── Systems
 │   │       ├── PhysicsSystem.cpp
 │   │       └── PhysicsSystem.h
@@ -151,7 +120,7 @@ src
 ├── wkpch.cpp
 └── wkpch.h
 
-20 directories, 106 files
+20 directories, 75 files
 SandboxApp [error opening dir]
 
 0 directories, 0 files
