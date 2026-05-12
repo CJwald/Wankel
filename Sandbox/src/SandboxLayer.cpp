@@ -47,7 +47,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	    (uint32_t)meshData.Indices.size()
 	);
 
-	auto boxMeshData = PLYLoader::Load("Assets/Mesh/Box.ply");
+	//auto boxMeshData = PLYLoader::Load("Assets/Mesh/Box.ply");
+	auto boxMeshData = PLYLoader::Load("Assets/Mesh/Karachi.ply");
 	m_BoxMesh = std::make_unique<Mesh>(
 	    boxMeshData.Vertices.data(),
 	    boxMeshData.Vertices.size() * sizeof(float),
@@ -84,7 +85,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     // PLAYER ENTITY
     auto player = m_Scene.CreateEntity();
 	auto& pt = player.AddComponent<TransformComponent>();
-    pt.LocalPosition = {0,0,150};
+    pt.LocalPosition = {0,10,50};
 
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
@@ -164,17 +165,17 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto& rb_box = b.AddComponent<RigidbodyComponent>();
     rb_box.IsStatic = true;
 	
-    // WORLD BOX 2
-	auto b2 = m_Scene.CreateEntity();
-    auto& tb2 = b2.AddComponent<TransformComponent>();
-    tb2.LocalPosition = {0.0f, 0.0f, 250.0f};
-    tb2.LocalOrientation = 
-    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
-    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
-    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-	b2.AddComponent<MeshComponent>().MeshPtr = m_BoxMesh.get();
-    auto& rb_box2 = b2.AddComponent<RigidbodyComponent>();
-    rb_box2.IsStatic = true;
+    //// WORLD BOX 2
+	//auto b2 = m_Scene.CreateEntity();
+    //auto& tb2 = b2.AddComponent<TransformComponent>();
+    //tb2.LocalPosition = {0.0f, 0.0f, 250.0f};
+    //tb2.LocalOrientation = 
+    //	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    //	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
+    //	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	//b2.AddComponent<MeshComponent>().MeshPtr = m_BoxMesh.get();
+    //auto& rb_box2 = b2.AddComponent<RigidbodyComponent>();
+    //rb_box2.IsStatic = true;
 
 
 	// DEFAULT FOG

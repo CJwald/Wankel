@@ -79,8 +79,10 @@ public:
 			ss >> x >> y >> z;
 			
 			// Blender -> Engine conversion
-			float ex = y;//-y;
-			float ey = -z;//z;
+			//float ex = y;//-y;
+			//float ey = -z;//z;
+			float ex = -y;
+			float ey = z;
 			float ez = -x;
 			
 			// read color (IMPORTANT: uchar = int)

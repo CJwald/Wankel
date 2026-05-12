@@ -78,7 +78,7 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
         // KEYBOARD INPUT
         // =========================
 
-        controller.BoostMultiplier = 4.0f;
+        controller.BoostMultiplier = 1.2f;
 
         if (Input::IsKeyPressed(Key::W)) input.z += 1.0f;
         if (Input::IsKeyPressed(Key::S)) input.z -= 1.0f;
