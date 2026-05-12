@@ -9,20 +9,48 @@
 namespace Wankel {
 
     struct TransformComponent {
-        glm::vec3 Position{0.0f};
-		glm::quat Orientation{1,0,0,0};
-        glm::vec3 Scale{1.0f};
+        glm::vec3 LocalPosition{0.0f};
+		glm::quat LocalOrientation{1,0,0,0};
+        glm::vec3 LocalScale{1.0f};
 
-		glm::mat4 GetTransform() const {
-            return glm::translate(glm::mat4(1.0f), Position)
-                 * glm::toMat4(Orientation)
-                 * glm::scale(glm::mat4(1.0f), Scale);
+		glm::mat4 WorldTransform{1.0f};
+
+		glm::mat4 GetLocalTransform() const {
+            return glm::translate(glm::mat4(1.0f), LocalPosition)
+                 * glm::toMat4(LocalOrientation)
+                 * glm::scale(glm::mat4(1.0f), LocalScale);
+        }
+
+		glm::vec3 GetWorldPosition() const {
+            return glm::vec3(WorldTransform[3]);
+        }
+
+        glm::quat GetWorldRotation() const {
+            return glm::quat_cast(WorldTransform);
         }
     };
 
+
 	struct MeshComponent {
         Mesh* MeshPtr = nullptr;
+
+		glm::vec3 LocalPosition{0.0f};
+    	glm::quat LocalRotation{1,0,0,0};
+    	glm::vec3 LocalScale{1.0f};
+
+    	glm::vec3 RotationPivot{0.0f};
+		glm::mat4 GetLocalTransform() const {
+
+            glm::mat4 pivotToOrigin = glm::translate(glm::mat4(1.0f), -RotationPivot);
+
+            glm::mat4 pivotBack = glm::translate(glm::mat4(1.0f), RotationPivot);
+
+            return glm::translate(glm::mat4(1.0f), LocalPosition) * 
+				pivotBack * glm::toMat4(LocalRotation) * 
+				pivotToOrigin * glm::scale(glm::mat4(1.0f), LocalScale);
+        }
     };
+
 
     struct CameraComponent {
         float FOV = 66.0f; // Vertical FOV ~= 100 Horizontal on 16:9
@@ -30,11 +58,13 @@ namespace Wankel {
         float Far = 1000.0f;
     };
 
+
 	struct FollowCameraComponent {
         Entity Target;
-        glm::vec3 Offset{0.0f, 2.0f, 5.0f};
+        glm::vec3 Offset{0.0f, 0.0f, 0.0f};
         glm::quat RotationOffset{1, 0, 0, 0};
     };
+
 
 	struct PlayerControllerComponent {
 		enum class LookMode {
@@ -61,11 +91,22 @@ namespace Wankel {
 		float Yaw = 0.0f;
 		float Pitch = 0.0f;
 		float Roll = 0.0f;
-		float MaxPitchUp = glm::radians(85.0f);
+		float MaxPitchUp = glm::radians(89.0f);
 		float MaxPitchDown = glm::radians(-89.0f);
 
 		glm::quat Orientation{1,0,0,0};
     };
+
+
+	struct ParentComponent {
+	    Entity Parent;
+	};
+
+
+	struct ChildrenComponent {
+	    std::vector<Entity> Children;
+	};
+
 
 	struct RigidbodyComponent {
 	    glm::vec3 Velocity{0.0f};
@@ -74,6 +115,7 @@ namespace Wankel {
 	    bool IsStatic = false;
 	};
 	
+
 	struct ColliderComponent {
 	    enum class Type {
 	        AABB,
@@ -86,9 +128,11 @@ namespace Wankel {
 	    float Radius;     // Sphere
 	};
 
+
 	struct AABBComponent {
     	glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f}; // matches cube mesh
 	};
+
 
 	struct MeshAnimationComponent {
 	
@@ -106,16 +150,16 @@ namespace Wankel {
 	
 	    // TUNING
 
-		glm::vec3 PositionAmplitude{0.01f, 0.01f, 0.01f};
-    	glm::vec3 RotationAmplitude{0.5f, 0.5f, 0.5f};
+		glm::vec3 PositionAmplitude{0.001f, 0.001f, -0.001f};
+    	glm::vec3 RotationAmplitude{0.005f, 0.005f, 0.005f};
 
 	    float PositionFrequency = 2.0f;
-	    float PositionDamping = 0.7f;
-	    float PositionResponse = 1.5f;
+	    float PositionDamping = 0.8f;
+	    float PositionResponse = 2.0f;
 	
 	    float RotationFrequency = 2.0f;
-	    float RotationDamping = 0.7f;
-	    float RotationResponse = 1.5f;
+	    float RotationDamping = 0.8f;
+	    float RotationResponse = 2.0f;
 	
 	    bool Initialized = false;
 	};

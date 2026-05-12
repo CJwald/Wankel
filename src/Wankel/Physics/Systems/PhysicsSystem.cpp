@@ -26,7 +26,7 @@ void PhysicsSystem::Update(Scene& scene, float dt)
 
             if (!rb.IsStatic) {
 				rb.Velocity = rb.ForcedVelocity;
-                t.Position += rb.Velocity * dt;
+                t.LocalPosition += rb.Velocity * dt;
 			}
         }
     }
@@ -41,7 +41,7 @@ void PhysicsSystem::Update(Scene& scene, float dt)
     for (auto e : buildView)
     {
         auto& t = buildView.get<TransformComponent>(e);
-        m_Grid.Insert(e, t.Position);
+        m_Grid.Insert(e, t.LocalPosition);
     }
 
     // =========================
@@ -55,9 +55,9 @@ void PhysicsSystem::Update(Scene& scene, float dt)
         auto& ca = registry.get<AABBComponent>(a);
         auto& rba = registry.get<RigidbodyComponent>(a);
 
-        AABB aabbA = AABB::FromCenterHalfSize(ta.Position, ca.HalfSize);
+        AABB aabbA = AABB::FromCenterHalfSize(ta.LocalPosition, ca.HalfSize);
 
-        auto candidates = m_Grid.Query(ta.Position);
+        auto candidates = m_Grid.Query(ta.LocalPosition);
 
         for (auto b : candidates)
         {
@@ -70,7 +70,7 @@ void PhysicsSystem::Update(Scene& scene, float dt)
             auto& cb = registry.get<AABBComponent>(b);
             auto& rbb = registry.get<RigidbodyComponent>(b);
 
-            AABB aabbB = AABB::FromCenterHalfSize(tb.Position, cb.HalfSize);
+            AABB aabbB = AABB::FromCenterHalfSize(tb.LocalPosition, cb.HalfSize);
 
             auto manifold = AABBvsAABB(aabbA, aabbB);
 
@@ -85,16 +85,16 @@ void PhysicsSystem::Update(Scene& scene, float dt)
 
             if (rba.IsStatic)
             {
-                tb.Position += manifold.Normal * manifold.Penetration;
+                tb.LocalPosition += manifold.Normal * manifold.Penetration;
             }
             else if (rbb.IsStatic)
             {
-                ta.Position -= manifold.Normal * manifold.Penetration;
+                ta.LocalPosition -= manifold.Normal * manifold.Penetration;
             }
             else
             {
-                ta.Position -= manifold.Normal * manifold.Penetration * 0.5f;
-                tb.Position += manifold.Normal * manifold.Penetration * 0.5f;
+                ta.LocalPosition -= manifold.Normal * manifold.Penetration * 0.5f;
+                tb.LocalPosition += manifold.Normal * manifold.Penetration * 0.5f;
             }
 
             // =========================

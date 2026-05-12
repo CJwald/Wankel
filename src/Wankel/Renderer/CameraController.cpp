@@ -9,7 +9,7 @@
 namespace Wankel {
 
 	CameraController::CameraController(float aspect)
-		: m_Camera(45.0f, aspect, 0.1f, 1000.0f)
+		: m_Camera(66.0f, aspect, 0.01f, 1000.0f)
 	{}
 
 	void CameraController::OnUpdate(float dt) {

@@ -141,8 +141,6 @@ namespace Wankel {
                 // =====================================================
                 // STEP 4:
                 // PITCH AROUND ROLLED RIGHT
-                // =====================================================
-
                 glm::vec3 pitchRight =
                     yawRollQuat *
                     glm::vec3(1,0,0);
@@ -153,10 +151,7 @@ namespace Wankel {
                         pitchRight
                     );
 
-                // =====================================================
                 // FINAL ORIENTATION
-                // =====================================================
-
                 controller.Orientation =
                     glm::normalize(
                         pitchQuat *
@@ -164,12 +159,9 @@ namespace Wankel {
                     );
             }
 
-            // =========================================================
             // FLIGHT LOOK MODE
-            // =========================================================
-            else if (controller.Mode ==
-                     PlayerControllerComponent::LookMode::Flight)
-            {
+            else if (controller.Mode == PlayerControllerComponent::LookMode::Flight) {
+
                 glm::vec3 localUp =
                     controller.Orientation *
                     glm::vec3(0,1,0);
@@ -211,20 +203,14 @@ namespace Wankel {
                     );
             }
 
-            // =========================
             // MOVEMENT
-            // =========================
-
             glm::vec3 forward;
             glm::vec3 right;
             glm::vec3 up;
 
-            // =========================================================
             // FPS MOVEMENT
-            // =========================================================
-            if (controller.Mode ==
-                PlayerControllerComponent::LookMode::FPS)
-            {
+            if (controller.Mode == PlayerControllerComponent::LookMode::FPS) {
+
                 forward =
                     controller.Orientation *
                     glm::vec3(0,0,-1);
@@ -236,13 +222,9 @@ namespace Wankel {
                 up =
                     controller.Orientation *
                     glm::vec3(0,1,0);
-            }
 
-            // =========================================================
-            // FLIGHT MOVEMENT
-            // =========================================================
-            else
-            {
+			// FLIGHT MOVEMENT
+            } else { 
                 forward =
                     controller.Orientation *
                     glm::vec3(0,0,-1);
@@ -274,50 +256,30 @@ namespace Wankel {
 
             rb.ForcedVelocity = moveDir * speed;
 
-            // =========================
             // APPLY TRANSFORM
-            // =========================
-            transform.Orientation =
-                controller.Orientation;
+            transform.LocalOrientation = controller.Orientation;
         }
 
-        // =========================
         // PHYSICS
-        // =========================
         m_PhysicsSystem.Update(*this, dt);
 
-        // =========================
         // PROCEDURAL MESH ANIMATION
-        // =========================
+        auto animView = m_Registry.view<TransformComponent, RigidbodyComponent, MeshAnimationComponent>();
 
-        auto animView = m_Registry.view<
-            TransformComponent,
-            RigidbodyComponent,
-            MeshAnimationComponent>();
+        for (auto entity : animView) {
 
-        for (auto entity : animView)
-        {
-            auto& transform =
-                animView.get<TransformComponent>(entity);
+            auto& transform = animView.get<TransformComponent>(entity);
 
-            auto& rb =
-                animView.get<RigidbodyComponent>(entity);
+            auto& rb = animView.get<RigidbodyComponent>(entity);
 
-            auto& anim =
-                animView.get<MeshAnimationComponent>(entity);
+            auto& anim = animView.get<MeshAnimationComponent>(entity);
 
-            // =====================================
             // VELOCITY IN LOCAL SPACE
-            // =====================================
-
             glm::vec3 localVelocity =
-                glm::inverse(transform.Orientation)
+                glm::inverse(transform.LocalOrientation)
                 * rb.Velocity;
 
-            // =====================================
             // TARGET POSITION OFFSET
-            // =====================================
-
             anim.TargetPosition =
                 glm::vec3(
                     -localVelocity.x * anim.PositionAmplitude.x,
@@ -325,10 +287,7 @@ namespace Wankel {
                      localVelocity.z * anim.PositionAmplitude.z
                 );
 
-            // =====================================
             // TARGET ROTATION OFFSET
-            // =====================================
-
             anim.TargetRotation =
                 glm::vec3(
                     -localVelocity.y * anim.RotationAmplitude.x,   // pitch
@@ -336,10 +295,7 @@ namespace Wankel {
                      localVelocity.x * anim.RotationAmplitude.z    // roll
                 );
 
-            // =====================================
             // UPDATE SPRING SETTINGS
-            // =====================================
-
             anim.PositionSpring.SetDynamics(
                 anim.PositionFrequency,
                 anim.PositionDamping,
@@ -352,75 +308,37 @@ namespace Wankel {
                 anim.RotationResponse
             );
 
-            // =====================================
             // UPDATE SPRINGS
-            // =====================================
-
-            anim.PositionOffset =
-                anim.PositionSpring.Update(
-                    dt,
-                    anim.TargetPosition
-                );
-
-            anim.RotationOffset =
-                anim.RotationSpring.Update(
-                    dt,
-                    anim.TargetRotation
-                );
+            anim.PositionOffset = anim.PositionSpring.Update(dt, anim.TargetPosition);
+            anim.RotationOffset = anim.RotationSpring.Update(dt, anim.TargetRotation);
         }
 
-        // =========================
         // FOLLOW CAMERA SYSTEM
-        // =========================
-        auto camView = m_Registry.view<
-            TransformComponent,
-            FollowCameraComponent>();
+        auto camView = m_Registry.view<TransformComponent, FollowCameraComponent>();
 
         for (auto entity : camView) {
 
-            auto& transform =
-                camView.get<TransformComponent>(entity);
+            auto& transform = camView.get<TransformComponent>(entity);
 
-            auto& follow =
-                camView.get<FollowCameraComponent>(entity);
+            auto& follow = camView.get<FollowCameraComponent>(entity);
 
             if (!follow.Target)
                 continue;
 
-            auto& targetTransform =
-                follow.Target.GetComponent<TransformComponent>();
+            auto& targetTransform = follow.Target.GetComponent<TransformComponent>();
 
-            // =========================
             // BUILD TARGET TRANSFORM
-            // =========================
             glm::mat4 targetMat =
-                glm::translate(
-                    glm::mat4(1.0f),
-                    targetTransform.Position
-                )
-                *
-                glm::toMat4(
-                    targetTransform.Orientation
-                );
+                glm::translate(glm::mat4(1.0f), targetTransform.LocalPosition) *
+                glm::toMat4(targetTransform.LocalOrientation);
 
-            // =========================
             // BUILD CAMERA OFFSET
-            // =========================
             glm::mat4 offsetMat =
-                glm::translate(
-                    glm::mat4(1.0f),
-                    follow.Offset
-                )
-                *
-                glm::mat4_cast(
-                    follow.RotationOffset
-                );
+                glm::translate(glm::mat4(1.0f), follow.Offset) *
+                glm::mat4_cast(follow.RotationOffset);
 
-            // =========================
             // FINAL CAMERA TRANSFORM
-            // =========================
-            glm::mat4 cameraMat =
-                targetMat * offsetMat;
+            glm::mat4 cameraMat = targetMat * offsetMat;
 
             // =========================
             // POSITION
