@@ -85,7 +85,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     // PLAYER ENTITY
     auto player = m_Scene.CreateEntity();
 	auto& pt = player.AddComponent<TransformComponent>();
-    pt.LocalPosition = {0,10,50};
+    pt.LocalPosition = {0,1,0};
 
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
@@ -111,7 +111,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    follow.Offset = {0.0f, 0.1f, -0.08f}; // I think i want to get this close to 0.0 and define mesh around that
+    follow.Offset = {0.0f, 0.2f, 0.0f}; // I think i want to get this close to 0.0 and define mesh around that
 	float roll = 0.0f; float pitch = 0.0f; float yaw = 0.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *

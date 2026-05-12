@@ -34,217 +34,72 @@ namespace Wankel {
 
             rollMag = glm::clamp(rollMag, -1.0f, 1.0f);
 
+            glm::vec3 forward = glm::vec3(0,0,-1);
+            glm::vec3 right   = glm::vec3(1,0,0);;
+            glm::vec3 up      = glm::vec3(0,1,0);
+
             // =========================================================
             // FPS LOOK MODE
             // =========================================================
-            if (controller.Mode ==
-                PlayerControllerComponent::LookMode::FPS)
-            {
-                // =========================
-                // ACCUMULATE INPUT
-                // =========================
-
-                controller.Yaw +=
-                    -dx * controller.MouseSensitivity;
-
-                controller.Pitch +=
-                    -dy * controller.MouseSensitivity;
-
-                controller.Roll +=
-                    rollMag * controller.RollSpeed * dt;
-
-                // =========================
-                // CLAMP PITCH
-                // =========================
-
-                controller.Pitch = glm::clamp(
-                    controller.Pitch,
-                    controller.MaxPitchDown,
-                    controller.MaxPitchUp
-                );
-
-                // =====================================================
-                // STEP 1:
-                // BUILD YAW/ROLL FRAME
-                //
-                // Roll should happen around the CURRENT
-                // FORWARD axis after yaw.
-                // =====================================================
-
-                // Start with yaw around world up
-                glm::quat yawQuat =
-                    glm::angleAxis(
-                        controller.Yaw,
-                        glm::vec3(0,1,0)
-                    );
-
-                // Forward after yaw
-                glm::vec3 yawForward =
-                    yawQuat *
-                    glm::vec3(0,0,-1);
-
-                // Roll around CURRENT FORWARD
-                glm::quat rollQuat =
-                    glm::angleAxis(
-                        controller.Roll,
-                        yawForward
-                    );
-
-                // Combined yaw+roll frame
-                glm::quat yawRollQuat =
-                    glm::normalize(
-                        rollQuat * yawQuat
-                    );
-
-                // =====================================================
-                // STEP 2:
-                // YAW FRAME SHOULD FOLLOW ROLL
-                // =====================================================
-
-                glm::vec3 rolledUp =
-                    yawRollQuat *
-                    glm::vec3(0,1,0);
-
-                glm::vec3 rolledRight =
-                    yawRollQuat *
-                    glm::vec3(1,0,0);
-
-                // =====================================================
-                // STEP 3:
-                // REBUILD YAW USING ROLLED UP
-                // =====================================================
-
-                yawQuat =
-                    glm::angleAxis(
-                        controller.Yaw,
-                        rolledUp
-                    );
-
-                // Recompute forward after yaw
-                glm::vec3 forward =
-                    yawQuat *
-                    glm::vec3(0,0,-1);
-
-                // Roll around new forward
-                rollQuat =
-                    glm::angleAxis(
-                        controller.Roll,
-                        forward
-                    );
-
-                // Rebuild yaw+roll
-                yawRollQuat =
-                    glm::normalize(
-                        rollQuat * yawQuat
-                    );
-
-                // =====================================================
-                // STEP 4:
-                // PITCH AROUND ROLLED RIGHT
-                glm::vec3 pitchRight =
-                    yawRollQuat *
-                    glm::vec3(1,0,0);
-
-                glm::quat pitchQuat =
-                    glm::angleAxis(
-                        controller.Pitch,
-                        pitchRight
-                    );
-
-                // FINAL ORIENTATION
-                controller.Orientation =
-                    glm::normalize(
-                        pitchQuat *
-                        yawRollQuat
-                    );
-            }
-
-            // FLIGHT LOOK MODE
-            else if (controller.Mode == PlayerControllerComponent::LookMode::Flight) {
-
-                glm::vec3 localUp =
-                    controller.Orientation *
-                    glm::vec3(0,1,0);
-
-                glm::vec3 localRight =
-                    controller.Orientation *
-                    glm::vec3(1,0,0);
-
-                glm::vec3 localForward =
-                    controller.Orientation *
-                    glm::vec3(0,0,-1);
-
-                glm::quat yaw =
-                    glm::angleAxis(
-                        -dx * controller.MouseSensitivity,
-                        localUp
-                    );
-
-                glm::quat pitch =
-                    glm::angleAxis(
-                        -dy * controller.MouseSensitivity,
-                        localRight
-                    );
-
-                glm::quat roll =
-                    glm::angleAxis(
-                        rollMag *
-                        controller.RollSpeed *
-                        dt,
-                        localForward
-                    );
-
-                controller.Orientation =
-                    glm::normalize(
-                        roll *
-                        pitch *
-                        yaw *
-                        controller.Orientation
-                    );
-            }
-
-            // MOVEMENT
-            glm::vec3 forward;
-            glm::vec3 right;
-            glm::vec3 up;
-
-            // FPS MOVEMENT
             if (controller.Mode == PlayerControllerComponent::LookMode::FPS) {
 
-                forward =
-                    controller.Orientation *
-                    glm::vec3(0,0,-1);
+                // ACCUMULATE INPUT
+                controller.Yaw += -dx * controller.MouseSensitivity;
+                controller.Pitch += -dy * controller.MouseSensitivity;
+                controller.Roll += rollMag * controller.RollSpeed * dt;
 
-                right =
-                    controller.Orientation *
-                    glm::vec3(1,0,0);
+                // CLAMP PITCH
+                controller.Pitch = glm::clamp( controller.Pitch, controller.MaxPitchDown, controller.MaxPitchUp );
 
-                up =
-                    controller.Orientation *
-                    glm::vec3(0,1,0);
+				// LOOK TRANSFORMS
+                // Start with yaw around world up
+                glm::quat yawQuat = glm::angleAxis( controller.Yaw, up );
+                forward = yawQuat * forward;
 
-			// FLIGHT MOVEMENT
-            } else { 
-                forward =
-                    controller.Orientation *
-                    glm::vec3(0,0,-1);
+                // Roll around CURRENT FORWARD
+                glm::quat rollQuat = glm::angleAxis( controller.Roll, forward );
 
-                right =
-                    controller.Orientation *
-                    glm::vec3(1,0,0);
+                // Combined yaw+roll frame
+                glm::quat yawRollQuat = glm::normalize( rollQuat * yawQuat );
+				up = yawRollQuat * up;
+                right = yawRollQuat * right;
 
-                up =
-                    controller.Orientation *
-                    glm::vec3(0,1,0);
+                // REBUILD YAW USING ROLLED UP
+                yawQuat = glm::angleAxis( controller.Yaw, up );
+                forward = yawQuat * forward;
+
+                // Roll around new forward
+                rollQuat = glm::angleAxis( controller.Roll, forward );
+
+                // Rebuild yaw+roll
+                yawRollQuat = glm::normalize( rollQuat * yawQuat );
+
+                // PITCH AROUND ROLLED RIGHT
+                glm::quat pitchQuat = glm::angleAxis( controller.Pitch, right );
+
+                // FINAL ORIENTATION
+                controller.Orientation = glm::normalize( pitchQuat * yawRollQuat );
+            }
+
+            // FLIGHT MODE
+            else if (controller.Mode == PlayerControllerComponent::LookMode::Flight) {
+
+				// MOVEMENT
+                forward = controller.Orientation * glm::vec3(0,0,-1);
+                right =   controller.Orientation * glm::vec3(1,0,0);
+                up =      controller.Orientation * glm::vec3(0,1,0);
+
+				// LOOK
+                glm::quat yaw = glm::angleAxis( -dx * controller.MouseSensitivity, up );
+                glm::quat pitch = glm::angleAxis( -dy * controller.MouseSensitivity, right );
+                glm::quat roll = glm::angleAxis( rollMag * controller.RollSpeed * dt, forward );
+
+                controller.Orientation = glm::normalize( roll * pitch * yaw * controller.Orientation );
             }
 
             glm::vec3 moveDir = controller.MoveInput;
 
-            // LOCAL -> WORLD
-            moveDir =
-                  moveDir.z * forward
-                + moveDir.x * right
-                + moveDir.y * up;
+            moveDir = moveDir.z * forward + moveDir.x * right + moveDir.y * up;
 
             if (glm::length(moveDir) > 0.0f)
                 moveDir = glm::normalize(moveDir);
@@ -269,9 +124,7 @@ namespace Wankel {
         for (auto entity : animView) {
 
             auto& transform = animView.get<TransformComponent>(entity);
-
             auto& rb = animView.get<RigidbodyComponent>(entity);
-
             auto& anim = animView.get<MeshAnimationComponent>(entity);
 
             // VELOCITY IN LOCAL SPACE
@@ -284,7 +137,7 @@ namespace Wankel {
                 glm::vec3(
                     -localVelocity.x * anim.PositionAmplitude.x,
                     -localVelocity.y * anim.PositionAmplitude.y,
-                     localVelocity.z * anim.PositionAmplitude.z
+                    -localVelocity.z * anim.PositionAmplitude.z
                 );
 
             // TARGET ROTATION OFFSET
@@ -319,7 +172,6 @@ namespace Wankel {
         for (auto entity : camView) {
 
             auto& transform = camView.get<TransformComponent>(entity);
-
             auto& follow = camView.get<FollowCameraComponent>(entity);
 
             if (!follow.Target)
@@ -340,27 +192,15 @@ namespace Wankel {
             // FINAL CAMERA TRANSFORM
             glm::mat4 cameraMat = targetMat * offsetMat;
 
-            // =========================
             // POSITION
-            // =========================
-            glm::vec3 cameraPos =
-                glm::vec3(cameraMat[3]);
-
+            glm::vec3 cameraPos = glm::vec3(cameraMat[3]);
             camera.SetPosition(cameraPos);
 
-            // =========================
             // ROTATION
-            // =========================
             glm::mat4 rotMat = cameraMat;
-
-            rotMat[3] =
-                glm::vec4(0,0,0,1);
-
-            glm::quat cameraRot =
-                glm::quat_cast(rotMat);
-
+            rotMat[3] = glm::vec4(0,0,0,1);
+            glm::quat cameraRot = glm::quat_cast(rotMat);
             camera.SetOrientation(cameraRot);
         }
     }
-
 }

@@ -78,7 +78,7 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
         // KEYBOARD INPUT
         // =========================
 
-        controller.BoostMultiplier = 1.2f;
+        controller.BoostMultiplier = 1.6f; // COD tac sprint seems to add 60%, normal is ~40%
 
         if (Input::IsKeyPressed(Key::W)) input.z += 1.0f;
         if (Input::IsKeyPressed(Key::S)) input.z -= 1.0f;

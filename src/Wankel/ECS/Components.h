@@ -150,7 +150,7 @@ namespace Wankel {
 	
 	    // TUNING
 
-		glm::vec3 PositionAmplitude{0.001f, 0.001f, -0.001f};
+		glm::vec3 PositionAmplitude{0.001f, 0.001f, 0.001f};
     	glm::vec3 RotationAmplitude{0.005f, 0.005f, 0.005f};
 
 	    float PositionFrequency = 2.0f;
