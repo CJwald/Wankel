@@ -68,3 +68,10 @@ compile_commands.json   # (optional – keep if you use clangd)
 *~
 *.swp
 .DS_Store
+
+# CAD
+.blend1
+.blend2
+.blend3
+.blend4
+.blend@

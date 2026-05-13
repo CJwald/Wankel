@@ -4,6 +4,7 @@
 #include "triangle.h"
 #include "PLYLoader.h"
 #include "Debug/DebugOverlay.h"
+#include "MeshLoader.h"
 
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
@@ -39,42 +40,12 @@ namespace Wankel {
 
 SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
-	auto meshData = PLYLoader::Load("Assets/Mesh/SHIP04.ply");
-	m_ShipMesh = std::make_unique<Mesh>(
-	    meshData.Vertices.data(),
-	    meshData.Vertices.size() * sizeof(float),
-	    meshData.Indices.data(),
-	    (uint32_t)meshData.Indices.size()
-	);
-
-	//auto boxMeshData = PLYLoader::Load("Assets/Mesh/Box.ply");
-	auto boxMeshData = PLYLoader::Load("Assets/Mesh/Karachi.ply");
-	m_BoxMesh = std::make_unique<Mesh>(
-	    boxMeshData.Vertices.data(),
-	    boxMeshData.Vertices.size() * sizeof(float),
-	    boxMeshData.Indices.data(),
-	    (uint32_t)boxMeshData.Indices.size()
-	);
-
 	// Mesh setup
-	m_CubeMesh = std::make_unique<Mesh>(
-	    Geometry::CubeVertices,
-	    sizeof(Geometry::CubeVertices),
-	    Geometry::CubeIndices,
-		sizeof(Geometry::CubeIndices) / sizeof(uint32_t)
-	);
-	m_PlateMesh = std::make_unique<Mesh>(
-	    Geometry::PlateVertices,
-	    sizeof(Geometry::PlateVertices),
-	    Geometry::PlateIndices,
-		sizeof(Geometry::PlateIndices) / sizeof(uint32_t)
-	);
-	//m_TriangleMesh = std::make_unique<Mesh>(
-	//    Geometry::TriangleVertices,
-	//    sizeof(Geometry::TriangleVertices),
-	//    Geometry::TriangleIndices,
-	//    sizeof(Geometry::TriangleIndices)
-	//);
+	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP04.ply");
+	m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
+	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
+	
+	m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, sizeof(Geometry::CubeVertices), Geometry::CubeIndices, sizeof(Geometry::CubeIndices) / sizeof(uint32_t));
 
 	// Shader
 	m_Shader = std::make_unique<Shader>(
@@ -88,6 +59,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     pt.LocalPosition = {0,1,0};
 
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
+    //player.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
     player.AddComponent<PlayerControllerComponent>();
     auto& anim = player.AddComponent<MeshAnimationComponent>();
 

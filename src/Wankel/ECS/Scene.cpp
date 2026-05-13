@@ -34,9 +34,9 @@ namespace Wankel {
 
             rollMag = glm::clamp(rollMag, -1.0f, 1.0f);
 
-            glm::vec3 forward = glm::vec3(0,0,-1);
-            glm::vec3 right   = glm::vec3(1,0,0);
-            glm::vec3 up      = glm::vec3(0,1,0);
+            glm::vec3 forward = controller.Orientation * glm::vec3(0,0,-1);
+            glm::vec3 right   = controller.Orientation * glm::vec3(1,0,0);
+            glm::vec3 up      = controller.Orientation * glm::vec3(0,1,0);
 
             // =========================================================
             // FPS LOOK MODE
@@ -60,6 +60,9 @@ namespace Wankel {
 
                 // Roll around CURRENT FORWARD
                 glm::quat rollQuat = glm::angleAxis( controller.Roll, forward );
+				//up = rollQuat * glm::vec3(0,1,0);
+                //right = rollQuat * glm::vec3(1,0,0);
+                //glm::quat yawQuat = glm::angleAxis( controller.Yaw, up );
 
                 glm::quat yawRollQuat = glm::normalize( rollQuat * yawQuat );
                 //right = yawRollQuat * right;
