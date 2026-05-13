@@ -35,7 +35,7 @@ namespace Wankel {
             rollMag = glm::clamp(rollMag, -1.0f, 1.0f);
 
             glm::vec3 forward = glm::vec3(0,0,-1);
-            glm::vec3 right   = glm::vec3(1,0,0);;
+            glm::vec3 right   = glm::vec3(1,0,0);
             glm::vec3 up      = glm::vec3(0,1,0);
 
             // =========================================================
@@ -53,28 +53,26 @@ namespace Wankel {
 
 				// LOOK TRANSFORMS
                 // Start with yaw around world up
-                glm::quat yawQuat = glm::angleAxis( controller.Yaw, up );
-                forward = yawQuat * forward;
+                //glm::quat yawQuat = glm::angleAxis( controller.Yaw, up );
+                glm::quat yawQuat = glm::angleAxis( controller.Yaw, glm::vec3(0,1,0) );
+                //forward = yawQuat * forward;
+                forward = yawQuat * glm::vec3(0,0,-1);
 
                 // Roll around CURRENT FORWARD
                 glm::quat rollQuat = glm::angleAxis( controller.Roll, forward );
 
-                // Combined yaw+roll frame
                 glm::quat yawRollQuat = glm::normalize( rollQuat * yawQuat );
-				up = yawRollQuat * up;
-                right = yawRollQuat * right;
+                //right = yawRollQuat * right;
+				up = yawRollQuat * glm::vec3(0,1,0);
+                right = yawRollQuat * glm::vec3(1,0,0);
 
-                // REBUILD YAW USING ROLLED UP
                 yawQuat = glm::angleAxis( controller.Yaw, up );
-                forward = yawQuat * forward;
+                //forward = yawQuat * forward;
+                forward = yawQuat * glm::vec3(0,0,-1);
 
-                // Roll around new forward
-                rollQuat = glm::angleAxis( controller.Roll, forward );
+                //rollQuat = glm::angleAxis( controller.Roll, forward );
+                //yawRollQuat = glm::normalize( rollQuat * yawQuat );
 
-                // Rebuild yaw+roll
-                yawRollQuat = glm::normalize( rollQuat * yawQuat );
-
-                // PITCH AROUND ROLLED RIGHT
                 glm::quat pitchQuat = glm::angleAxis( controller.Pitch, right );
 
                 // FINAL ORIENTATION
