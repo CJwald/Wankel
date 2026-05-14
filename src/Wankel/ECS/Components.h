@@ -95,6 +95,7 @@ namespace Wankel {
 		float MaxPitchDown = glm::radians(-89.0f);
 
 		glm::quat Orientation{1,0,0,0};
+		glm::quat BodyOrientation{1,0,0,0}; // Needed for FPS mode
     };
 
 

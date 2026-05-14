@@ -10,9 +10,7 @@ namespace Wankel {
 
     void Scene::OnUpdate(float dt, Camera& camera) {
 
-        // =========================
         // Player Movement System
-        // =========================
         auto view = m_Registry.view<
             TransformComponent,
             PlayerControllerComponent,
@@ -24,9 +22,7 @@ namespace Wankel {
             auto& controller = view.get<PlayerControllerComponent>(entity);
             auto& rb         = view.get<RigidbodyComponent>(entity);
 
-            // =========================
             // INPUT
-            // =========================
             float dx = controller.LookDeltaX * controller.WindowSensitivity;
             float dy = controller.LookDeltaY * controller.WindowSensitivity;
 
@@ -38,54 +34,40 @@ namespace Wankel {
             glm::vec3 right   = controller.Orientation * glm::vec3(1,0,0);
             glm::vec3 up      = controller.Orientation * glm::vec3(0,1,0);
 
-            // =========================================================
             // FPS LOOK MODE
-            // =========================================================
             if (controller.Mode == PlayerControllerComponent::LookMode::FPS) {
+				
+				
+            	glm::vec3 bodyForward = controller.BodyOrientation * glm::vec3(0,0,-1);
+            	glm::vec3 bodyRight   = controller.BodyOrientation * glm::vec3(1,0,0);
+            	glm::vec3 bodyUp      = controller.BodyOrientation * glm::vec3(0,1,0);
 
-                // ACCUMULATE INPUT
-                controller.Yaw += -dx * controller.MouseSensitivity;
-                controller.Pitch += -dy * controller.MouseSensitivity;
-                controller.Roll += rollMag * controller.RollSpeed * dt;
+				float yawDelta   = -dx * controller.MouseSensitivity;
+				float pitchDelta = -dy * controller.MouseSensitivity;
+				float rollDelta  = rollMag * controller.RollSpeed * dt;
+                controller.Pitch += pitchDelta;
 
                 // CLAMP PITCH
                 controller.Pitch = glm::clamp( controller.Pitch, controller.MaxPitchDown, controller.MaxPitchUp );
 
-				// LOOK TRANSFORMS
-                // Start with yaw around world up
-                //glm::quat yawQuat = glm::angleAxis( controller.Yaw, up );
-                glm::quat yawQuat = glm::angleAxis( controller.Yaw, glm::vec3(0,1,0) );
-                //forward = yawQuat * forward;
-                forward = yawQuat * glm::vec3(0,0,-1);
+                glm::quat yawQuat = glm::angleAxis( yawDelta, bodyUp );
+                glm::quat rollQuat = glm::angleAxis( rollDelta, bodyForward );
+				controller.BodyOrientation = glm::normalize( rollQuat * yawQuat * controller.BodyOrientation ); 
+                bodyRight = controller.BodyOrientation * glm::vec3(1,0,0);
 
-                // Roll around CURRENT FORWARD
-                glm::quat rollQuat = glm::angleAxis( controller.Roll, forward );
-				//up = rollQuat * glm::vec3(0,1,0);
-                //right = rollQuat * glm::vec3(1,0,0);
-                //glm::quat yawQuat = glm::angleAxis( controller.Yaw, up );
-
-                glm::quat yawRollQuat = glm::normalize( rollQuat * yawQuat );
-                //right = yawRollQuat * right;
-				up = yawRollQuat * glm::vec3(0,1,0);
-                right = yawRollQuat * glm::vec3(1,0,0);
-
-                yawQuat = glm::angleAxis( controller.Yaw, up );
-                //forward = yawQuat * forward;
-                forward = yawQuat * glm::vec3(0,0,-1);
-
-                //rollQuat = glm::angleAxis( controller.Roll, forward );
-                //yawRollQuat = glm::normalize( rollQuat * yawQuat );
-
-                glm::quat pitchQuat = glm::angleAxis( controller.Pitch, right );
-
-                // FINAL ORIENTATION
-                controller.Orientation = glm::normalize( pitchQuat * yawRollQuat );
+                glm::quat pitchQuat = glm::angleAxis( controller.Pitch, bodyRight );
+				controller.Orientation = glm::normalize( pitchQuat * controller.BodyOrientation );
+				
+				// Movement TODO: is this needed here:
+                forward = controller.BodyOrientation * glm::vec3(0,0,-1);
+                right =   controller.BodyOrientation * glm::vec3(1,0,0);
+                up =      controller.BodyOrientation * glm::vec3(0,1,0);
             }
 
             // FLIGHT MODE
             else if (controller.Mode == PlayerControllerComponent::LookMode::Flight) {
 
-				// MOVEMENT
+				// MOVEMENT TODO: is this needed here?
                 forward = controller.Orientation * glm::vec3(0,0,-1);
                 right =   controller.Orientation * glm::vec3(1,0,0);
                 up =      controller.Orientation * glm::vec3(0,1,0);
@@ -99,16 +81,17 @@ namespace Wankel {
             }
 
             glm::vec3 moveDir = controller.MoveInput;
-
             moveDir = moveDir.z * forward + moveDir.x * right + moveDir.y * up;
 
-            if (glm::length(moveDir) > 0.0f)
+            if (glm::length(moveDir) > 0.0f) {
                 moveDir = glm::normalize(moveDir);
+			}
 
             float speed = controller.MoveSpeed;
 
-            if (controller.Boost)
+            if (controller.Boost) {
                 speed *= controller.BoostMultiplier;
+			}
 
             rb.ForcedVelocity = moveDir * speed;
 
