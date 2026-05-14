@@ -43,9 +43,7 @@ private:
 
 	float m_LastFrame = 0.0f;
 
-	// =========================
 	// IMGUI / DEBUG
-	// =========================
 	FogSettings m_Fog;
 	bool m_GameFocused = true;
 };

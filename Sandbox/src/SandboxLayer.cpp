@@ -204,15 +204,11 @@ void SandboxLayer::OnUpdate() {
 
 	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
 
-
-
-
+	// X Y Z loop for tiling world
 	for (int ix = -m_RepeatN; ix <= m_RepeatN; ix++) {
 	    for (int iy = -m_RepeatN; iy <= m_RepeatN; iy++) {
 	        for (int iz = -m_RepeatN; iz <= m_RepeatN; iz++) {
 	            glm::vec3 worldOffset = glm::vec3(ix, iy, iz) * m_ChunkSize;
-
-
 
 				// Render
 				for (auto entity : view) {
@@ -243,9 +239,10 @@ void SandboxLayer::OnUpdate() {
 
     			    Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
 				}
-			}
-		}
-	}
+
+			} // Z
+		} // Y
+	} // X
 
 	Renderer::EndScene();
 }
@@ -359,7 +356,7 @@ void SandboxLayer::OnImGuiRender() {
 			}
 		}
 
-		// PLAYER animATION
+		// PLAYER ANIMATION
 		if (ImGui::CollapsingHeader("animation")) { 
 			auto animView = m_Scene.Registry().view<MeshAnimationComponent>();
 			
@@ -474,7 +471,7 @@ void SandboxLayer::OnImGuiRender() {
 }
 
 
-void SandboxLayer::OnEvent(Event& e) { // I DONT THINK THIS SHOULD BE HERE:
+void SandboxLayer::OnEvent(Event& e) { // TODO: I DONT KNOW IF THIS SHOULD BE HERE, MAYBE ENGINE SHOULD HANDLE?
     EventDispatcher dispatcher(e);
 
     dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e) {
