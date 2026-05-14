@@ -5,8 +5,8 @@
 namespace Wankel {
 
 class SecondOrderDynamics {
-public:
 
+public:
     SecondOrderDynamics() = default;
 
     SecondOrderDynamics(
@@ -26,7 +26,6 @@ public:
 	void SetDynamics(float frequency, float damping, float response);
 
 private:
-
     float m_K1 = 0.0f;
     float m_K2 = 0.0f;
     float m_K3 = 0.0f;

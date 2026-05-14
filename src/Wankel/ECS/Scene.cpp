@@ -179,6 +179,7 @@ namespace Wankel {
                 glm::inverse(transform.LocalOrientation)
                 * rb.Velocity;
 
+			// TODO: I need a way to set the next two blocks externally 
             // TARGET POSITION OFFSET
             anim.TargetPosition =
                 glm::vec3(
@@ -195,13 +196,11 @@ namespace Wankel {
                      localVelocity.x * anim.RotationAmplitude.z    // roll
                 );
 
-            // UPDATE SPRING SETTINGS
             anim.PositionSpring.SetDynamics(
                 anim.PositionFrequency,
                 anim.PositionDamping,
                 anim.PositionResponse
             );
-
             anim.RotationSpring.SetDynamics(
                 anim.RotationFrequency,
                 anim.RotationDamping,
@@ -217,7 +216,6 @@ namespace Wankel {
         auto camView = m_Registry.view<TransformComponent, FollowCameraComponent>();
 
         for (auto entity : camView) {
-
             //auto& transform = camView.get<TransformComponent>(entity);
             auto& follow = camView.get<FollowCameraComponent>(entity);
 
@@ -228,9 +226,6 @@ namespace Wankel {
 
             // BUILD TARGET TRANSFORM
 			glm::mat4 targetMat = targetTransform.WorldTransform;
-            //glm::mat4 targetMat =
-            //    glm::translate(glm::mat4(1.0f), targetTransform.LocalPosition) *
-            //    glm::toMat4(targetTransform.LocalOrientation);
 
             // BUILD CAMERA OFFSET
             glm::mat4 offsetMat =

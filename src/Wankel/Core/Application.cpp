@@ -9,6 +9,7 @@
 namespace Wankel {
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
 
+	
 	Application::Application() {
 		s_Instance = this;
 
@@ -22,20 +23,24 @@ namespace Wankel {
 		PushOverlay(m_ImGuiLayer);
 	}
 
+	
 	Application::~Application() {
 		InputSystem::Shutdown();
 	}
 
+	
 	void Application::PushLayer(Layer* layer) {
 		m_LayerStack.PushLayer(layer);
 		layer->OnAttach();
 	}
+	
 	
 	void Application::PushOverlay(Layer* layer) {
 		m_LayerStack.PushOverlay(layer);
 		layer->OnAttach();
 	}
 
+	
 	void Application::Run() {
 		while (m_Running) {
 
@@ -54,8 +59,10 @@ namespace Wankel {
     		    layer->OnImGuiRender(); // optional but recommended
 
     		m_ImGuiLayer->End();
+
 		}
 	}
+	
 	
 	void Application::OnEvent(Event& event) { 
 		EventDispatcher dispatcher(event);
@@ -70,21 +77,25 @@ namespace Wankel {
 		}
 	}
 
+	
 	bool Application::OnWindowClose(WindowCloseEvent& e) {
 		m_Running = false;
 		return true;
 	}
 
+	
 	bool Application::OnWindowResize(WindowResizeEvent& e) {
 	    Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 		
 		for (Layer* layer : m_LayerStack)
-        	layer->OnEvent(e); // propagate resize
+        	layer->OnEvent(e);
 
 	    return false;
 	}
 
+	
 	Application* Application::s_Instance = nullptr;
+
 
 }
 

@@ -9,18 +9,14 @@
 
 namespace Wankel {
 
-void PhysicsSystem::Update(Scene& scene, float dt)
-{
+void PhysicsSystem::Update(Scene& scene, float dt) {
     auto& registry = scene.Registry();
 
-    // =========================
     // INTEGRATE
-    // =========================
     {
         auto view = registry.view<TransformComponent, RigidbodyComponent>();
 
-        for (auto e : view)
-        {
+        for (auto e : view) {
             auto& t = view.get<TransformComponent>(e);
             auto& rb = view.get<RigidbodyComponent>(e);
 
@@ -31,26 +27,19 @@ void PhysicsSystem::Update(Scene& scene, float dt)
         }
     }
 
-    // =========================
     // BUILD SPATIAL GRID
-    // =========================
     m_Grid.Clear();
-
     auto buildView = registry.view<TransformComponent, AABBComponent>();
 
-    for (auto e : buildView)
-    {
+    for (auto e : buildView) {
         auto& t = buildView.get<TransformComponent>(e);
         m_Grid.Insert(e, t.LocalPosition);
     }
 
-    // =========================
-    // COLLISION (OPTIMIZED)
-    // =========================
+    // COLLISION
     auto view = registry.view<TransformComponent, AABBComponent, RigidbodyComponent>();
 
-    for (auto a : view)
-    {
+    for (auto a : view) {
         auto& ta = registry.get<TransformComponent>(a);
         auto& ca = registry.get<AABBComponent>(a);
         auto& rba = registry.get<RigidbodyComponent>(a);
@@ -59,8 +48,7 @@ void PhysicsSystem::Update(Scene& scene, float dt)
 
         auto candidates = m_Grid.Query(ta.LocalPosition);
 
-        for (auto b : candidates)
-        {
+        for (auto b : candidates) {
             if (a == b) continue;
 
             if (!registry.all_of<TransformComponent, AABBComponent, RigidbodyComponent>(b))
@@ -77,29 +65,21 @@ void PhysicsSystem::Update(Scene& scene, float dt)
             if (!manifold.Colliding)
                 continue;
 
-            // =========================
-            // POSITION RESOLUTION
-            // =========================
             if (rba.IsStatic && rbb.IsStatic)
                 continue;
 
-            if (rba.IsStatic)
-            {
+            if (rba.IsStatic) {
                 tb.LocalPosition += manifold.Normal * manifold.Penetration;
             }
-            else if (rbb.IsStatic)
-            {
+            else if (rbb.IsStatic) {
                 ta.LocalPosition -= manifold.Normal * manifold.Penetration;
             }
-            else
-            {
+            else {
                 ta.LocalPosition -= manifold.Normal * manifold.Penetration * 0.5f;
                 tb.LocalPosition += manifold.Normal * manifold.Penetration * 0.5f;
             }
 
-            // =========================
             // VELOCITY FIX
-            // =========================
             float va = glm::dot(rba.Velocity, manifold.Normal);
             if (va < 0.0f)
                 rba.Velocity -= manifold.Normal * va;

@@ -4,6 +4,6 @@
 
 namespace Wankel {
 
-CollisionManifold AABBvsAABB(const AABB& a, const AABB& b);
+	CollisionManifold AABBvsAABB(const AABB& a, const AABB& b);
 
 }

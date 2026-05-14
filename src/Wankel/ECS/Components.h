@@ -40,11 +40,8 @@ namespace Wankel {
 
     	glm::vec3 RotationPivot{0.0f};
 		glm::mat4 GetLocalTransform() const {
-
             glm::mat4 pivotToOrigin = glm::translate(glm::mat4(1.0f), -RotationPivot);
-
             glm::mat4 pivotBack = glm::translate(glm::mat4(1.0f), RotationPivot);
-
             return glm::translate(glm::mat4(1.0f), LocalPosition) * 
 				pivotBack * glm::toMat4(LocalRotation) * 
 				pivotToOrigin * glm::scale(glm::mat4(1.0f), LocalScale);
@@ -82,12 +79,12 @@ namespace Wankel {
 	    
 		float LookDeltaX = 0.0f;
 		float LookDeltaY = 0.0f;
-		glm::vec3 MoveInput{0.0f};
 	    float RollInput = 0.0f; 
+		glm::vec3 MoveInput{0.0f};
 	    
 		LookMode Mode = LookMode::FPS;
 
-		// FPS CAMERA STATE
+		// FPS CAMERA STATE, TODO: make sure I need these
 		float Yaw = 0.0f;
 		float Pitch = 0.0f;
 		float Roll = 0.0f;
@@ -131,7 +128,7 @@ namespace Wankel {
 
 
 	struct AABBComponent {
-    	glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f}; // matches cube mesh
+    	glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f};
 	};
 
 
@@ -148,17 +145,24 @@ namespace Wankel {
 	    // SPRINGS
 	    SecondOrderDynamics PositionSpring;
 	    SecondOrderDynamics RotationSpring;
+
+	    SecondOrderDynamics PosXSpring;
+	    SecondOrderDynamics PosYSpring;
+	    SecondOrderDynamics PosZSpring;
+
+	    SecondOrderDynamics RotXSpring;
+	    SecondOrderDynamics RotYSpring;
+	    SecondOrderDynamics RotZSpring;
 	
 	    // TUNING
-
 		glm::vec3 PositionAmplitude{0.001f, 0.001f, 0.001f};
     	glm::vec3 RotationAmplitude{0.005f, 0.005f, 0.005f};
 
-	    float PositionFrequency = 2.0f;
+	    float PositionFrequency = 2.0f; // These should be a glm::vec3
 	    float PositionDamping = 0.8f;
 	    float PositionResponse = 2.0f;
 	
-	    float RotationFrequency = 2.0f;
+	    float RotationFrequency = 2.0f; // These should be a glm::vec3
 	    float RotationDamping = 0.8f;
 	    float RotationResponse = 2.0f;
 	

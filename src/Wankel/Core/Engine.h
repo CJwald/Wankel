@@ -1,4 +1,4 @@
-// TODO: is this needed, Remove?
+// TODO: is this needed, Remove? I think it may be duplicated code. It is used by some classes
 #pragma once
 #include <iostream>
 
