@@ -32,6 +32,9 @@ private:
 	std::unique_ptr<Mesh> m_BoxMesh;
 	std::unique_ptr<Mesh> m_TriangleMesh;
 	std::unique_ptr<Shader> m_Shader;
+	
+	float m_ChunkSize = 100.0f; // ±50m cutoff
+	int m_RepeatN = 1;          // 1 = 3x3 grid
 
 	FollowCameraComponent* m_DebugFollow = nullptr;
 	CameraController m_Controller;

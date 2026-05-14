@@ -8,6 +8,28 @@
 
 namespace Wankel {
 
+	static void InitMeshAnimation(MeshAnimationComponent& anim) { // TODO: I dont know if I want to keep this
+	    if (anim.Initialized)
+	        return;
+	
+	    anim.PositionSpring = SecondOrderDynamics(
+	        anim.PositionFrequency,
+	        anim.PositionDamping,
+	        anim.PositionResponse,
+	        glm::vec3(0.0f)
+	    );
+	
+	    anim.RotationSpring = SecondOrderDynamics(
+	        anim.RotationFrequency,
+	        anim.RotationDamping,
+	        anim.RotationResponse,
+	        glm::vec3(0.0f)
+	    );
+	
+	    anim.Initialized = true;
+	}	
+
+
 	static glm::mat4 ComposeTransform(const TransformComponent& tc) {
 
 	    return glm::translate(glm::mat4(1.0f), tc.LocalPosition) *
@@ -149,6 +171,8 @@ namespace Wankel {
             auto& transform = animView.get<TransformComponent>(entity);
             auto& rb = animView.get<RigidbodyComponent>(entity);
             auto& anim = animView.get<MeshAnimationComponent>(entity);
+
+			InitMeshAnimation(anim);
 
             // VELOCITY IN LOCAL SPACE
             glm::vec3 localVelocity =

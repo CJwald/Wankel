@@ -61,26 +61,17 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
     auto& anim = player.AddComponent<MeshAnimationComponent>();
+    anim.PositionSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
+    anim.RotationSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
 
-    anim.PositionSpring = SecondOrderDynamics(
-        2.0f,
-        0.8f,
-        2.0f,
-        glm::vec3(0.0f)
-    );
-
-    anim.RotationSpring = SecondOrderDynamics(
-        2.0f,
-        0.8f,
-        2.0f,
-        glm::vec3(0.0f)
-    );
-
+    // PLAYER Gun ENTITY
 	auto gun = m_Scene.CreateEntity();
 	auto& gt = gun.AddComponent<TransformComponent>();
     gt.LocalPosition = {0.0f ,0.1f ,-0.125f};
 	gun.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
-	
+    auto& gunAnim = gun.AddComponent<MeshAnimationComponent>();
+    gunAnim.PositionSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
+    gunAnim.RotationSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
 	gun.AddComponent<ParentComponent>().Parent = player;
 
     // CAMERA ENTITY
@@ -89,7 +80,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    follow.Offset = {0.0f, 0.12f, 0.0f}; // I think i want to get this close to 0.0 and define mesh around that
+    //follow.Offset = {0.0f, 0.12f, 0.0f}; // I think i want to get this close to 0.0 and define mesh around that
+    follow.Offset = {0.0f, 0.2f, 0.4f}; // I think i want to get this close to 0.0 and define mesh around that
 	float roll = 0.0f; float pitch = 0.0f; float yaw = 0.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
@@ -107,8 +99,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
 
     // RANDOM CUBES 
-	int numCubes = 10;
-	float spawnRange = 100.f;
+	int numCubes = 20;
+	float spawnRange = 25.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
 
@@ -131,7 +123,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
         collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
-    // WORLD BOX 1
+    // WORLD 
 	auto b = m_Scene.CreateEntity();
     auto& tb = b.AddComponent<TransformComponent>();
     tb.LocalPosition = {0.0f, 0.0f, 0.0f};
@@ -157,7 +149,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
 
 	// DEFAULT FOG
-	m_Fog.Color = {0.055f, 0.05f, 0.06f};
+	//m_Fog.Color = {0.055f, 0.05f, 0.06f};
+	m_Fog.Color = {0.32f, 0.3f, 0.38f};
 	m_Fog.Density = 0.01f;
 
 	// Lock mouse initially
@@ -193,38 +186,65 @@ void SandboxLayer::OnUpdate() {
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());
 	
+	auto playerView = m_Scene.Registry().view<TransformComponent, PlayerControllerComponent>();
+
+	for (auto entity : playerView) {
+    	auto& playerTransform = playerView.get<TransformComponent>(entity);
+
+		// Wrap player if they chunk border limit
+		glm::vec3 pos = playerTransform.LocalPosition;
+		pos = glm::mod(pos + m_ChunkSize*0.5f, m_ChunkSize) - m_ChunkSize*0.5f;
+		playerTransform.LocalPosition = pos;
+	}
+
+
 	Renderer::SetFog(m_Fog);
 
     Renderer::BeginScene(m_Controller.GetCamera());
 
 	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
 
-	for (auto entity : view) {
 
-		auto& transform = view.get<TransformComponent>(entity);
-        auto& mesh = view.get<MeshComponent>(entity);
 
-		//glm::mat4 model = transform.GetLocalTransform();
-		glm::mat4 model = transform.WorldTransform;
 
-		// PROCEDURAL MESH ANIMATION
-		if (m_Scene.Registry().all_of<MeshAnimationComponent>(entity)) {
-		    auto& anim = m_Scene.Registry().get<MeshAnimationComponent>(entity);
+	for (int ix = -m_RepeatN; ix <= m_RepeatN; ix++) {
+	    for (int iy = -m_RepeatN; iy <= m_RepeatN; iy++) {
+	        for (int iz = -m_RepeatN; iz <= m_RepeatN; iz++) {
+	            glm::vec3 worldOffset = glm::vec3(ix, iy, iz) * m_ChunkSize;
 
-			glm::vec3 rot = glm::radians(anim.RotationOffset);
 
-			glm::quat pitch = glm::angleAxis(rot.x, glm::vec3(1,0,0));
-			glm::quat yaw = glm::angleAxis(rot.y, glm::vec3(0,1,0));
-			glm::quat roll = glm::angleAxis(rot.z, glm::vec3(0,0,1));
-			glm::quat animRotation = glm::normalize(roll * yaw * pitch);
 
-		    glm::mat4 animTransform = glm::translate(glm::mat4(1.0f), anim.PositionOffset) * glm::toMat4(animRotation);
+				// Render
+				for (auto entity : view) {
 
-		    // Apply animation in LOCAL SPACE
-		    model = model * animTransform;
+					auto& transform = view.get<TransformComponent>(entity);
+    			    auto& mesh = view.get<MeshComponent>(entity);
+
+					//glm::mat4 model = transform.GetLocalTransform();
+					//glm::mat4 model = transform.WorldTransform;
+					glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.WorldTransform;
+
+					// PROCEDURAL MESH animATION
+					if (m_Scene.Registry().all_of<MeshAnimationComponent>(entity)) {
+					    auto& anim = m_Scene.Registry().get<MeshAnimationComponent>(entity);
+
+						glm::vec3 rot = glm::radians(anim.RotationOffset);
+
+						glm::quat pitch = glm::angleAxis(rot.x, glm::vec3(1,0,0));
+						glm::quat yaw = glm::angleAxis(rot.y, glm::vec3(0,1,0));
+						glm::quat roll = glm::angleAxis(rot.z, glm::vec3(0,0,1));
+						glm::quat animRotation = glm::normalize(roll * yaw * pitch);
+
+					    glm::mat4 animTransform = glm::translate(glm::mat4(1.0f), anim.PositionOffset) * glm::toMat4(animRotation);
+
+					    // Apply animation in LOCAL SPACE
+					    model = model * animTransform;
+					}
+
+    			    Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
+				}
+			}
 		}
-
-        Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
 	}
 
 	Renderer::EndScene();
@@ -339,8 +359,8 @@ void SandboxLayer::OnImGuiRender() {
 			}
 		}
 
-		// PLAYER ANIMATION
-		if (ImGui::CollapsingHeader("Animation")) { 
+		// PLAYER animATION
+		if (ImGui::CollapsingHeader("animation")) { 
 			auto animView = m_Scene.Registry().view<MeshAnimationComponent>();
 			
 			for (auto entity : animView) {
@@ -419,6 +439,31 @@ void SandboxLayer::OnImGuiRender() {
 			
 			    break;
 			}
+		}
+
+		// WORLD DEBUG
+		if (ImGui::CollapsingHeader("World Tiling"))
+		{
+		    ImGui::SliderFloat(
+		        "Chunk Size",
+		        &m_ChunkSize,
+		        1.0f,
+		        500.0f,
+		        "%.1f"
+		    );
+		
+		    ImGui::SliderInt(
+		        "Repeat N",
+		        &m_RepeatN,
+		        0,
+		        10
+		    );
+		
+		    ImGui::Text("Grid: %d x %d x %d",
+		        2 * m_RepeatN + 1,
+		        2 * m_RepeatN + 1,
+		        2 * m_RepeatN + 1
+		    );
 		}
 
 		// ENGINE INFO
