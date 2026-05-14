@@ -29,12 +29,12 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
 		// =========================
 
 		static bool r3PressedLastFrame = false;
+		bool r3Pressed = false;
 
-		bool r3Pressed =
-			ControllerInput::IsButtonPressed(
-				pad,
-				GamepadButton::R3
-			);
+        if (Input::IsKeyPressed(Key::X) || ControllerInput::IsButtonPressed(pad, GamepadButton::R3)) {
+			r3Pressed = true;
+		}
+		//bool r3Pressed = ControllerInput::IsButtonPressed(pad, GamepadButton::R3);
 
 		if (r3Pressed && !r3PressedLastFrame)
 		{
@@ -54,19 +54,19 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused)
 				// so transitions feel smooth
 				// =====================================
 
-				glm::vec3 forward =
-				    controller.Orientation *
-				    glm::vec3(0,0,-1);
+				//glm::vec3 forward =
+				//    controller.Orientation *
+				//    glm::vec3(0,0,-1);
 
-				controller.Yaw =
-				    atan2(forward.x, -forward.z);
+				//controller.Yaw =
+				//    atan2(forward.x, -forward.z);
 
-				controller.Pitch =
-				    asin(glm::clamp(
-				        forward.y,
-				        -1.0f,
-				        1.0f
-				    ));
+				//controller.Pitch =
+				//    asin(glm::clamp(
+				//        forward.y,
+				//        -1.0f,
+				//        1.0f
+				//    ));
 			}
 		}
 

@@ -45,6 +45,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP04.ply");
 	m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
 	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
+	//m_BoxMesh = MeshLoader::Load("Assets/Mesh/Box.ply");
 	
 	m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, sizeof(Geometry::CubeVertices), Geometry::CubeIndices, sizeof(Geometry::CubeIndices) / sizeof(uint32_t));
 
@@ -120,8 +121,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
         rb.IsStatic = true;
 	
         // Collider
-        auto& collider = e.AddComponent<AABBComponent>();
-        collider.HalfSize = {0.5f, 0.5f, 0.5f};
+        //auto& collider = e.AddComponent<AABBComponent>();
+        //collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
     // WORLD 
