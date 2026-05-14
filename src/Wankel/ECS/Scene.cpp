@@ -8,7 +8,46 @@
 
 namespace Wankel {
 
+	static glm::mat4 ComposeTransform(const TransformComponent& tc) {
+
+	    return glm::translate(glm::mat4(1.0f), tc.LocalPosition) *
+	           glm::toMat4(tc.LocalOrientation) *
+	           glm::scale(glm::mat4(1.0f), tc.LocalScale);
+	}
+	
+	
+	// RECURSIVE world transform resolver
+	static glm::mat4 ComputeWorldTransform(entt::registry& registry, entt::entity e) {
+
+	    auto& tc = registry.get<TransformComponent>(e);
+	    glm::mat4 local = ComposeTransform(tc);
+	
+	    if (registry.all_of<ParentComponent>(e)) {
+	        auto parent = registry.get<ParentComponent>(e).Parent.GetHandle();
+	        if (parent != entt::null) {
+	            glm::mat4 parentWorld = ComputeWorldTransform(registry, parent);
+	            return parentWorld * local;
+	        }
+	    }
+	
+	    return local;
+	}
+	
+	
+	void Scene::UpdateTransforms() {
+
+	    auto view = m_Registry.view<TransformComponent>();
+	
+	    for (auto entity : view) {
+	        auto& tc = view.get<TransformComponent>(entity);
+	        tc.WorldTransform = ComputeWorldTransform(m_Registry, entity);
+	    }
+	}
+
+
     void Scene::OnUpdate(float dt, Camera& camera) {
+		
+		UpdateTransforms();
 
         // Player Movement System
         auto view = m_Registry.view<
@@ -155,7 +194,7 @@ namespace Wankel {
 
         for (auto entity : camView) {
 
-            auto& transform = camView.get<TransformComponent>(entity);
+            //auto& transform = camView.get<TransformComponent>(entity);
             auto& follow = camView.get<FollowCameraComponent>(entity);
 
             if (!follow.Target)
@@ -164,9 +203,10 @@ namespace Wankel {
             auto& targetTransform = follow.Target.GetComponent<TransformComponent>();
 
             // BUILD TARGET TRANSFORM
-            glm::mat4 targetMat =
-                glm::translate(glm::mat4(1.0f), targetTransform.LocalPosition) *
-                glm::toMat4(targetTransform.LocalOrientation);
+			glm::mat4 targetMat = targetTransform.WorldTransform;
+            //glm::mat4 targetMat =
+            //    glm::translate(glm::mat4(1.0f), targetTransform.LocalPosition) *
+            //    glm::toMat4(targetTransform.LocalOrientation);
 
             // BUILD CAMERA OFFSET
             glm::mat4 offsetMat =

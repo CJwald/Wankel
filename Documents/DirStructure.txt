@@ -70,7 +70,9 @@ src
 │   │   ├── Noise.cpp
 │   │   ├── Noise.h
 │   │   ├── Random.cpp
-│   │   └── Random.h
+│   │   ├── Random.h
+│   │   ├── SecondOrderDynamics.cpp
+│   │   └── SecondOrderDynamics.h
 │   ├── Physics
 │   │   ├── Collision
 │   │   │   ├── BroadPhase
@@ -82,7 +84,6 @@ src
 │   │   │       └── AABBCollision.h
 │   │   ├── Debug
 │   │   ├── Dynamics
-│   │   │   └── SecondOrderDynamics.h
 │   │   ├── Raycast
 │   │   ├── Resolution
 │   │   └── Systems
@@ -120,7 +121,7 @@ src
 ├── wkpch.cpp
 └── wkpch.h
 
-20 directories, 75 files
+20 directories, 76 files
 SandboxApp [error opening dir]
 
 0 directories, 0 files

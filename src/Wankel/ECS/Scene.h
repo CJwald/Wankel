@@ -19,6 +19,9 @@ namespace Wankel {
 
         entt::registry& Registry() { return m_Registry; }
 
+	private:
+    	void UpdateTransforms();
+
     private:
         entt::registry m_Registry;
 		PhysicsSystem m_PhysicsSystem;
