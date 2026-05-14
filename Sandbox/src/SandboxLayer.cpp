@@ -4,6 +4,7 @@
 #include "triangle.h"
 #include "PLYLoader.h"
 #include "Debug/DebugOverlay.h"
+#include "Debug/SecondOrderPreview.h"
 #include "MeshLoader.h"
 
 #include <Wankel/Core/Application.h>
@@ -69,9 +70,9 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto& gt = gun.AddComponent<TransformComponent>();
     gt.LocalPosition = {0.0f ,0.1f ,-0.125f};
 	gun.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
-    auto& gunAnim = gun.AddComponent<MeshAnimationComponent>();
-    gunAnim.PositionSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
-    gunAnim.RotationSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
+    //auto& gunAnim = gun.AddComponent<MeshAnimationComponent>(); // TODO: needs fixing
+    //gunAnim.PositionSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
+    //gunAnim.RotationSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
 	gun.AddComponent<ParentComponent>().Parent = player;
 
     // CAMERA ENTITY
@@ -375,7 +376,7 @@ void SandboxLayer::OnImGuiRender() {
 		}
 
 		// PLAYER ANIMATION
-		if (ImGui::CollapsingHeader("animation")) { 
+		if (ImGui::CollapsingHeader("Animation")) { 
 			auto animView = m_Scene.Registry().view<MeshAnimationComponent>();
 			
 			for (auto entity : animView) {
@@ -428,6 +429,23 @@ void SandboxLayer::OnImGuiRender() {
 			        -3.0f,
 			        3.0f
 			    );
+
+				// Position Step Response
+				auto pvalues = Wankel::SecondOrderPreview::GetStepResponse(
+				    anim.PositionFrequency,
+				    anim.PositionDamping,
+				    anim.PositionResponse
+				);
+				ImGui::PlotLines(
+				    "Step Response##Pos",
+				    pvalues.data(),
+				    (int)pvalues.size(),
+				    0,
+				    nullptr,
+				    -0.5f,
+				    2.0f,
+				    ImVec2(0, 100)
+				);
 			
 			    ImGui::Separator();
 			    ImGui::Text("Rotation Tuning");
@@ -451,6 +469,23 @@ void SandboxLayer::OnImGuiRender() {
 			        -3.0f,
 			        3.0f
 			    );
+				
+				// Rotation Step Response
+				auto rvalues = Wankel::SecondOrderPreview::GetStepResponse(
+				    anim.RotationFrequency,
+				    anim.RotationDamping,
+				    anim.RotationResponse
+				);
+				ImGui::PlotLines(
+				    "Step Response##Rot",
+				    rvalues.data(),
+				    (int)rvalues.size(),
+				    0,
+				    nullptr,
+				    -0.5f,
+				    2.0f,
+				    ImVec2(0, 100)
+				);
 			
 			    break;
 			}
