@@ -34,7 +34,7 @@ void DebugOverlay::DrawFPSPanel() {
         0,
         nullptr,
         0.0f,
-        33.0f,
+        60.0f,
         ImVec2(0, 80)
     );
 

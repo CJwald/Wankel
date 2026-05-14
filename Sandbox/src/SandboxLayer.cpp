@@ -200,7 +200,11 @@ void SandboxLayer::OnUpdate() {
 
 	Renderer::SetFog(m_Fog);
 
-    Renderer::BeginScene(m_Controller.GetCamera());
+	auto& cam = m_Controller.GetCamera();
+	glm::vec3 camPos = cam.GetPosition();
+	glm::vec3 camForward = cam.GetForward();
+    
+	Renderer::BeginScene(cam);
 
 	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
 
@@ -209,6 +213,20 @@ void SandboxLayer::OnUpdate() {
 	    for (int iy = -m_RepeatN; iy <= m_RepeatN; iy++) {
 	        for (int iz = -m_RepeatN; iz <= m_RepeatN; iz++) {
 	            glm::vec3 worldOffset = glm::vec3(ix, iy, iz) * m_ChunkSize;
+			
+				if (!(ix == 0 && iy == 0 && iz == 0)) { 	
+					// check if chunk behind camera
+					glm::vec3 chunkCenter = worldOffset;
+					glm::vec3 toChunk = chunkCenter - camPos;
+					float chunklen = glm::length(toChunk);
+					if (chunklen > 0.001f) { 
+						float d = glm::dot( toChunk / chunklen, camForward );
+						
+						// Skip chunks behind camera
+						if (d < -0.2f)
+						    continue;
+					}
+				}
 
 				// Render
 				for (auto entity : view) {
