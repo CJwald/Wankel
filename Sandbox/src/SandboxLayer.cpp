@@ -63,18 +63,28 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
     auto& anim = player.AddComponent<MeshAnimationComponent>();
-    anim.PositionSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
-    anim.RotationSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
+    anim.PositionSpring = SecondOrderDynamics(2.2f, 0.7f, 1.7f, glm::vec3(0.0f));
+    anim.RotationSpring = SecondOrderDynamics(1.8f, 0.4f, 2.0f, glm::vec3(0.0f));
+    anim.PositionAmplitude = {0.0005f,0.001f,0.001f};
+    anim.RotationAmplitude = {0.2f,0.01f,-0.125f};
 
     // PLAYER Gun ENTITY
 	auto gun = m_Scene.CreateEntity();
 	auto& gt = gun.AddComponent<TransformComponent>();
-    gt.LocalPosition = {0.0f ,0.1f ,-0.125f};
+    //gt.LocalPosition = {0.0f ,0.05f ,-0.125f};
+    gt.LocalPosition = {0.05f ,0.08f ,-0.125f};
 	gun.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
     //auto& gunAnim = gun.AddComponent<MeshAnimationComponent>(); // TODO: needs fixing
     //gunAnim.PositionSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
     //gunAnim.RotationSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
 	gun.AddComponent<ParentComponent>().Parent = player;
+
+    // PLAYER Gun ENTITY2
+	auto gun2 = m_Scene.CreateEntity();
+	auto& gt2 = gun2.AddComponent<TransformComponent>();
+    gt2.LocalPosition = {-0.05f ,0.08f ,-0.125f};
+	gun2.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
+	gun2.AddComponent<ParentComponent>().Parent = player;
 
     // CAMERA ENTITY
     auto camEntity = m_Scene.CreateEntity();
@@ -83,7 +93,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     follow.Target = player;
     //follow.Offset = {0.0f, 0.12f, 0.0f}; // I think i want to get this close to 0.0 and define mesh around that
-    follow.Offset = {0.0f, 0.2f, 0.4f}; // I think i want to get this close to 0.0 and define mesh around that
+    follow.Offset = {0.0f, 0.15f, 0.0f}; // I think i want to get this close to 0.0 and define mesh around that
 	float roll = 0.0f; float pitch = 0.0f; float yaw = 0.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
