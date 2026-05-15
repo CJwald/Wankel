@@ -5,27 +5,48 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Output directories
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Multi-config generators (Visual Studio)
+foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
+    string(TOUPPER ${CONFIG} CONFIG_UPPER)
+
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER}
+        ${CMAKE_BINARY_DIR}/lib)
+
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_UPPER}
+        ${CMAKE_BINARY_DIR}/bin)
+
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER}
+        ${CMAKE_BINARY_DIR}/bin)
+endforeach()
+
 # Add external dependencies first
 add_subdirectory(external)
 include(cmake/imgui.cmake)
 
 # Collect all engine sources
-#file(GLOB_RECURSE WANKEL_SOURCES "src/Wankel/*.cpp")
-# All sources
 file(GLOB_RECURSE WANKEL_SOURCES
     "src/Wankel/*.cpp"
 )
 
-# Remove the WRONG platform
+# Remove unsupported platform sources
 if (WIN32)
     list(FILTER WANKEL_SOURCES EXCLUDE REGEX "Platform/Linux/")
 elseif(UNIX)
     list(FILTER WANKEL_SOURCES EXCLUDE REGEX "Platform/Windows/")
 endif()
 
+# Wankel library
 add_library(Wankel STATIC ${WANKEL_SOURCES})
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${WANKEL_SOURCES})
+source_group(
+	TREE ${CMAKE_CURRENT_SOURCE_DIR}/src
+	FILES ${WANKEL_SOURCES}
+)
 
 # Include directories
 target_include_directories(Wankel PUBLIC
@@ -40,7 +61,6 @@ target_link_libraries(Wankel
 		imgui
 	    glm::glm #TODO: make Private
 	    glad::glad #TODO: make Private
-		#entt #TODO: make Private
 	PRIVATE
 	    SDL3::SDL3
 	    glfw

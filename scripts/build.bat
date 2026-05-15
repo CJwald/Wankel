@@ -1,31 +1,55 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal EnableDelayedExpansion
 
-REM ---- CONFIG ----
-if "%BUILD_DIR%"=="" set BUILD_DIR=%cd%\build
-if "%BUILD_TYPE%"=="" set BUILD_TYPE=Debug
-if "%JOBS%"=="" set JOBS=%NUMBER_OF_PROCESSORS%
+REM =========================================================
+REM Resolve project root from this script location
+REM =========================================================
 
-REM ---- Resolve script directory (project root) ----
-set SCRIPT_DIR=%~dp0
-set PROJECT_ROOT=%SCRIPT_DIR%..
+set "SCRIPT_DIR=%~dp0"
+for %%i in ("%SCRIPT_DIR%..") do set "PROJECT_ROOT=%%~fi"
 
+REM =========================================================
+REM Config
+REM =========================================================
+
+if "%BUILD_DIR%"=="" set "BUILD_DIR=%PROJECT_ROOT%\build"
+if "%BUILD_TYPE%"=="" set "BUILD_TYPE=Debug"
+if "%JOBS%"=="" set "JOBS=%NUMBER_OF_PROCESSORS%"
+
+echo.
 echo Project root : %PROJECT_ROOT%
 echo Build dir    : %BUILD_DIR%
 echo Build type   : %BUILD_TYPE%
+echo.
 
-REM ---- Create / enter build dir ----
+REM =========================================================
+REM Create / enter build dir
+REM =========================================================
+
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+
 cd /d "%BUILD_DIR%"
 
-REM ---- Configure ----
-cmake "%PROJECT_ROOT%" ^
-	-DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
-	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+REM =========================================================
+REM Configure
+REM =========================================================
 
-REM ---- Build ----
+cmake "%PROJECT_ROOT%" ^
+    -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+if errorlevel 1 exit /b 1
+
+REM =========================================================
+REM Build
+REM =========================================================
+
 cmake --build . --config %BUILD_TYPE% -- /m:%JOBS%
 
-echo Build complete! Binaries are in %BUILD_DIR%\bin
+if errorlevel 1 exit /b 1
 
-endlocal
+echo.
+echo Build complete!
+echo Binaries are in:
+echo %BUILD_DIR%\bin
+echo.

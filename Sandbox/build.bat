@@ -1,16 +1,54 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 
-REM ---- Create / enter build dir ----
-if not exist build mkdir build
-cd /d build
+REM =========================================================
+REM Resolve sandbox root
+REM =========================================================
 
-REM ---- Configure ----
-cmake .. -DCMAKE_BUILD_TYPE=Debug
+set "SCRIPT_DIR=%~dp0"
+for %%i in ("%SCRIPT_DIR%") do set "PROJECT_ROOT=%%~fi"
 
-REM ---- Build (parallel) ----
-cmake --build . --config Debug -- /m
+REM =========================================================
+REM Config
+REM =========================================================
 
-echo Done. Run: build\bin\Debug\Sandbox.exe
+if "%BUILD_DIR%"=="" set "BUILD_DIR=%PROJECT_ROOT%\build"
+if "%BUILD_TYPE%"=="" set "BUILD_TYPE=Debug"
+if "%JOBS%"=="" set "JOBS=%NUMBER_OF_PROCESSORS%"
 
-endlocal
+echo.
+echo Sandbox root : %PROJECT_ROOT%
+echo Build dir    : %BUILD_DIR%
+echo Build type   : %BUILD_TYPE%
+echo.
+
+REM =========================================================
+REM Create / enter build dir
+REM =========================================================
+
+if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+
+cd /d "%BUILD_DIR%"
+
+REM =========================================================
+REM Configure
+REM =========================================================
+
+cmake "%PROJECT_ROOT%" ^
+    -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+
+if errorlevel 1 exit /b 1
+
+REM =========================================================
+REM Build
+REM =========================================================
+
+cmake --build . --config %BUILD_TYPE% -- /m:%JOBS%
+
+if errorlevel 1 exit /b 1
+
+echo.
+echo Build complete!
+echo Binaries are in:
+echo %BUILD_DIR%\bin
+echo.
