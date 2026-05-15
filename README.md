@@ -3,6 +3,7 @@ Game Engine designed for 3D Rendering and Physics.
 
 ![Wankel Sandbox Screenshot](Documents/WankelScreenshot.png)
 
+
 ## REQUIREMENTS:
 g++ 13+ for entt
 
@@ -20,13 +21,15 @@ cd Sandbox
 ./run.sh
 ```
 
-#### WINDOWS
+
+#### WINDOWS:
 ```bash
 .\scripts\build.bat
-dir Sandbox
+cd Sandbox
 .\build.bat
 .\run.bat
 ```
+
 
 ## Sandbox App Controls:
 ### MNK:
