@@ -1,6 +1,7 @@
 # Wankel
-Game Engine
+Game Engine designed for 3D Rendering and Physics. 
 
+![Wankel Sandbox Screenshot](Documents/WankelScreenshot.png)
 
 ## REQUIREMENTS:
 g++ 13+ for entt
@@ -59,6 +60,7 @@ dir Sandbox
 - application and entry point
 - Linux / Windows split
 - Mouse and Keyboard input
+- Controller Input
 - Event system
 - Window system
 - Camera
@@ -66,11 +68,22 @@ dir Sandbox
 - Simple Renderer
 - ECS using Entt
 - Sandbox example
+- AABB Collision
+- Second Order Dynamics Animation System
+- Multi-mesh components
 
 
 ## TODO:
-- Controller Input
-- Make some external libs private to Wankel 
-- Fix window system. It doesnt resize correctly / does not work on 4k screens
-- Refine sandbox example to use more Wankel and less including external libs
+- Debug Visualization system (coord. frames etc.)
+- Procedural Animation Layering
+- Raycast/collision queries
+- Sphere and capsule collision systems
+- Text Rendering
+- Basic UI/HUD Framework
+- Asset/Material separation
+- Audio System
+- Static triangle mesh collision
+- Lighting/Material pipeline
+- State machine helpers
+- Multiplayer Networking
 
