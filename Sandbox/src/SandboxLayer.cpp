@@ -18,6 +18,7 @@
 #include <Wankel/Renderer/Shader.h>
 #include <Wankel/Renderer/Mesh.h>
 #include <Wankel/Core/Window.h>
+#include <Wankel/Renderer/DebugDraw.h>
 
 #include <imgui.h>
 #include <GLFW/glfw3.h>
@@ -235,7 +236,7 @@ void SandboxLayer::OnUpdate() {
 						float d = glm::dot( toChunk / chunklen, camForward );
 						
 						// Skip chunks behind camera
-						if (d < -0.2f)
+						if (d < -0.1f)
 						    continue;
 					}
 				}
@@ -267,7 +268,36 @@ void SandboxLayer::OnUpdate() {
 					    model = model * animTransform;
 					}
 
-    			    Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
+					// DEBUG AXES
+					if (Renderer::DebugEnabled) {
+					    glm::vec3 origin = glm::vec3(model[3]);
+					    float axisLength = 0.125f;
+					
+					    glm::vec3 right = glm::normalize(glm::vec3(model[0])) * axisLength;
+					    glm::vec3 up = glm::normalize(glm::vec3(model[1])) * axisLength;
+					    glm::vec3 forward = glm::normalize(glm::vec3(model[2])) * axisLength;
+					
+					    std::vector<DebugLine> lines = {
+					        { origin, origin + right,   {1,0,0} },// X axis
+					        { origin, origin + up,      {0,1,0} },// Y axis
+					        { origin, origin + forward, {0,0,1} }// Z axis
+					    };
+					
+					    // Parent link
+					    if (m_Scene.Registry().all_of<ParentComponent>(entity)) {
+					        auto parent = m_Scene.Registry().get<ParentComponent>(entity).Parent;
+					        if (parent) {
+								auto& childTransform = m_Scene.Registry().get<TransformComponent>(entity);
+					            auto& parentTransform = parent.GetComponent<TransformComponent>();
+								glm::vec3 childPos = glm::vec3(childTransform.WorldTransform[3]);
+					            glm::vec3 parentPos = glm::vec3(parentTransform.WorldTransform[3]);
+					            lines.push_back({childPos, parentPos, {1,1,1}});
+					        }
+					    }
+					    Renderer::SubmitDebugLines(lines);
+					}
+					
+					Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
 				}
 
 			} // Z
@@ -526,6 +556,12 @@ void SandboxLayer::OnImGuiRender() {
 		        2 * m_RepeatN + 1
 		    );
 		}
+
+		ImGui::Checkbox(
+		    "Debug Draw",
+		    &Renderer::DebugEnabled
+		);
+
 
 		// ENGINE INFO
 		ImGui::Separator();

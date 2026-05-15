@@ -43,6 +43,15 @@ endif()
 # Wankel library
 add_library(Wankel STATIC ${WANKEL_SOURCES})
 
+# Copy Wankel internal shaders
+add_custom_command(TARGET Wankel POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:Wankel>/WankelShaders
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Wankel/Renderer/shaders
+        $<TARGET_FILE_DIR:Wankel>/WankelShaders
+)
+
 source_group(
 	TREE ${CMAKE_CURRENT_SOURCE_DIR}/src
 	FILES ${WANKEL_SOURCES}

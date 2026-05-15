@@ -9,9 +9,10 @@ This is the Wankel Engine Dir structure excluding all of the contents of the ext
 ├── README.md
 ├── Sandbox
 ├── scripts
-└── src
+├── src
+└── THIRD_PARTY_NOTICES.md
 
-7 directories, 3 files
+7 directories, 4 files
 external
 ├── CMakeLists.txt
 ├── entt
@@ -106,6 +107,7 @@ src
 │       ├── CameraController.h
 │       ├── Camera.cpp
 │       ├── Camera.h
+│       ├── DebugDraw.h
 │       ├── IndexBuffer.cpp
 │       ├── IndexBuffer.h
 │       ├── Mesh.cpp
@@ -114,6 +116,9 @@ src
 │       ├── Renderer.h
 │       ├── Shader.cpp
 │       ├── Shader.h
+│       ├── shaders
+│       │   ├── debug.frag
+│       │   └── debug.vert
 │       ├── VertexArray.cpp
 │       ├── VertexArray.h
 │       └── VertexBufferLayout.h
@@ -121,7 +126,7 @@ src
 ├── wkpch.cpp
 └── wkpch.h
 
-20 directories, 76 files
+21 directories, 79 files
 SandboxApp [error opening dir]
 
 0 directories, 0 files

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DebugDraw.h"
+
 #include <glm/glm.hpp>
 
 namespace Wankel {
@@ -29,11 +31,22 @@ namespace Wankel {
 
 		static void BeginScene(const Camera& camera);
 		static void EndScene();
+
+		// Opaque Mesh Pass
 		static void Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader);
+
+		// Debug Pass
+		static void SubmitDebugLines(const std::vector<DebugLine>& lines);
+		
+		// Transparent Mesh Pass Eventually? 
+		// static void SubmitTransparent()...
+
 		static void Draw(const Mesh& mesh);
 	    static void Clear();
 		static void OnWindowResize(uint32_t width, uint32_t height);
 		static void SetFog(const FogSettings& fog);
+
+		static bool DebugEnabled; // Global toggle
 
 	};
 

@@ -4,11 +4,23 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Mesh.h"
+#include "Buffer.h"
+
 #include "Wankel/Core/Time.h"
 
 #include <glad/gl.h>
 
 namespace Wankel {
+
+
+	struct DebugVertex {
+	    glm::vec3 Position;
+	    glm::vec3 Color;
+	};
+
+
+	bool Renderer::DebugEnabled = false;
+
 
 	struct RendererData {
     	glm::mat4 View;
@@ -16,9 +28,16 @@ namespace Wankel {
 		glm::vec3 CameraPos;
 
 		FogSettings Fog;
+
+		std::vector<DebugVertex> DebugVertices;
+		uint32_t DebugVAO = 0;
+		uint32_t DebugVBO = 0;
+		Shader* DebugShader = nullptr;
 	};
 	
+
 	static RendererData s_Data;
+
 
 	void Renderer::Init() {
 	    glEnable(GL_DEPTH_TEST);
@@ -28,18 +47,55 @@ namespace Wankel {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     	glCullFace(GL_BACK);
+
+		// DEBUG PASS GPU OBJECTS
+		glGenVertexArrays(1, &s_Data.DebugVAO);
+		glGenBuffers(1, &s_Data.DebugVBO);
+		glBindVertexArray(s_Data.DebugVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(DebugVertex) * 65536, nullptr, GL_DYNAMIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3,	GL_FLOAT, GL_FALSE,	sizeof(DebugVertex), (void*)offsetof(DebugVertex, Position));
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3,	GL_FLOAT, GL_FALSE, sizeof(DebugVertex), (void*)offsetof(DebugVertex, Color));
+		s_Data.DebugShader = new Shader(
+			"WankelShaders/debug.vert",
+			"WankelShaders/debug.frag"
+		);
 	}
+
+
+	void Renderer::Shutdown() {
+		delete s_Data.DebugShader;
+		glDeleteBuffers(1, &s_Data.DebugVBO);
+		glDeleteVertexArrays(1, &s_Data.DebugVAO);
+	}
+
 
 	void Renderer::BeginScene(const Camera& camera) {
 		s_Data.View = camera.GetViewMatrix();
 		s_Data.Projection = camera.GetProjectionMatrix();
 		s_Data.CameraPos = camera.GetPosition();
-		// This should eventually change to Camera::GetViewProjection()
+		s_Data.DebugVertices.clear();
 	}
 
+
 	void Renderer::EndScene() {
-	    // Currently nothing (reserved for batching / flush systems later)
+		// DEBUG PASS
+		if (DebugEnabled && !s_Data.DebugVertices.empty()) {
+			s_Data.DebugShader->Bind();
+			s_Data.DebugShader->SetMat4("view", s_Data.View);
+			s_Data.DebugShader->SetMat4("projection", s_Data.Projection);
+
+			glBindVertexArray(s_Data.DebugVAO);
+			glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, s_Data.DebugVertices.size()	* sizeof(DebugVertex), s_Data.DebugVertices.data());
+			glDisable(GL_CULL_FACE);
+			glDrawArrays(GL_LINES, 0, (GLsizei)s_Data.DebugVertices.size());
+			glEnable(GL_CULL_FACE);
+		}
 	}
+
 
 	void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader) {
 	    shader->Bind();
@@ -62,6 +118,18 @@ namespace Wankel {
 
 		glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);
 	}
+
+
+	void Renderer::SubmitDebugLines(const std::vector<DebugLine>& lines) {
+		if (!DebugEnabled)
+			return;
+
+		for (const auto& line : lines) {
+			s_Data.DebugVertices.push_back({ line.P0, line.Color });
+			s_Data.DebugVertices.push_back({ line.P1, line.Color });
+		}
+	}
+
 
 	void Renderer::Draw(const Mesh& mesh) {
 	    mesh.Bind();

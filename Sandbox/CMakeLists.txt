@@ -32,7 +32,15 @@ target_compile_definitions(Sandbox PRIVATE WANKEL_CLIENT)
 set_target_properties(Sandbox PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+# Copy Wankel runtime shaders
+add_custom_command(TARGET Sandbox POST_BUILD
 
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        $<TARGET_FILE_DIR:Wankel>/WankelShaders
+        $<TARGET_FILE_DIR:Sandbox>/WankelShaders
+)
+
+# Copy shaders to bin dir
 add_custom_command(TARGET Sandbox POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Assets
@@ -44,11 +52,3 @@ add_custom_command(TARGET Sandbox POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders
     ${CMAKE_BINARY_DIR}/bin/shaders
 )
-
-# Copy shaders to bin dir
-#file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders
-#     DESTINATION ${CMAKE_BINARY_DIR}/bin)
-
-# Copy Mesh to bin dir
-#file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/Assets
-#     DESTINATION ${CMAKE_BINARY_DIR}/bin)
