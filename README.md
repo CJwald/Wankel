@@ -7,16 +7,16 @@ g++ 13+ for entt
 
 
 ## EXAMPLE SETUP:
-### 1. Initialize submodules
+### Initialize Submodules:
 ```bash
 git submodule update --init --recursive
 ```
 #### LINUX:
 ```bash
-./scripts/build.sh    (or .\scripts\build.bat for Windows)
+./scripts/build.sh
 cd Sandbox
-./build.sh            (or .\build.bat for Windows)
-./run.sh              (or .\run.sh for Windows)
+./build.sh
+./run.sh
 ```
 
 #### WINDOWS
