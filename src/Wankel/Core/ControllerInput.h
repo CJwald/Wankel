@@ -10,10 +10,7 @@ namespace Wankel {
         static constexpr int MaxAxes = 8;
         static constexpr int MaxButtons = 32;
 
-        // =========================
         // GAMEPLAY API
-        // =========================
-
         static float GetAxis(int controller, GamepadAxis axis);
 
         static bool IsButtonPressed(
@@ -21,10 +18,7 @@ namespace Wankel {
             GamepadButton button
         );
 
-        // =========================
         // INTERNAL ENGINE API
-        // =========================
-
         static void SetAxis(
             int controller,
             int axis,

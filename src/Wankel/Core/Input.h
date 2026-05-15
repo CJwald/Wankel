@@ -7,23 +7,18 @@ namespace Wankel {
 
 	class Input {
 	public:
-		// -----------------------------
+
 		// Keyboard
-		// -----------------------------
 		static bool IsKeyPressed(KeyCode key);
 
-		// -----------------------------
 		// Mouse buttons
-		// -----------------------------
 		static bool IsMouseButtonPressed(MouseCode button);
 
-		// -----------------------------
 		// Mouse movement (DELTA ONLY)
-		// -----------------------------
 		static float GetMouseDeltaX();
 		static float GetMouseDeltaY();
 
-		// Called by platform layer (DO NOT call manually)
+		// Called by platform layer
 		static void SetMouseDelta(float dx, float dy);
 
 		// Reset delta at the end of the frame (prevents sticking)

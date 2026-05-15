@@ -4,9 +4,9 @@
 
 namespace Wankel {
 
-class PlayerInputSystem {
-public:
-    void Update(Scene& scene, float dt, bool gameFocused);
-};
+	class PlayerInputSystem {
+	public:
+	    void Update(Scene& scene, float dt, bool gameFocused);
+	};
 
 }

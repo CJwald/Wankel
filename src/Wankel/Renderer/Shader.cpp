@@ -78,8 +78,7 @@ namespace Wankel {
 	}
 
 	void Shader::SetInt(const std::string& name, int value) {
-	    GLint location =
-	        glGetUniformLocation(m_RendererID, name.c_str());
+	    GLint location = glGetUniformLocation(m_RendererID, name.c_str());
 	
 	    glUniform1i(location, value);
 	}

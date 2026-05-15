@@ -3,8 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace Wankel::Math
-{
+namespace Wankel::Math {
     constexpr float PI = 3.14159265359f;
     constexpr float TAU = 6.28318530718f;
 
@@ -31,7 +30,6 @@ namespace Wankel::Math
     }
 
     inline float SmootherStep(float t) {
-        return t * t * t *
-               (t * (t * 6.0f - 15.0f) + 10.0f);
+        return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
     }
 }

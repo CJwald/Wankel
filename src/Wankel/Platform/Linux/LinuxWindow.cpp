@@ -14,19 +14,24 @@
 
 namespace Wankel {
 	
+
 	static uint8_t s_GLFWWindowCount = 0;
+
 
 	static void GLFWErrorCallback(int error, const char* description) {
 		WK_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
 
+
 	LinuxWindow::LinuxWindow(const WindowProps& props) {
 		Init(props);
 	}
 
+
 	LinuxWindow::~LinuxWindow() {
 		Shutdown();
 	}
+
 
 	void LinuxWindow::Init(const WindowProps& props) {
 
@@ -69,7 +74,7 @@ namespace Wankel {
 
 		glViewport(0, 0, fbWidth, fbHeight);
 
-		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // This is giving large jumps on WSL
+		glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 		if (glfwRawMouseMotionSupported())
@@ -87,7 +92,7 @@ namespace Wankel {
 		WK_CORE_INFO("OpenGL Version:  {0}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
-		SetVSync(true);
+		SetVSync(false);
 
 		// Set GLFW callbacks
 		glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
@@ -128,7 +133,6 @@ namespace Wankel {
 		//
 		glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset) {
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
 			MouseScrolledEvent event((float)xOffset, (float)yOffset);
 			data.EventCallback(event);
 		});
@@ -149,7 +153,6 @@ namespace Wankel {
 
     		dx = (float)(xPos - data->LastMouseX);
     		dy = (float)(yPos - data->LastMouseY);
-
     		data->LastMouseX = xPos;
     		data->LastMouseY = yPos;
 
@@ -157,7 +160,7 @@ namespace Wankel {
 		});
 	}
 
-	//
+
 	void LinuxWindow::Shutdown() {
 		glfwDestroyWindow(m_Window);
 		if (--s_GLFWWindowCount == 0)
@@ -168,7 +171,7 @@ namespace Wankel {
 		}
 	}
 
-	//
+
 	void LinuxWindow::OnUpdate() {
 		int fbWidth, fbHeight;
     	glfwGetFramebufferSize(m_Window, &fbWidth, &fbHeight);
@@ -183,19 +186,19 @@ namespace Wankel {
     	}
 
 		glfwPollEvents();
-
 		glfwSwapBuffers(m_Window);
 	}
 
-	//
+
 	void LinuxWindow::SetVSync(bool enabled) {
 		m_Data.VSync = enabled;
 		glfwSwapInterval(enabled ? 1 : 0);
 	}
 
-	//
+
 	bool LinuxWindow::IsVSync() const {
 		return m_Data.VSync;
 	}
+
 
 }

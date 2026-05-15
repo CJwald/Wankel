@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Wankel/Core/Window.h"
-//#include "Wankel/Renderer/GraphicsContext.h"
 #include <glad/gl.h>     // Make sure this is included BEFORE GLFW
 #include <GLFW/glfw3.h>
 
@@ -23,8 +22,6 @@ namespace Wankel {
 		bool IsVSync() const override;
 		void* GetNativeWindow() const override { return m_Window; }
 
-		//virtual void* GetNativeWindow() const { return m_Window; }
-		//static Window* Create(const WindowProps& props = WindowProps());
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();

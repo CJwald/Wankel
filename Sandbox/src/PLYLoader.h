@@ -6,20 +6,18 @@
 #include <sstream>
 #include <iostream>
 
-struct PLYMeshData
-{
+
+struct PLYMeshData {
     std::vector<float> Vertices;   // x y z r g b a
     std::vector<uint32_t> Indices;
 };
 
-class PLYLoader
-{
+
+class PLYLoader {
 public:
-    static PLYMeshData Load(const std::string& path)
-    {
+    static PLYMeshData Load(const std::string& path) {
         std::ifstream file(path);
-        if (!file.is_open())
-        {
+        if (!file.is_open()) {
             std::cerr << "[PLY] Failed to open file: " << path << std::endl;
             return {};
         }
@@ -28,59 +26,48 @@ public:
         uint32_t vertexCount = 0;
         uint32_t faceCount = 0;
 
-        auto trim = [](std::string& s)
-        {
+        auto trim = [](std::string& s) {
             s.erase(0, s.find_first_not_of(" \t\r\n"));
             s.erase(s.find_last_not_of(" \t\r\n") + 1);
         };
 
         // ================= HEADER =================
         std::cout << "[PLY] Parsing header...\n";
-
-        while (std::getline(file, line))
-        {
+        while (std::getline(file, line)) {
             trim(line);
 
-            if (line.find("element vertex") != std::string::npos)
-            {
+            if (line.find("element vertex") != std::string::npos) {
                 std::stringstream ss(line);
                 std::string tmp;
                 ss >> tmp >> tmp >> vertexCount;
                 std::cout << "[PLY] Vertex count: " << vertexCount << "\n";
             }
-            else if (line.find("element face") != std::string::npos)
-            {
+            else if (line.find("element face") != std::string::npos) {
                 std::stringstream ss(line);
                 std::string tmp;
                 ss >> tmp >> tmp >> faceCount;
                 std::cout << "[PLY] Face count: " << faceCount << "\n";
             }
-            else if (line == "end_header")
-            {
+            else if (line == "end_header") {
                 std::cout << "[PLY] End header found\n";
                 break;
             }
         }
-
         PLYMeshData data;
 
         // ================= VERTICES =================
         std::cout << "[PLY] Reading vertices...\n";
 
-        for (uint32_t i = 0; i < vertexCount; ++i)
-        {
+        for (uint32_t i = 0; i < vertexCount; ++i) {
             std::getline(file, line);
             std::stringstream ss(line);
 			float x, y, z;
-			
 			int r, g, b, a;
 			
 			// read position
 			ss >> x >> y >> z;
 			
 			// Blender -> Engine conversion
-			//float ex = y;//-y;
-			//float ey = -z;//z;
 			float ex = -y;
 			float ey = z;
 			float ez = -x;
@@ -112,8 +99,7 @@ public:
 
         uint32_t facesRead = 0;
 
-        while (std::getline(file, line))
-        {
+        while (std::getline(file, line)) {
             trim(line);
 
             if (line.empty())
@@ -130,18 +116,15 @@ public:
 
             std::vector<uint32_t> idx(n);
 
-            for (int i = 0; i < n; ++i)
-            {
-                if (!(ss >> idx[i]))
-                {
+            for (int i = 0; i < n; ++i) {
+                if (!(ss >> idx[i])) {
                     std::cout << "[PLY] Face parse failed: " << line << "\n";
                     goto skip_face;
                 }
             }
 
             // triangulate (fan method)
-            for (int i = 1; i + 1 < n; ++i)
-            {
+            for (int i = 1; i + 1 < n; ++i) {
                 data.Indices.push_back(idx[0]);
                 data.Indices.push_back(idx[i]);
                 data.Indices.push_back(idx[i + 1]);

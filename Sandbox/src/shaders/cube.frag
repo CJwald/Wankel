@@ -18,27 +18,19 @@ uniform float u_FogNoiseStrength;
 uniform float u_FogNoiseSpeed;
 uniform int u_FogNoiseOctaves;
 
-// =========================
-// NEW: WIND (VECTORISED)
-// =========================
-uniform vec3 u_FogWindDir;   // NEW
-uniform float u_FogWindSpeed; // NEW
+// WIND (VECTORISED)
+uniform vec3 u_FogWindDir;
+uniform float u_FogWindSpeed;
 
-// =========================
 // 3D HASH
-// =========================
-float hash(vec3 p)
-{
+float hash(vec3 p) {
     p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
     p *= 17.0;
     return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
 }
 
-// =========================
 // 3D VALUE NOISE
-// =========================
-float noise(vec3 p)
-{
+float noise(vec3 p) {
     vec3 i = floor(p);
     vec3 f = fract(p);
 
@@ -64,17 +56,13 @@ float noise(vec3 p)
     return mix(nxy0, nxy1, u.z);
 }
 
-// =========================
 // 3D FBM
-// =========================
-float fbm(vec3 p)
-{
+float fbm(vec3 p) {
     float value = 0.0;
     float amplitude = 0.5;
     float frequency = 1.0;
 
-    for(int i = 0; i < u_FogNoiseOctaves; i++)
-    {
+    for(int i = 0; i < u_FogNoiseOctaves; i++) {
         value += amplitude * noise(p * frequency);
         frequency *= 2.0;
         amplitude *= 0.5;
@@ -83,57 +71,31 @@ float fbm(vec3 p)
     return value;
 }
 
-// =========================
 // MAIN
-// =========================
-void main()
-{
+void main() {
     vec3 color = v_Color.rgb;
 
-    float dist =
-        length(u_CameraPos - v_WorldPos);
+    float dist = length(u_CameraPos - v_WorldPos);
 
     float fogDensity = u_FogDensity;
 
-    // =========================
-    // 3D NOISE FOG (NEW)
-    // =========================
-    if(u_FogNoiseEnabled == 1)
-    {
+    // 3D NOISE FOG
+    if(u_FogNoiseEnabled == 1) {
         vec3 pos = v_WorldPos * u_FogNoiseScale;
 
-        // =========================
         // VECTORISED WIND
-        // =========================
-        vec3 windOffset =
-            u_FogWindDir *
-            (u_Time * u_FogWindSpeed);
-
-        vec3 samplePos =
-            pos + windOffset;
-
+        vec3 windOffset = u_FogWindDir * (u_Time * u_FogWindSpeed);
+        vec3 samplePos = pos + windOffset;
         float n = fbm(samplePos);
-
-        float noiseMod =
-            mix(0.75, 1.25, n);
+        float noiseMod = mix(0.75, 1.25, n);
 
         fogDensity *= mix(1.0, noiseMod, u_FogNoiseStrength);
     }
 
-    // =========================
     // DISTANCE FOG
-    // =========================
-    float fogFactor =
-        exp(-pow(dist * fogDensity, 2.0));
+    float fogFactor = exp(-pow(dist * fogDensity, 2.0));
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
+    vec3 finalColor = mix(u_FogColor, color, fogFactor);
 
-    fogFactor =
-        clamp(fogFactor, 0.0, 1.0);
-
-    vec3 finalColor =
-        mix(u_FogColor,
-            color,
-            fogFactor);
-
-    FragColor =
-        vec4(finalColor, v_Color.a);
+    FragColor = vec4(finalColor, v_Color.a);
 }

@@ -22,9 +22,7 @@ namespace Wankel {
 
 	    float velocity = m_MoveSpeed * dt;
 
-	    // ========================
 	    // Keyboard movement
-	    // ========================
 	    if (Input::IsKeyPressed(Key::LeftShift)) velocity = velocity * m_Boost; // doesnt work
 	    if (Input::IsKeyPressed(Key::W)) position += forward * velocity;
 	    if (Input::IsKeyPressed(Key::S)) position -= forward * velocity;
@@ -33,18 +31,11 @@ namespace Wankel {
 	    if (Input::IsKeyPressed(Key::Space)) position += up * velocity;
 	    if (Input::IsKeyPressed(Key::LeftControl)) position -= up * velocity;
 
-	    // ========================
 	    // Mouse look
-	    // ========================
 	    float dx = Input::GetMouseDeltaX() * m_WindowSensitivity;
 	    float dy = Input::GetMouseDeltaY() * m_WindowSensitivity;
 
 	    if (dx != 0.0f || dy != 0.0f) {
-	        // --- YAW (world up, always stable) ---
-	        //glm::quat yaw = glm::angleAxis(
-	        //    -dx * m_RotationSpeed,
-	        //    glm::vec3(0.0f, 1.0f, 0.0f)
-	        //);
 	        glm::quat yaw = glm::angleAxis(
 	            -dx * m_RotationSpeed,
 	           	up 
@@ -52,7 +43,6 @@ namespace Wankel {
 	        m_Orientation = glm::normalize(yaw * m_Orientation);
 
 	        // --- recompute right AFTER yaw ---
-	        //glm::vec3 newRight = m_Orientation * glm::vec3(1, 0, 0);
 	        glm::vec3 newRight = m_Orientation * right;
 
 	        // --- PITCH (local right, stable now) ---
@@ -63,9 +53,7 @@ namespace Wankel {
 	        m_Orientation = glm::normalize(pitch * m_Orientation);
 	    }
 
-	    // ========================
 	    // Roll (local forward)
-	    // ========================
 	    glm::vec3 currentForward = m_Orientation * glm::vec3(0, 0, -1);
 
 	    if (Input::IsKeyPressed(Key::E))
@@ -78,9 +66,7 @@ namespace Wankel {
 	            glm::angleAxis(-m_RollSpeed * dt, currentForward) * m_Orientation
 	        );
 
-	    // ========================
 	    // Apply to camera
-	    // ========================
 	    m_Camera.SetPosition(position);
 	    m_Camera.SetOrientation(m_Orientation);
 	}

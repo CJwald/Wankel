@@ -9,17 +9,13 @@ inline constexpr float PlateHeight = 2.0f; // thickness
 
 inline constexpr float PlateVertices[] = {
 
-    // =========================
     // TOP FACE (y = +h)
-    // =========================
      PlateSize,  PlateHeight,  PlateSize,  0.45f, 0.35f, 0.25f, 1.0f,
     -PlateSize,  PlateHeight,  PlateSize,  0.42f, 0.33f, 0.23f, 1.0f,
     -PlateSize,  PlateHeight, -PlateSize,  0.40f, 0.32f, 0.22f, 1.0f,
      PlateSize,  PlateHeight, -PlateSize,  0.44f, 0.34f, 0.24f, 1.0f,
 
-    // =========================
     // BOTTOM FACE (y = -h)
-    // =========================
      PlateSize, -PlateHeight,  PlateSize,  0.25f, 0.20f, 0.15f, 1.0f,
     -PlateSize, -PlateHeight,  PlateSize,  0.22f, 0.18f, 0.12f, 1.0f,
     -PlateSize, -PlateHeight, -PlateSize,  0.20f, 0.16f, 0.10f, 1.0f,

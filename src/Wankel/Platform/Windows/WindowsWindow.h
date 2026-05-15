@@ -1,46 +1,52 @@
 #pragma once
 
 #include "Wankel/Core/Window.h"
+#include <glad/gl.h>     // Make sure this is included BEFORE GLFW
 #include <GLFW/glfw3.h>
 
 namespace Wankel {
 
-    class WindowsWindow : public Window {
-    public:
-        WindowsWindow(const WindowProps& props);
-        virtual ~WindowsWindow();
+	class WindowsWindow : public Window {
+	public:
+		WindowsWindow(const WindowProps& props);
+		virtual ~WindowsWindow();
 
-        void OnUpdate() override;
+		void OnUpdate() override;
 
-        unsigned int GetWidth() const override { return m_Data.Width; }
-        unsigned int GetHeight() const override { return m_Data.Height; }
+		unsigned int GetWidth() const override { return m_Data.Width; }
+		unsigned int GetHeight() const override { return m_Data.Height; }
 
-        void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
+		// Window attributes
+		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
+		void SetVSync(bool enabled) override;
+		bool IsVSync() const override;
+		void* GetNativeWindow() const override { return m_Window; }
 
-        void SetVSync(bool enabled) override;
-        bool IsVSync() const override;
+	private:
+		virtual void Init(const WindowProps& props);
+		virtual void Shutdown();
 
-        void* GetNativeWindow() const override { return m_Window; }
+	private:
+		GLFWwindow* m_Window;
 
-    private:
-        virtual void Init(const WindowProps& props);
-        virtual void Shutdown();
+		double m_LastMouseX = 0.0; // TODO: Remove? Set in WindowData
+    	double m_LastMouseY = 0.0; // TODO: Remove? Set in WindowData
+		bool m_FirstMouse = true;  // TODO: Remove? Set in WindowData
 
-        GLFWwindow* m_Window;
+		struct WindowData {
+			std::string Title;
+			unsigned int Width, Height;
+			bool VSync;
 
-        struct WindowData {
-            std::string Title;
-            unsigned int Width, Height;
-            bool VSync;
+			EventCallbackFn EventCallback;
 
-            EventCallbackFn EventCallback;
+			double LastMouseX = 400.0;   // reasonable starting point
+    		double LastMouseY = 300.0;
+    		bool FirstMouse = true;
+		};
 
-            float LastMouseX = 0.0f;
-            float LastMouseY = 0.0f;
-            bool FirstMouse = true;
-        };
-
-        WindowData m_Data;
-    };
+		WindowData m_Data;
+	};
 
 }
+

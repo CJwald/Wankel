@@ -9,8 +9,7 @@ uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 
-void main()
-{
+void main() {
 	vec4 worldPos = model * vec4(aPos, 1.0);
     v_WorldPos = worldPos.xyz; 
 

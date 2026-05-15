@@ -2,8 +2,7 @@
 
 namespace Wankel {
 
-    enum class GamepadAxis
-    {
+    enum class GamepadAxis {
         LeftX = 0,
         LeftY,
         RightX,
