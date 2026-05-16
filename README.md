@@ -3,7 +3,7 @@ Game Engine designed for 3D Rendering and Physics. SandboxApp Example lets you f
 Right now there is only AABB collisions with the ship and the Green cubes (So all other mesh 
 can be flown through).  
 
-Right now I do all development from terminal, usually on Linux. I have tested and built in both 
+Right now I do all development from terminal (Vim), usually on Linux. I have tested and built in both 
 Linux and Windows from terminal / PowerShell.
 
 ![Wankel Sandbox Screenshot](Documents/WankelScreenshot.png)
