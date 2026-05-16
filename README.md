@@ -14,6 +14,10 @@ g++ 13+ for entt
 git submodule update --init --recursive
 ```
 #### LINUX:
+##### Requirements:
+- 
+
+##### To run:
 ```bash
 ./scripts/build.sh
 cd Sandbox
@@ -23,6 +27,18 @@ cd Sandbox
 
 
 #### WINDOWS:
+##### Requirements:
+- MSVC compiler from Visual Studio Build Tools 2022 -> https://visualstudio.microsoft.com/visual-cpp-build-tools/?utm_source=chatgpt.com
+- Ninja 
+```bash
+winget install Ninja-build.Ninja
+```
+- Cmake
+```bash
+winget install Kitware.CMake
+```
+
+##### To run:
 ```bash
 .\scripts\build.bat
 cd Sandbox

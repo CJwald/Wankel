@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\Application.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\ControllerInput.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\Engine.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\ImGui\ImGuiLayer.cpp">
+      <Filter>Wankel\Core\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\InputSystem.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\Layer.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\LayerStack.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\Log.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\Time.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Core\Window.cpp">
+      <Filter>Wankel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\ECS\Scene.cpp">
+      <Filter>Wankel\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Math\Noise.cpp">
+      <Filter>Wankel\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Math\Random.cpp">
+      <Filter>Wankel\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Math\SecondOrderDynamics.cpp">
+      <Filter>Wankel\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Physics\Collision\NarrowPhase\AABBCollision.cpp">
+      <Filter>Wankel\Physics\Collision\NarrowPhase</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Physics\Systems\PhysicsSystem.cpp">
+      <Filter>Wankel\Physics\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Platform\Windows\WindowsInput.cpp">
+      <Filter>Wankel\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Platform\Windows\WindowsWindow.cpp">
+      <Filter>Wankel\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\Buffer.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\Camera.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\CameraController.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\IndexBuffer.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\Mesh.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\Renderer.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\Shader.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\cjwal\Dev\Wankel\src\Wankel\Renderer\VertexArray.cpp">
+      <Filter>Wankel\Renderer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\cjwal\Dev\Wankel\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Wankel">
+      <UniqueIdentifier>{F436CCF6-F7E3-3C10-A567-A98255E89EDE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Core">
+      <UniqueIdentifier>{10544485-9D7F-3B9D-9EBF-A3798B66A5A6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Core\ImGui">
+      <UniqueIdentifier>{81D2F646-B3E2-3BAE-9351-F0275E3DC363}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\ECS">
+      <UniqueIdentifier>{6F3FCD19-A8FD-3E25-93ED-FF42383C7A52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Math">
+      <UniqueIdentifier>{70D2D7E4-B9A3-3390-93D7-E04103A4A1EA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Physics">
+      <UniqueIdentifier>{759ACB9B-082A-3827-9B6C-2831D1CC3BF4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Physics\Collision">
+      <UniqueIdentifier>{D9353B4F-8572-36B6-809D-139DA160277C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Physics\Collision\NarrowPhase">
+      <UniqueIdentifier>{841B644D-9DBF-3F46-910D-D02764DE4B75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Physics\Systems">
+      <UniqueIdentifier>{96323D22-E367-308E-BEDB-2E4C6BDB600A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Platform">
+      <UniqueIdentifier>{63BF89AC-D41B-376A-87D9-47EBD887EB98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Platform\Windows">
+      <UniqueIdentifier>{2684F536-6F02-3E44-83E8-80208B7DE87D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wankel\Renderer">
+      <UniqueIdentifier>{B375849A-8983-306B-923A-AF377A73B7E4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

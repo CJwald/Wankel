@@ -6,7 +6,7 @@ REM Resolve sandbox root
 REM =========================================================
 
 set "SCRIPT_DIR=%~dp0"
-for %%i in ("%SCRIPT_DIR%") do set "PROJECT_ROOT=%%~fi"
+set "PROJECT_ROOT=%SCRIPT_DIR:~0,-1%"
 
 REM =========================================================
 REM Config
@@ -14,7 +14,6 @@ REM =========================================================
 
 if "%BUILD_DIR%"=="" set "BUILD_DIR=%PROJECT_ROOT%\build"
 if "%BUILD_TYPE%"=="" set "BUILD_TYPE=Debug"
-if "%JOBS%"=="" set "JOBS=%NUMBER_OF_PROCESSORS%"
 
 echo.
 echo Sandbox root : %PROJECT_ROOT%
@@ -34,8 +33,7 @@ REM =========================================================
 REM Configure
 REM =========================================================
 
-cmake "%PROJECT_ROOT%" ^
-    -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+cmake -G Ninja -DCMAKE_BUILD_TYPE=%BUILD_TYPE% "%PROJECT_ROOT%"
 
 if errorlevel 1 exit /b 1
 
@@ -43,7 +41,7 @@ REM =========================================================
 REM Build
 REM =========================================================
 
-cmake --build . --config %BUILD_TYPE% -- /m:%JOBS%
+cmake --build .
 
 if errorlevel 1 exit /b 1
 
