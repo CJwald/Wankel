@@ -1,5 +1,7 @@
 # Wankel
-Game Engine designed for 3D Rendering and Physics. 
+Game Engine designed for 3D Rendering and Physics. SandboxApp Example lets you fly a ship.
+Right now there is only AABB collisions with the ship and the Green cubes (So all other mesh 
+can be flown through).  
 
 ![Wankel Sandbox Screenshot](Documents/WankelScreenshot.png)
 
@@ -15,7 +17,7 @@ git submodule update --init --recursive
 ```
 #### LINUX:
 ##### Requirements:
-- 
+- TBD
 
 ##### To run:
 ```bash
@@ -76,7 +78,7 @@ cd Sandbox
 ## FEATURES:
 - imgui
 - logging
-- application and entry point
+- Application and entry point
 - Linux / Windows split
 - Mouse and Keyboard input
 - Controller Input
@@ -90,10 +92,10 @@ cd Sandbox
 - AABB Collision
 - Second Order Dynamics Animation System
 - Multi-mesh components
+- Debug Visualization system (coord. frames etc.)
 
 
 ## TODO:
-- Debug Visualization system (coord. frames etc.)
 - Procedural Animation Layering
 - Raycast/collision queries
 - Sphere and capsule collision systems
