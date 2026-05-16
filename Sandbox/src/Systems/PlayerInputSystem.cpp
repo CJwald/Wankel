@@ -11,7 +11,13 @@ namespace Wankel {
 void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
     auto controllerView = scene.Registry().view<PlayerControllerComponent>();
 
+    // TODO: these probably shouldnt live here in the full game
+    constexpr float MouseSensitivity = 1.0f;     // pixels -> degrees multiplier
+    constexpr float StickTurnSpeed   = 720.0f;    // deg/sec at full tilt
+    constexpr float keyTurnSpeed     = 540.0f;    // deg/sec
+    
     for (auto entity : controllerView) {
+
         // Skip if game not focused
         if (!gameFocused)
             continue;
@@ -73,34 +79,32 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
         input.y += Cross - Circle;
 
 		// LOOK INPUT
-		glm::vec2 look(0.0f);
+		glm::vec2 lookVelocity(0.0f);
 
 		// Controller
-		look.x += rx * 10.0f;
-		look.y += ry * 10.0f;
+		lookVelocity.x += rx * StickTurnSpeed;
+		lookVelocity.y += ry * StickTurnSpeed;
 
 		// Mouse (always include it, don't conditionally overwrite)
-		look.x += Input::GetMouseDeltaX();
-		look.y += Input::GetMouseDeltaY();
+		lookVelocity.x += Input::GetMouseDeltaX() * MouseSensitivity / dt;
+		lookVelocity.y += Input::GetMouseDeltaY() * MouseSensitivity / dt;
 
 		// Keyboard arrows
-		float keyLookSpeed = 540.0f * dt;
-
 		if (Input::IsKeyPressed(Key::Left))
-		    look.x -= keyLookSpeed;
+		    lookVelocity.x -= keyTurnSpeed;
 
 		if (Input::IsKeyPressed(Key::Right))
-		    look.x += keyLookSpeed;
+		    lookVelocity.x += keyTurnSpeed;
 
 		if (Input::IsKeyPressed(Key::Up))
-		    look.y -= keyLookSpeed*(9.f/16.f); // scale testing
+		    lookVelocity.y -= keyTurnSpeed*(9.f/16.f); // scale testing
 
 		if (Input::IsKeyPressed(Key::Down))
-		    look.y += keyLookSpeed*(9.f/16.f); // scale testing
+		    lookVelocity.y += keyTurnSpeed*(9.f/16.f); // scale testing
 
 		// FINAL OUTPUT
-		controller.LookDeltaX = look.x;
-		controller.LookDeltaY = look.y;
+		controller.LookDeltaX = lookVelocity.x * dt;
+		controller.LookDeltaY = lookVelocity.y * dt;
 
 
         // Roll

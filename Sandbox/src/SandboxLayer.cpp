@@ -132,8 +132,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
         rb.IsStatic = true;
 	
         // Collider
-        //auto& collider = e.AddComponent<AABBComponent>();
-        //collider.HalfSize = {0.5f, 0.5f, 0.5f};
+        auto& collider = e.AddComponent<AABBComponent>();
+        collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
     // WORLD 
