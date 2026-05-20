@@ -230,24 +230,35 @@ void SandboxLayer::OnUpdate() {
 				for (auto entity : view) {
 					auto& transform = view.get<TransformComponent>(entity);
     			    auto& mesh = view.get<MeshComponent>(entity);
-					glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.WorldTransform;
+
+					glm::mat4 world = transform.WorldTransform;
+					// procedural mesh offset (LOCAL SPACE of object)
+					glm::mat4 visual = glm::translate(glm::mat4(1.0f), transform.VisualPosition) * glm::toMat4(transform.VisualRotation);
+					// mesh local (pivot etc)
+					glm::mat4 meshLocal = mesh.GetLocalTransform();
+					// final
+					glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset)
+					                * world
+					                * visual
+					                * meshLocal;
+
 
 					// PROCEDURAL MESH animATION
-					if (m_Scene.Registry().all_of<MeshAnimationComponent>(entity)) {
-					    auto& anim = m_Scene.Registry().get<MeshAnimationComponent>(entity);
+					//if (m_Scene.Registry().all_of<MeshAnimationComponent>(entity)) {
+					//    auto& anim = m_Scene.Registry().get<MeshAnimationComponent>(entity);
 
-						glm::vec3 rot = glm::radians(anim.RotationOffset);
+					//	glm::vec3 rot = glm::radians(anim.RotationOffset);
 
-						glm::quat pitch = glm::angleAxis(rot.x, glm::vec3(1,0,0));
-						glm::quat yaw = glm::angleAxis(rot.y, glm::vec3(0,1,0));
-						glm::quat roll = glm::angleAxis(rot.z, glm::vec3(0,0,1));
-						glm::quat animRotation = glm::normalize(roll * yaw * pitch);
+					//	glm::quat pitch = glm::angleAxis(rot.x, glm::vec3(1,0,0));
+					//	glm::quat yaw = glm::angleAxis(rot.y, glm::vec3(0,1,0));
+					//	glm::quat roll = glm::angleAxis(rot.z, glm::vec3(0,0,1));
+					//	glm::quat animRotation = glm::normalize(roll * yaw * pitch);
 
-					    glm::mat4 animTransform = glm::translate(glm::mat4(1.0f), anim.PositionOffset) * glm::toMat4(animRotation);
+					//    glm::mat4 animTransform = glm::translate(glm::mat4(1.0f), anim.PositionOffset) * glm::toMat4(animRotation);
 
-					    // Apply animation in LOCAL SPACE
-					    model = model * animTransform;
-					}
+					//    // Apply animation in LOCAL SPACE
+					//    model = model * animTransform;
+					//}
 
 					// DEBUG AXES
 					if (Renderer::DebugEnabled) {
@@ -333,7 +344,7 @@ void SandboxLayer::OnImGuiRender() {
 			float farClip = cam.GetFarClip();
 			
 			ImGui::Text("Camera Settings");
-			if (ImGui::SliderFloat("FOV", &fov, 30.0f, 120.0f))
+			if (ImGui::SliderFloat("FOV (Vertical)", &fov, 30.0f, 120.0f))
 			    cam.SetFOV(fov);
 			if (ImGui::SliderFloat("Near Clip", &nearClip, 0.001f, 5.0f))
 			    cam.SetNearClip(nearClip);

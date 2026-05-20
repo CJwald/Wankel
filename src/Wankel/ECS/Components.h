@@ -5,30 +5,35 @@
 #include "Wankel/Renderer/Mesh.h"
 #include "Entity.h"
 #include "Wankel/Math/SecondOrderDynamics.h"
+#include "MotionProfile.h"
 
 namespace Wankel {
 
-    struct TransformComponent {
-        glm::vec3 LocalPosition{0.0f};
-		glm::quat LocalOrientation{1,0,0,0};
-        glm::vec3 LocalScale{1.0f};
-
-		glm::mat4 WorldTransform{1.0f};
-
-		glm::mat4 GetLocalTransform() const {
-            return glm::translate(glm::mat4(1.0f), LocalPosition)
-                 * glm::toMat4(LocalOrientation)
-                 * glm::scale(glm::mat4(1.0f), LocalScale);
-        }
-
-		glm::vec3 GetWorldPosition() const {
-            return glm::vec3(WorldTransform[3]);
-        }
-
-        glm::quat GetWorldRotation() const {
-            return glm::quat_cast(WorldTransform);
-        }
-    };
+	struct TransformComponent {
+	    // SIMULATION
+	    glm::vec3 LocalPosition{0.0f};
+	    glm::quat LocalOrientation{1,0,0,0};
+	    glm::vec3 LocalScale{1.0f};
+	
+	    // VISUAL OFFSET
+	    glm::vec3 VisualPosition{0.0f};
+	    glm::quat VisualRotation{1,0,0,0};
+	
+	    // KINEMATICS
+	    glm::vec3 PreviousWorldPosition{0.0f};
+	    glm::quat PreviousWorldRotation{1,0,0,0};
+	
+	    glm::vec3 WorldVelocity{0.0f};
+	    glm::vec3 WorldAngularVelocity{0.0f};
+		glm::vec3 WorldAcceleration{0.0f};
+		glm::vec3 WorldAngularAcceleration{0.0f};
+	
+	    // CACHED TRANSFORMS
+	    glm::mat4 LocalTransform{1.0f};
+	    glm::mat4 WorldTransform{1.0f};
+	    glm::mat4 VisualTransform{1.0f};
+	    glm::mat4 FinalTransform{1.0f};
+	};
 
 
 	struct MeshComponent {
@@ -39,6 +44,7 @@ namespace Wankel {
     	glm::vec3 LocalScale{1.0f};
 
     	glm::vec3 RotationPivot{0.0f};
+
 		glm::mat4 GetLocalTransform() const {
             glm::mat4 pivotToOrigin = glm::translate(glm::mat4(1.0f), -RotationPivot);
             glm::mat4 pivotBack = glm::translate(glm::mat4(1.0f), RotationPivot);
@@ -98,6 +104,13 @@ namespace Wankel {
 
 	struct ParentComponent {
 	    Entity Parent;
+	
+	    bool InheritPosition = true;
+	    bool InheritRotation = true;
+	    bool InheritScale = true;
+	
+	    bool InheritLinearVelocity = true;
+	    bool InheritAngularVelocity = true;
 	};
 
 
@@ -133,39 +146,33 @@ namespace Wankel {
 
 
 	struct MeshAnimationComponent {
+	    static constexpr int AxisCount = 6;
 	
-	    // FINAL VISUAL OFFSETS
-	    glm::vec3 PositionOffset{0.0f};
-	    glm::vec3 RotationOffset{0.0f};
-	
-	    // TARGETS
-	    glm::vec3 TargetPosition{0.0f};
-	    glm::vec3 TargetRotation{0.0f};
-	
-	    // SPRINGS
-	    SecondOrderDynamics PositionSpring;
-	    SecondOrderDynamics RotationSpring;
+	    MotionLink Links[AxisCount][AxisCount];
 
-	    SecondOrderDynamics PosXSpring;
-	    SecondOrderDynamics PosYSpring;
-	    SecondOrderDynamics PosZSpring;
+		glm::vec3 TargetPosition{0.0f};
+		glm::vec3 TargetRotation{0.0f};
+		
+		glm::vec3 PositionOffset{0.0f};
+		glm::vec3 RotationOffset{0.0f};
+		
+		glm::vec3 PositionAmplitude{0.001f};
+		glm::vec3 RotationAmplitude{0.1f};
+		
+		glm::vec3 PositionClamp{1.0f};
+		glm::vec3 RotationClamp{1.0f};
+		
+		float PositionFrequency = 2.0f;
+		float PositionDamping = 0.7f;
+		float PositionResponse = 1.0f;
+		
+		float RotationFrequency = 2.0f;
+		float RotationDamping = 0.7f;
+		float RotationResponse = 1.0f;
+		
+		SecondOrderDynamics PositionSpring;
+		SecondOrderDynamics RotationSpring;
 
-	    SecondOrderDynamics RotXSpring;
-	    SecondOrderDynamics RotYSpring;
-	    SecondOrderDynamics RotZSpring;
-	
-	    // TUNING
-		glm::vec3 PositionAmplitude{0.001f, 0.001f, 0.001f};
-    	glm::vec3 RotationAmplitude{0.005f, 0.005f, 0.005f};
-
-	    float PositionFrequency = 2.0f; // These should be a glm::vec3
-	    float PositionDamping = 0.8f;
-	    float PositionResponse = 2.0f;
-	
-	    float RotationFrequency = 2.0f; // These should be a glm::vec3
-	    float RotationDamping = 0.8f;
-	    float RotationResponse = 2.0f;
-	
 	    bool Initialized = false;
 	};
 

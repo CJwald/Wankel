@@ -20,7 +20,10 @@ namespace Wankel {
         entt::registry& Registry() { return m_Registry; }
 
 	private:
-    	void UpdateTransforms();
+    	void UpdateTransforms(float dt);
+    	void UpdateKinematics(float dt);
+    	void UpdateProceduralAnimation(float dt);
+		void UpdateFinalTransforms();
 
     private:
         entt::registry m_Registry;

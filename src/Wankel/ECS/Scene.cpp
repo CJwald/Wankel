@@ -8,7 +8,7 @@
 
 namespace Wankel {
 
-	static void InitMeshAnimation(MeshAnimationComponent& anim) { // TODO: I dont know if I want to keep this
+	static void InitMeshAnimation(MeshAnimationComponent& anim) {
 	    if (anim.Initialized)
 	        return;
 	
@@ -31,7 +31,6 @@ namespace Wankel {
 
 
 	static glm::mat4 ComposeTransform(const TransformComponent& tc) {
-
 	    return glm::translate(glm::mat4(1.0f), tc.LocalPosition) *
 	           glm::toMat4(tc.LocalOrientation) *
 	           glm::scale(glm::mat4(1.0f), tc.LocalScale);
@@ -56,26 +55,92 @@ namespace Wankel {
 	}
 	
 	
-	void Scene::UpdateTransforms() {
+	void Scene::UpdateTransforms(float dt) {
 
 	    auto view = m_Registry.view<TransformComponent>();
 	
 	    for (auto entity : view) {
 	        auto& tc = view.get<TransformComponent>(entity);
-	        tc.WorldTransform = ComputeWorldTransform(m_Registry, entity);
+			tc.LocalTransform = ComposeTransform(tc);
+        	tc.WorldTransform = ComputeWorldTransform(m_Registry, entity);
+
+        	glm::vec3 worldPos = glm::vec3(tc.WorldTransform[3]);
+			glm::vec3 newVel = (worldPos - tc.PreviousWorldPosition) / glm::max(dt, 1e-6f);
+        	tc.WorldAcceleration = (newVel - tc.WorldVelocity) / glm::max(dt, 1e-6f);
+        	tc.WorldVelocity = newVel;
+
+        	glm::quat currentRot = glm::quat_cast(tc.WorldTransform);
+        	glm::quat delta = currentRot * glm::inverse(tc.PreviousWorldRotation);
+
+        	float angle = glm::angle(delta);
+        	if (angle > glm::pi<float>())
+        	    angle -= glm::two_pi<float>();
+
+        	glm::vec3 axis(0.0f);
+        	if (glm::abs(angle) > 0.00001f)
+        	    axis = glm::axis(delta);
+
+			glm::vec3 newAngVel = axis * (angle / glm::max(dt, 1e-6f));
+        	tc.WorldAngularAcceleration = (newAngVel - tc.WorldAngularVelocity) / glm::max(dt, 1e-6f);
+        	tc.WorldAngularVelocity = newAngVel;
+        	tc.PreviousWorldPosition = worldPos;
+        	tc.PreviousWorldRotation = currentRot;
+	    }
+	}
+
+
+	void Scene::UpdateProceduralAnimation(float dt) {
+	    auto view = m_Registry.view< TransformComponent, MeshAnimationComponent>();
+	
+	    for (auto entity : view) {
+	        auto& tc = view.get<TransformComponent>(entity);
+	        auto& anim = view.get<MeshAnimationComponent>(entity);
+	
+	        InitMeshAnimation(anim);
+	
+	        glm::vec3 localVelocity = glm::inverse(tc.LocalOrientation) * tc.WorldVelocity;
+	        glm::vec3 localAngularVelocity = glm::inverse(tc.LocalOrientation) * tc.WorldAngularVelocity;
+
+			// DRIVE TARGETS	
+			anim.TargetPosition = -localVelocity * anim.PositionAmplitude;
+			anim.TargetRotation = glm::vec3(-localVelocity.y * anim.RotationAmplitude.x, localAngularVelocity.y * anim.RotationAmplitude.y, localAngularVelocity.z * anim.RotationAmplitude.z);
+	        anim.TargetPosition = glm::clamp(anim.TargetPosition, -anim.PositionClamp, anim.PositionClamp);
+	        anim.TargetRotation = glm::clamp(anim.TargetRotation, -anim.RotationClamp, anim.RotationClamp);
+			
+			// UPDATE SPRINGS
+	        anim.PositionSpring.SetDynamics(anim.PositionFrequency, anim.PositionDamping, anim.PositionResponse);
+	        anim.RotationSpring.SetDynamics(anim.RotationFrequency, anim.RotationDamping, anim.RotationResponse);
+	        
+			anim.PositionOffset = anim.PositionSpring.Update(dt, anim.TargetPosition);
+	        anim.RotationOffset = anim.RotationSpring.Update(dt, anim.TargetRotation);
+
+			// Write to visual space
+	        tc.VisualPosition = anim.PositionOffset;
+
+	        glm::vec3 rotRad = glm::radians(anim.RotationOffset);
+	        tc.VisualRotation = glm::normalize(glm::quat(rotRad));
+	    }
+	}
+
+
+	void Scene::UpdateFinalTransforms() {
+	    auto view = m_Registry.view<TransformComponent>();
+	    for (auto entity : view) {
+	        auto& tc = view.get<TransformComponent>(entity);
+
+			glm::mat4 visual = glm::translate(glm::mat4(1.0f), tc.VisualPosition) * glm::toMat4(tc.VisualRotation);
+
+        	// APPLY VISUAL IN LOCAL SPACE
+        	tc.FinalTransform = tc.WorldTransform * visual;
 	    }
 	}
 
 
     void Scene::OnUpdate(float dt, Camera& camera) {
 		
-		UpdateTransforms();
 
         // Player Movement System
-        auto view = m_Registry.view<
-            TransformComponent,
-            PlayerControllerComponent,
-            RigidbodyComponent>();
+        auto view = m_Registry.view< TransformComponent, PlayerControllerComponent, RigidbodyComponent>();
 
         for (auto entity : view) {
 
@@ -97,7 +162,6 @@ namespace Wankel {
 
             // FPS LOOK MODE
             if (controller.Mode == PlayerControllerComponent::LookMode::FPS) {
-				
 				
             	glm::vec3 bodyForward = controller.BodyOrientation * glm::vec3(0,0,-1);
             	glm::vec3 bodyRight   = controller.BodyOrientation * glm::vec3(1,0,0);
@@ -163,54 +227,10 @@ namespace Wankel {
         // PHYSICS
         m_PhysicsSystem.Update(*this, dt);
 
-        // PROCEDURAL MESH ANIMATION
-        auto animView = m_Registry.view<TransformComponent, RigidbodyComponent, MeshAnimationComponent>();
-
-        for (auto entity : animView) {
-
-            auto& transform = animView.get<TransformComponent>(entity);
-            auto& rb = animView.get<RigidbodyComponent>(entity);
-            auto& anim = animView.get<MeshAnimationComponent>(entity);
-
-			InitMeshAnimation(anim);
-
-            // VELOCITY IN LOCAL SPACE
-            glm::vec3 localVelocity =
-                glm::inverse(transform.LocalOrientation)
-                * rb.Velocity;
-
-			// TODO: I need a way to set the next two blocks externally 
-            // TARGET POSITION OFFSET
-            anim.TargetPosition =
-                glm::vec3(
-                    -localVelocity.x * anim.PositionAmplitude.x,
-                    -localVelocity.y * anim.PositionAmplitude.y,
-                    -localVelocity.z * anim.PositionAmplitude.z
-                );
-
-            // TARGET ROTATION OFFSET
-            anim.TargetRotation =
-                glm::vec3(
-                    -localVelocity.y * anim.RotationAmplitude.x,   // pitch
-                     localVelocity.x * anim.RotationAmplitude.y,   // yaw
-                     localVelocity.x * anim.RotationAmplitude.z    // roll
-                );
-
-            anim.PositionSpring.SetDynamics(
-                anim.PositionFrequency,
-                anim.PositionDamping,
-                anim.PositionResponse
-            );
-            anim.RotationSpring.SetDynamics(
-                anim.RotationFrequency,
-                anim.RotationDamping,
-                anim.RotationResponse
-            );
-
-            // UPDATE SPRINGS
-            anim.PositionOffset = anim.PositionSpring.Update(dt, anim.TargetPosition);
-            anim.RotationOffset = anim.RotationSpring.Update(dt, anim.TargetRotation);
-        }
+        // UPDATES
+		UpdateTransforms(dt);
+		UpdateProceduralAnimation(dt);
+		UpdateFinalTransforms();
 
         // FOLLOW CAMERA SYSTEM
         auto camView = m_Registry.view<TransformComponent, FollowCameraComponent>();

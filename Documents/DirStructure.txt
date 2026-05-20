@@ -131,11 +131,83 @@ SandboxApp [error opening dir]
 
 0 directories, 0 files
 scripts
+├── ALL_BUILD.vcxproj
+├── ALL_BUILD.vcxproj.filters
 ├── bc.sh
 ├── build-all.sh
 ├── build.bat
 ├── build.sh
 ├── bwsr.sh
-└── treeDir.sh
+├── external
+│   ├── entt
+│   │   ├── ALL_BUILD.vcxproj
+│   │   ├── ALL_BUILD.vcxproj.filters
+│   │   └── EnTT.sln
+│   ├── glad
+│   │   ├── glad.vcxproj
+│   │   └── glad.vcxproj.filters
+│   ├── glfw
+│   │   ├── ALL_BUILD.vcxproj
+│   │   ├── ALL_BUILD.vcxproj.filters
+│   │   ├── GLFW.sln
+│   │   └── src
+│   │       ├── glfw3Config.cmake
+│   │       ├── glfw3ConfigVersion.cmake
+│   │       ├── glfw3.pc
+│   │       ├── glfw.vcxproj
+│   │       ├── glfw.vcxproj.filters
+│   │       ├── update_mappings.vcxproj
+│   │       └── update_mappings.vcxproj.filters
+│   ├── glm
+│   │   ├── ALL_BUILD.vcxproj
+│   │   ├── ALL_BUILD.vcxproj.filters
+│   │   ├── glm
+│   │   │   ├── glm.vcxproj
+│   │   │   └── glm.vcxproj.filters
+│   │   └── glm.sln
+│   ├── SDL3
+│   │   ├── ALL_BUILD.vcxproj
+│   │   ├── ALL_BUILD.vcxproj.filters
+│   │   ├── include-config-debug
+│   │   │   └── build_config
+│   │   │       └── SDL_build_config.h
+│   │   ├── include-config-minsizerel
+│   │   │   └── build_config
+│   │   │       └── SDL_build_config.h
+│   │   ├── include-config-release
+│   │   │   └── build_config
+│   │   │       └── SDL_build_config.h
+│   │   ├── include-config-relwithdebinfo
+│   │   │   └── build_config
+│   │   │       └── SDL_build_config.h
+│   │   ├── include-revision
+│   │   │   └── SDL3
+│   │   │       └── SDL_revision.h
+│   │   ├── SDL3Config.cmake
+│   │   ├── SDL3ConfigVersion.cmake
+│   │   ├── SDL3headersTargets.cmake
+│   │   ├── SDL3.sln
+│   │   ├── SDL3staticTargets.cmake
+│   │   ├── SDL3-static.vcxproj
+│   │   ├── SDL3-static.vcxproj.filters
+│   │   ├── SDL3testTargets.cmake
+│   │   ├── SDL3_test.vcxproj
+│   │   ├── SDL3_test.vcxproj.filters
+│   │   ├── SDL_uclibc.vcxproj
+│   │   └── SDL_uclibc.vcxproj.filters
+│   └── spdlog
+│       ├── ALL_BUILD.vcxproj
+│       ├── ALL_BUILD.vcxproj.filters
+│       ├── spdlog.sln
+│       ├── spdlog.vcxproj
+│       └── spdlog.vcxproj.filters
+├── imgui.vcxproj
+├── imgui.vcxproj.filters
+├── treeDir.sh
+├── WankelEngine.sln
+├── Wankel.vcxproj
+├── Wankel.vcxproj.filters
+├── ZERO_CHECK.vcxproj
+└── ZERO_CHECK.vcxproj.filters
 
-0 directories, 6 files
+19 directories, 59 files
