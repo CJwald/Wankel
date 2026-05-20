@@ -26,7 +26,9 @@ namespace Wankel {
 	
 	    float Clamp = 9999.0f;
 	
-	    SecondOrderDynamics Spring;
+	    SecondOrderDynamics Spring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, 0.0f);
+
+		float Output = 0.0f;
 	};
 
 }

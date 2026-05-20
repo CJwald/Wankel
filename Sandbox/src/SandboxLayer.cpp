@@ -38,7 +38,30 @@ float RandomFloat() {
 }
 
 
+
 namespace Wankel {
+
+static const char* MotionAxisName(MotionAxis axis) {
+    switch (axis) {
+        case MotionAxis::PosX: return "PosX";
+        case MotionAxis::PosY: return "PosY";
+        case MotionAxis::PosZ: return "PosZ";
+
+        case MotionAxis::RotX: return "RotX";
+        case MotionAxis::RotY: return "RotY";
+        case MotionAxis::RotZ: return "RotZ";
+    }
+    return "Unknown";
+}
+
+static const char* MotionAxisLabels[] = {
+    "PosX",
+    "PosY",
+    "PosZ",
+    "RotX",
+    "RotY",
+    "RotZ"
+};
 
 SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
@@ -62,20 +85,57 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
     auto& anim = player.AddComponent<MeshAnimationComponent>();
-    anim.PositionSpring = SecondOrderDynamics(2.2f, 0.7f, 1.7f, glm::vec3(0.0f));
-    anim.RotationSpring = SecondOrderDynamics(1.8f, 0.4f, 2.0f, glm::vec3(0.0f));
-    anim.PositionAmplitude = {0.0005f,0.001f,0.001f};
-    anim.RotationAmplitude = {0.2f,0.01f,-0.125f};
+	// Forward velocity -> pitch
+	{
+	    auto& link = anim.Links[ (int)MotionAxis::PosZ ][ (int)MotionAxis::RotX ];
+	
+	    link.Enabled = true;
+	    link.Magnitude = -0.2f;
+	    link.Frequency = 1.8f;
+	    link.Damping = 0.4f;
+	    link.Response = 2.0f;
+	    link.Clamp = 8.0f;
+	}
+	
+	// Strafing -> roll
+	{
+	    auto& link = anim.Links[ (int)MotionAxis::PosX ][ (int)MotionAxis::RotZ ];
+	
+	    link.Enabled = true;
+	    link.Magnitude = -0.4f;
+	    link.Frequency = 2.0f;
+	    link.Damping = 0.5f;
+	    link.Response = 2.0f;
+	    link.Clamp = 10.0f;
+	}
+	
+	// Vertical velocity -> vertical bob
+	{
+	    auto& link = anim.Links[ (int)MotionAxis::PosY ][ (int)MotionAxis::PosY ];
+	
+	    link.Enabled = true;
+	    link.Magnitude = -0.002f;
+	    link.Frequency = 2.5f;
+	    link.Damping = 0.7f;
+	    link.Response = 1.5f;
+	    link.Clamp = 0.05f;
+	}
+	
+	// YAW -> Yaw Rot
+	auto& YawRoll = anim.Links[ (int)MotionAxis::RotY ][ (int)MotionAxis::RotZ ];
+	YawRoll.Enabled = true;
+	YawRoll.Magnitude = -0.002f;
+	YawRoll.Frequency = 2.5f;
+	YawRoll.Damping = 0.7f;
+	YawRoll.Response = -1.5f;
+	YawRoll.Clamp = 9999.99f; // no clamp
+	
 
     // PLAYER Gun ENTITY
 	auto gun = m_Scene.CreateEntity();
 	auto& gt = gun.AddComponent<TransformComponent>();
-    //gt.LocalPosition = {0.0f ,0.05f ,-0.125f};
     gt.LocalPosition = {0.05f ,0.08f ,-0.125f};
 	gun.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
-    //auto& gunAnim = gun.AddComponent<MeshAnimationComponent>(); // TODO: needs fixing
-    //gunAnim.PositionSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
-    //gunAnim.RotationSpring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, glm::vec3(0.0f));
 	gun.AddComponent<ParentComponent>().Parent = player;
 
     // PLAYER Gun ENTITY2
@@ -91,7 +151,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    follow.Offset = {0.0f, 0.15f, 0.0f}; // I think i want to get this close to 0.0 and define mesh around that
+    //follow.Offset = {0.0f, 0.15f, 0.0f};
+    follow.Offset = {0.0f, 0.15f, 0.4f};
 	float roll = 0.0f; float pitch = 0.0f; float yaw = 0.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
@@ -230,35 +291,7 @@ void SandboxLayer::OnUpdate() {
 				for (auto entity : view) {
 					auto& transform = view.get<TransformComponent>(entity);
     			    auto& mesh = view.get<MeshComponent>(entity);
-
-					glm::mat4 world = transform.WorldTransform;
-					// procedural mesh offset (LOCAL SPACE of object)
-					glm::mat4 visual = glm::translate(glm::mat4(1.0f), transform.VisualPosition) * glm::toMat4(transform.VisualRotation);
-					// mesh local (pivot etc)
-					glm::mat4 meshLocal = mesh.GetLocalTransform();
-					// final
-					glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset)
-					                * world
-					                * visual
-					                * meshLocal;
-
-
-					// PROCEDURAL MESH animATION
-					//if (m_Scene.Registry().all_of<MeshAnimationComponent>(entity)) {
-					//    auto& anim = m_Scene.Registry().get<MeshAnimationComponent>(entity);
-
-					//	glm::vec3 rot = glm::radians(anim.RotationOffset);
-
-					//	glm::quat pitch = glm::angleAxis(rot.x, glm::vec3(1,0,0));
-					//	glm::quat yaw = glm::angleAxis(rot.y, glm::vec3(0,1,0));
-					//	glm::quat roll = glm::angleAxis(rot.z, glm::vec3(0,0,1));
-					//	glm::quat animRotation = glm::normalize(roll * yaw * pitch);
-
-					//    glm::mat4 animTransform = glm::translate(glm::mat4(1.0f), anim.PositionOffset) * glm::toMat4(animRotation);
-
-					//    // Apply animation in LOCAL SPACE
-					//    model = model * animTransform;
-					//}
+					glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform * mesh.GetLocalTransform();
 
 					// DEBUG AXES
 					if (Renderer::DebugEnabled) {
@@ -365,51 +398,97 @@ void SandboxLayer::OnImGuiRender() {
 		// PLAYER ANIMATION
 		if (ImGui::CollapsingHeader("Animation")) { 
 			auto animView = m_Scene.Registry().view<MeshAnimationComponent>();
-			
+			static int selectedOutputAxis[MeshAnimationComponent::AxisCount] = {};
 			for (auto entity : animView) {
 			    auto& anim = animView.get<MeshAnimationComponent>(entity);
-			    ImGui::Separator();
+			    for (int input = 0; input < MeshAnimationComponent::AxisCount; input++) {
+			        MotionAxis inAxis = (MotionAxis)input;
+			        if (!ImGui::TreeNode(MotionAxisName(inAxis)))
+			            continue;
+			        bool anyShown = false;
 			
-			    // POSITION AMPLITUDE
-			    ImGui::Text("Position");
-				glm::vec3 posAmpUI = anim.PositionAmplitude * 1000.0f;
-			    if (ImGui::DragFloat3("Amplitude##Position", &posAmpUI[0], 1.0f, 0.0f, 1000.0f)) {
-					anim.PositionAmplitude = posAmpUI / 1000.0f;
-				}
+			        // EXISTING MAPPINGS
+			        for (int output = 0; output < MeshAnimationComponent::AxisCount; output++) {
+			            auto& link = anim.Links[input][output];
 			
-			    // ROTATION AMPLITUDE
-			    ImGui::Text("Rotation");
-			    ImGui::DragFloat3("Amplitude##Rotation", &anim.RotationAmplitude[0], 0.1f, 0.0f, 50.0f);
+			            if (!link.Enabled)
+			                continue;
 			
-			    ImGui::Separator();
-			    ImGui::Text("Position Tuning");
-			    ImGui::SliderFloat("w - Frequency##Pos", &anim.PositionFrequency, 0.1f, 10.0f);
-			    ImGui::SliderFloat("z - Damping##Pos", &anim.PositionDamping, 0.0f, 3.0f);
-			    ImGui::SliderFloat("r - Response##Pos", &anim.PositionResponse, -3.0f, 3.0f);
+			            anyShown = true;
+			            MotionAxis outAxis = (MotionAxis)output;
+			            std::string label = std::string(MotionAxisName(inAxis)) + " -> " + MotionAxisName(outAxis);
+			            bool removeMapping = false;
+			            if (ImGui::TreeNode(label.c_str())) {
+			                ImGui::Checkbox(("Enabled##" + label).c_str(), &link.Enabled);
+			                ImGui::DragFloat(("Magnitude##" + label).c_str(), &link.Magnitude, 0.01f);
+			                ImGui::DragFloat(("Frequency##" + label).c_str(), &link.Frequency, 0.01f, 0.01f, 20.0f);
+			                ImGui::DragFloat(("Damping##" + label).c_str(), &link.Damping, 0.01f, 0.0f, 10.0f);
+			                ImGui::DragFloat(("Response##" + label).c_str(), &link.Response, 0.01f, -10.0f, 10.0f);
+			                ImGui::DragFloat(("Clamp##" + label).c_str(), &link.Clamp, 0.01f, 0.0f, 1000.0f);
+			                ImGui::Text("Output: %.3f", link.Output);
 
-				// Position Step Response
-				auto pvalues = Wankel::SecondOrderPreview::GetStepResponse(
-				    anim.PositionFrequency,
-				    anim.PositionDamping,
-				    anim.PositionResponse
-				);
-				ImGui::PlotLines("Step Response##Pos", pvalues.data(), (int)pvalues.size(), 0, nullptr, -0.5f, 2.0f, ImVec2(0, 100));
+
+							// Position Step Response
+							auto pvalues = Wankel::SecondOrderPreview::GetStepResponse(
+							    link.Frequency,
+							    link.Damping,
+							    link.Response
+							);
+							ImGui::PlotLines("Step Response##Pos", pvalues.data(), (int)pvalues.size(), 0, nullptr, -0.5f, 2.0f, ImVec2(0, 100));
+
+
+
+
+			                ImGui::Separator();
+			                if (ImGui::Button(("Remove##" + label).c_str())) {
+			                    removeMapping = true;
+			                }
 			
-			    ImGui::Separator();
-			    ImGui::Text("Rotation Tuning");
-			    ImGui::SliderFloat("w - Frequency##Rot", &anim.RotationFrequency, 0.1f, 10.0f);
-			    ImGui::SliderFloat("z - Damping##Rot", &anim.RotationDamping, 0.0f, 3.0f); //ζ
-			    ImGui::SliderFloat("r - Response##Rot", &anim.RotationResponse, -3.0f, 3.0f);
-				
-				// Rotation Step Response
-				auto rvalues = Wankel::SecondOrderPreview::GetStepResponse(
-				    anim.RotationFrequency,
-				    anim.RotationDamping,
-				    anim.RotationResponse
-				);
-				ImGui::PlotLines("Step Response##Rot", rvalues.data(), (int)rvalues.size(), 0, nullptr, -0.5f, 2.0f, ImVec2(0, 100));
+			                ImGui::TreePop();
+			            }
+			
+			            // REMOVE AFTER UI
+			            if (removeMapping) {
+			                link = {};
+			            }
+			        }
+			
+			        if (!anyShown) {
+			            ImGui::TextDisabled("No active mappings");
+			        }
+			
+			        ImGui::Separator();
+			
+			        // ADD NEW MAPPING
+			        ImGui::SetNextItemWidth(120.0f);
+			        std::string buttonId = "+ Add Mapping##" + std::to_string(input);
+			
+			        if (ImGui::Button(buttonId.c_str())) {
+			            int output = selectedOutputAxis[input];
+			            auto& link = anim.Links[input][output];
+			
+			            // Only initialize if newly created
+			            if (!link.Enabled) {
+			
+			                link.Enabled = true;
+			
+			                link.Magnitude = 1.0f;
+			                link.Frequency = 2.0f;
+			                link.Damping = 0.5f;
+			                link.Response = 1.0f;
+			                link.Clamp = 10.0f;
+			            }
+			        }
+			        ImGui::SameLine();
+			        std::string comboId = "##AddMappingCombo" + std::to_string(input);
+			        ImGui::Combo(comboId.c_str(), &selectedOutputAxis[input], MotionAxisLabels, MeshAnimationComponent::AxisCount);
+			
+			        ImGui::TreePop();
+			    }
+			
 			    break;
 			}
+
 		}
 
 		// WORLD DEBUG

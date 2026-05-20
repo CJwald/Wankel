@@ -146,34 +146,14 @@ namespace Wankel {
 
 
 	struct MeshAnimationComponent {
-	    static constexpr int AxisCount = 6;
-	
-	    MotionLink Links[AxisCount][AxisCount];
+		static constexpr int AxisCount = (int)MotionAxis::Count;
 
-		glm::vec3 TargetPosition{0.0f};
-		glm::vec3 TargetRotation{0.0f};
-		
-		glm::vec3 PositionOffset{0.0f};
-		glm::vec3 RotationOffset{0.0f};
-		
-		glm::vec3 PositionAmplitude{0.001f};
-		glm::vec3 RotationAmplitude{0.1f};
-		
-		glm::vec3 PositionClamp{1.0f};
-		glm::vec3 RotationClamp{1.0f};
-		
-		float PositionFrequency = 2.0f;
-		float PositionDamping = 0.7f;
-		float PositionResponse = 1.0f;
-		
-		float RotationFrequency = 2.0f;
-		float RotationDamping = 0.7f;
-		float RotationResponse = 1.0f;
-		
-		SecondOrderDynamics PositionSpring;
-		SecondOrderDynamics RotationSpring;
+    	MotionLink Links[AxisCount][AxisCount];
 
-	    bool Initialized = false;
+    	glm::vec3 PositionOffset{0.0f};
+    	glm::vec3 RotationOffset{0.0f};
+
+    	bool Initialized = false;
 	};
 
 }

@@ -11,22 +11,15 @@ namespace Wankel {
 	static void InitMeshAnimation(MeshAnimationComponent& anim) {
 	    if (anim.Initialized)
 	        return;
-	
-	    anim.PositionSpring = SecondOrderDynamics(
-	        anim.PositionFrequency,
-	        anim.PositionDamping,
-	        anim.PositionResponse,
-	        glm::vec3(0.0f)
-	    );
-	
-	    anim.RotationSpring = SecondOrderDynamics(
-	        anim.RotationFrequency,
-	        anim.RotationDamping,
-	        anim.RotationResponse,
-	        glm::vec3(0.0f)
-	    );
-	
-	    anim.Initialized = true;
+
+		for (int in = 0; in < MeshAnimationComponent::AxisCount; in++) {
+    	    for (int out = 0; out < MeshAnimationComponent::AxisCount; out++) {
+    	        auto& link = anim.Links[in][out];
+    	        link.Spring = SecondOrderDynamics(link.Frequency, link.Damping, link.Response, 0.0f);
+    	    }
+    	}
+
+    	anim.Initialized = true;
 	}	
 
 
@@ -97,28 +90,40 @@ namespace Wankel {
 	        auto& anim = view.get<MeshAnimationComponent>(entity);
 	
 	        InitMeshAnimation(anim);
-	
-	        glm::vec3 localVelocity = glm::inverse(tc.LocalOrientation) * tc.WorldVelocity;
-	        glm::vec3 localAngularVelocity = glm::inverse(tc.LocalOrientation) * tc.WorldAngularVelocity;
 
-			// DRIVE TARGETS	
-			anim.TargetPosition = -localVelocity * anim.PositionAmplitude;
-			anim.TargetRotation = glm::vec3(-localVelocity.y * anim.RotationAmplitude.x, localAngularVelocity.y * anim.RotationAmplitude.y, localAngularVelocity.z * anim.RotationAmplitude.z);
-	        anim.TargetPosition = glm::clamp(anim.TargetPosition, -anim.PositionClamp, anim.PositionClamp);
-	        anim.TargetRotation = glm::clamp(anim.TargetRotation, -anim.RotationClamp, anim.RotationClamp);
-			
-			// UPDATE SPRINGS
-	        anim.PositionSpring.SetDynamics(anim.PositionFrequency, anim.PositionDamping, anim.PositionResponse);
-	        anim.RotationSpring.SetDynamics(anim.RotationFrequency, anim.RotationDamping, anim.RotationResponse);
-	        
-			anim.PositionOffset = anim.PositionSpring.Update(dt, anim.TargetPosition);
-	        anim.RotationOffset = anim.RotationSpring.Update(dt, anim.TargetRotation);
+			glm::quat invRot = glm::inverse(tc.LocalOrientation);
 
-			// Write to visual space
-	        tc.VisualPosition = anim.PositionOffset;
+        	glm::vec3 localVel = invRot * tc.WorldVelocity;
+        	glm::vec3 localAngVel = invRot * tc.WorldAngularVelocity;
 
-	        glm::vec3 rotRad = glm::radians(anim.RotationOffset);
-	        tc.VisualRotation = glm::normalize(glm::quat(rotRad));
+        	float input[(int)MotionAxis::Count] = {
+        	    localVel.x, localVel.y, localVel.z,
+        	    localAngVel.x, localAngVel.y, localAngVel.z
+        	};
+        	float output[(int)MotionAxis::Count] = {0};
+
+        	for (int in = 0; in < (int)MotionAxis::Count; in++) {
+        	    for (int out = 0; out < (int)MotionAxis::Count; out++) {
+        	        auto& link = anim.Links[in][out];
+
+        	        if (!link.Enabled)
+        	            continue;
+
+        	        float target = input[in] * link.Magnitude;
+        	        target = glm::clamp(target, -link.Clamp, link.Clamp);
+
+        	        link.Spring.SetDynamics(link.Frequency, link.Damping, link.Response);
+        	        link.Output = link.Spring.Update(dt, target);
+        	        output[out] += link.Output;
+        	    }
+        	}
+
+        	anim.PositionOffset = glm::vec3(output[(int)MotionAxis::PosX], output[(int)MotionAxis::PosY], output[(int)MotionAxis::PosZ]);
+        	anim.RotationOffset = glm::vec3(output[(int)MotionAxis::RotX], output[(int)MotionAxis::RotY], output[(int)MotionAxis::RotZ]);
+        	tc.VisualPosition = anim.PositionOffset;
+
+        	glm::vec3 rotRad = glm::radians(anim.RotationOffset);
+        	tc.VisualRotation = glm::normalize(glm::quat(rotRad));	
 	    }
 	}
 
@@ -266,4 +271,21 @@ namespace Wankel {
             camera.SetOrientation(cameraRot);
         }
     }
+
+
+	static float GetAxisValue(MotionAxis axis, const glm::vec3& pos, const glm::vec3& rot) {
+	    switch (axis) {
+	        case MotionAxis::PosX: return pos.x;
+	        case MotionAxis::PosY: return pos.y;
+	        case MotionAxis::PosZ: return pos.z;
+	
+	        case MotionAxis::RotX: return rot.x;
+	        case MotionAxis::RotY: return rot.y;
+	        case MotionAxis::RotZ: return rot.z;
+	    }
+	
+	    return 0.0f;
+	}
+
+
 }
