@@ -303,9 +303,9 @@ void SandboxLayer::OnUpdate() {
 					    glm::vec3 forward = glm::normalize(glm::vec3(model[2])) * axisLength;
 					
 					    std::vector<DebugLine> lines = {
-					        { origin, origin + right,   {1,0,0} },// X axis
-					        { origin, origin + up,      {0,1,0} },// Y axis
-					        { origin, origin + forward, {0,0,1} }// Z axis
+					        { origin, origin + right,   {0.8, 0.3, 0.0} },// X axis (Right)
+					        { origin, origin + up,      {0.6, 1.0, 0.0} },// Y axis (Up)
+					        { origin, origin + forward, {0.4, 0.0, 0.9} } // Z axis (Backward)
 					    };
 					
 					    // Parent link
