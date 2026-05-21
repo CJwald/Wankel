@@ -86,6 +86,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
     auto& anim = player.AddComponent<MeshAnimationComponent>();
+	//anim.PositionOffset = {10.0f, 0.0f, 0.0f};// This doesnt seem to work
+	//anim.RotationOffset = {0.0f, 0.0f, 0.0f};// This doesnt seem to work
 	// Forward velocity -> pitch
 	auto& ForwardPitch = anim.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
 	ForwardPitch.Enabled = true;
@@ -124,21 +126,42 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	
 
     // PLAYER Gun ENTITY
-	auto gun = m_Scene.CreateEntity();
-	gun.AddComponent<TagComponent>().Name = "Gun1";
-	auto& gt = gun.AddComponent<TransformComponent>();
-    gt.LocalPosition = {0.05f ,0.08f ,-0.125f};
-	gun.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
-	gun.AddComponent<ParentComponent>().Parent = player;
-    auto& gunAnim = gun.AddComponent<MeshAnimationComponent>();
+	auto gun1 = m_Scene.CreateEntity();
+	gun1.AddComponent<TagComponent>().Name = "Gun1";
+	auto& gt1 = gun1.AddComponent<TransformComponent>();
+    gt1.LocalPosition = {0.05f ,0.08f ,-0.125f};
+	gun1.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
+	gun1.AddComponent<ParentComponent>().Parent = player;
+    auto& gunAnim1 = gun1.AddComponent<MeshAnimationComponent>();
 	// Forward velocity -> pitch
-	auto& Gun1YawRoll = gunAnim.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
-	Gun1YawRoll.Enabled = true;
-	Gun1YawRoll.Magnitude = 1.2f;
-	Gun1YawRoll.Frequency = 1.8f;
-	Gun1YawRoll.Damping = 0.4f;
-	Gun1YawRoll.Response = 2.0f;
-	Gun1YawRoll.Clamp = 8.0f;
+	auto& Gun1StrafeRoll = gunAnim1.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	Gun1StrafeRoll.Enabled = true;
+	Gun1StrafeRoll.Magnitude = -1.2f;
+	Gun1StrafeRoll.Frequency = 1.8f;
+	Gun1StrafeRoll.Damping = 0.8f;
+	Gun1StrafeRoll.Response = 2.0f;
+	Gun1StrafeRoll.Clamp = 8.0f;
+	auto& Gun1ForwardLag = gunAnim1.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
+	Gun1ForwardLag.Enabled = true;
+	Gun1ForwardLag.Magnitude = 0.002f;
+	Gun1ForwardLag.Frequency = 1.8f;
+	Gun1ForwardLag.Damping = 0.8f;
+	Gun1ForwardLag.Response = 2.0f;
+	Gun1ForwardLag.Clamp = 8.0f;
+	auto& Gun1YawYaw = gunAnim1.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Yaw ];
+	Gun1YawYaw.Enabled = true;
+	Gun1YawYaw.Magnitude = 1.2f;
+	Gun1YawYaw.Frequency = 1.8f;
+	Gun1YawYaw.Damping = 0.8f;
+	Gun1YawYaw.Response = 2.0f;
+	Gun1YawYaw.Clamp = 8.0f;
+	auto& Gun1PitchPitch = gunAnim1.Links[ (int)MotionAxis::Pitch ][ (int)MotionAxis::Pitch ];
+	Gun1PitchPitch.Enabled = true;
+	Gun1PitchPitch.Magnitude = 1.2f;
+	Gun1PitchPitch.Frequency = 1.8f;
+	Gun1PitchPitch.Damping = 0.8f;
+	Gun1PitchPitch.Response = 2.0f;
+	Gun1PitchPitch.Clamp = 8.0f;
 
     // PLAYER Gun ENTITY2
 	auto gun2 = m_Scene.CreateEntity();
@@ -147,6 +170,36 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     gt2.LocalPosition = {-0.05f ,0.08f ,-0.125f};
 	gun2.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
 	gun2.AddComponent<ParentComponent>().Parent = player;
+    auto& gunAnim2 = gun2.AddComponent<MeshAnimationComponent>();
+	// Forward velocity -> pitch
+	auto& Gun2StrafeRoll = gunAnim2.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	Gun2StrafeRoll.Enabled = true;
+	Gun2StrafeRoll.Magnitude = -1.2f;
+	Gun2StrafeRoll.Frequency = 1.8f;
+	Gun2StrafeRoll.Damping = 0.8f;
+	Gun2StrafeRoll.Response = 2.0f;
+	Gun2StrafeRoll.Clamp = 8.0f;
+	auto& Gun2ForwardLag = gunAnim2.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
+	Gun2ForwardLag.Enabled = true;
+	Gun2ForwardLag.Magnitude = 0.002f;
+	Gun2ForwardLag.Frequency = 1.8f;
+	Gun2ForwardLag.Damping = 0.8f;
+	Gun2ForwardLag.Response = 2.0f;
+	Gun2ForwardLag.Clamp = 8.0f;
+	auto& Gun2YawYaw = gunAnim2.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Yaw ];
+	Gun2YawYaw.Enabled = true;
+	Gun2YawYaw.Magnitude = 1.2f;
+	Gun2YawYaw.Frequency = 1.8f;
+	Gun2YawYaw.Damping = 0.8f;
+	Gun2YawYaw.Response = 2.0f;
+	Gun2YawYaw.Clamp = 8.0f;
+	auto& Gun2PitchPitch = gunAnim2.Links[ (int)MotionAxis::Pitch ][ (int)MotionAxis::Pitch ];
+	Gun2PitchPitch.Enabled = true;
+	Gun2PitchPitch.Magnitude = 1.2f;
+	Gun2PitchPitch.Frequency = 1.8f;
+	Gun2PitchPitch.Damping = 0.8f;
+	Gun2PitchPitch.Response = 2.0f;
+	Gun2PitchPitch.Clamp = 8.0f;
 
     // CAMERA ENTITY
     auto camEntity = m_Scene.CreateEntity();
