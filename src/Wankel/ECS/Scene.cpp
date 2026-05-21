@@ -91,7 +91,9 @@ namespace Wankel {
 	
 	        InitMeshAnimation(anim);
 
-			glm::quat invRot = glm::inverse(tc.LocalOrientation);
+			glm::quat worldRot = glm::quat_cast(tc.WorldTransform);
+			glm::quat invRot = glm::inverse(worldRot);
+			//glm::quat invRot = glm::inverse(tc.LocalOrientation);
 
         	glm::vec3 localVel = invRot * tc.WorldVelocity;
         	glm::vec3 localAngVel = invRot * tc.WorldAngularVelocity;

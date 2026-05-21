@@ -38,7 +38,6 @@ float RandomFloat() {
 }
 
 
-
 namespace Wankel {
 
 static const char* MotionAxisName(MotionAxis axis) {
