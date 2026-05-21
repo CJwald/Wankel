@@ -32,7 +32,8 @@ private:
 	std::unique_ptr<Mesh> m_BoxMesh;
 	std::unique_ptr<Mesh> m_TriangleMesh;
 	std::unique_ptr<Shader> m_Shader;
-	
+	entt::entity m_SelectedAnimEntity = entt::null;	
+
 	float m_ChunkSize = 200.0f; // ±100m cutoff
 	int m_RepeatN = 1;          // 1 = 3x3 grid
 

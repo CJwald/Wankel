@@ -43,24 +43,24 @@ namespace Wankel {
 
 static const char* MotionAxisName(MotionAxis axis) {
     switch (axis) {
-        case MotionAxis::PosX: return "PosX";
-        case MotionAxis::PosY: return "PosY";
-        case MotionAxis::PosZ: return "PosZ";
+        case MotionAxis::X: return "X";
+        case MotionAxis::Y: return "Y";
+        case MotionAxis::Z: return "Z";
 
-        case MotionAxis::RotX: return "RotX";
-        case MotionAxis::RotY: return "RotY";
-        case MotionAxis::RotZ: return "RotZ";
+        case MotionAxis::Pitch: return "Pitch";
+        case MotionAxis::Yaw: return "Yaw";
+        case MotionAxis::Roll: return "Roll";
     }
     return "Unknown";
 }
 
 static const char* MotionAxisLabels[] = {
-    "PosX",
-    "PosY",
-    "PosZ",
-    "RotX",
-    "RotY",
-    "RotZ"
+    "X",
+    "Y",
+    "Z",
+    "Pitch",
+    "Yaw",
+    "Roll"
 };
 
 SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
@@ -79,6 +79,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     // PLAYER ENTITY
     auto player = m_Scene.CreateEntity();
+	player.AddComponent<TagComponent>().Name = "Player";
 	auto& pt = player.AddComponent<TransformComponent>();
     pt.LocalPosition = {0,1,0};
 
@@ -86,45 +87,36 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     player.AddComponent<PlayerControllerComponent>();
     auto& anim = player.AddComponent<MeshAnimationComponent>();
 	// Forward velocity -> pitch
-	{
-	    auto& link = anim.Links[ (int)MotionAxis::PosZ ][ (int)MotionAxis::RotX ];
-	
-	    link.Enabled = true;
-	    link.Magnitude = -0.2f;
-	    link.Frequency = 1.8f;
-	    link.Damping = 0.4f;
-	    link.Response = 2.0f;
-	    link.Clamp = 8.0f;
-	}
+	auto& ForwardPitch = anim.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
+	ForwardPitch.Enabled = true;
+	ForwardPitch.Magnitude = -0.2f;
+	ForwardPitch.Frequency = 1.8f;
+	ForwardPitch.Damping = 0.4f;
+	ForwardPitch.Response = 2.0f;
+	ForwardPitch.Clamp = 8.0f;
 	
 	// Strafing -> roll
-	{
-	    auto& link = anim.Links[ (int)MotionAxis::PosX ][ (int)MotionAxis::RotZ ];
-	
-	    link.Enabled = true;
-	    link.Magnitude = -0.4f;
-	    link.Frequency = 2.0f;
-	    link.Damping = 0.5f;
-	    link.Response = 2.0f;
-	    link.Clamp = 10.0f;
-	}
+	auto& StrafeRoll = anim.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	StrafeRoll.Enabled = true;
+	StrafeRoll.Magnitude = -0.4f;
+	StrafeRoll.Frequency = 2.0f;
+	StrafeRoll.Damping = 0.5f;
+	StrafeRoll.Response = 2.0f;
+	StrafeRoll.Clamp = 10.0f;
 	
 	// Vertical velocity -> vertical bob
-	{
-	    auto& link = anim.Links[ (int)MotionAxis::PosY ][ (int)MotionAxis::PosY ];
-	
-	    link.Enabled = true;
-	    link.Magnitude = -0.002f;
-	    link.Frequency = 2.5f;
-	    link.Damping = 0.7f;
-	    link.Response = 1.5f;
-	    link.Clamp = 0.05f;
-	}
+	auto& VertBob = anim.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
+	VertBob.Enabled = true;
+	VertBob.Magnitude = -0.002f;
+	VertBob.Frequency = 2.5f;
+	VertBob.Damping = 0.7f;
+	VertBob.Response = 1.5f;
+	VertBob.Clamp = 0.05f;
 	
 	// YAW -> Yaw Rot
-	auto& YawRoll = anim.Links[ (int)MotionAxis::RotY ][ (int)MotionAxis::RotZ ];
+	auto& YawRoll = anim.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
 	YawRoll.Enabled = true;
-	YawRoll.Magnitude = -0.002f;
+	YawRoll.Magnitude = -0.2f;
 	YawRoll.Frequency = 2.5f;
 	YawRoll.Damping = 0.7f;
 	YawRoll.Response = -1.5f;
@@ -133,13 +125,24 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     // PLAYER Gun ENTITY
 	auto gun = m_Scene.CreateEntity();
+	gun.AddComponent<TagComponent>().Name = "Gun1";
 	auto& gt = gun.AddComponent<TransformComponent>();
     gt.LocalPosition = {0.05f ,0.08f ,-0.125f};
 	gun.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
 	gun.AddComponent<ParentComponent>().Parent = player;
+    auto& gunAnim = gun.AddComponent<MeshAnimationComponent>();
+	// Forward velocity -> pitch
+	auto& Gun1YawRoll = gunAnim.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
+	Gun1YawRoll.Enabled = true;
+	Gun1YawRoll.Magnitude = 1.2f;
+	Gun1YawRoll.Frequency = 1.8f;
+	Gun1YawRoll.Damping = 0.4f;
+	Gun1YawRoll.Response = 2.0f;
+	Gun1YawRoll.Clamp = 8.0f;
 
     // PLAYER Gun ENTITY2
 	auto gun2 = m_Scene.CreateEntity();
+	gun2.AddComponent<TagComponent>().Name = "Gun2";
 	auto& gt2 = gun2.AddComponent<TransformComponent>();
     gt2.LocalPosition = {-0.05f ,0.08f ,-0.125f};
 	gun2.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
@@ -147,6 +150,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     // CAMERA ENTITY
     auto camEntity = m_Scene.CreateEntity();
+	camEntity.AddComponent<TagComponent>().Name = "Player Camera";
     camEntity.AddComponent<TransformComponent>();
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
@@ -174,6 +178,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	float spawnRange = 25.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
+		e.AddComponent<TagComponent>().Name = "Cube";
 
         auto& t = e.AddComponent<TransformComponent>();
 		float X = RandomFloat() * spawnRange;
@@ -196,6 +201,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     // WORLD 
 	auto b = m_Scene.CreateEntity();
+	b.AddComponent<TagComponent>().Name = "World";
     auto& tb = b.AddComponent<TransformComponent>();
     tb.LocalPosition = {0.0f, 0.0f, 0.0f};
     tb.LocalOrientation = 
@@ -395,105 +401,143 @@ void SandboxLayer::OnImGuiRender() {
 			}
 		}
 
-		// PLAYER ANIMATION
-		if (ImGui::CollapsingHeader("Animation")) { 
-			auto animView = m_Scene.Registry().view<MeshAnimationComponent>();
-			static int selectedOutputAxis[MeshAnimationComponent::AxisCount] = {};
-			for (auto entity : animView) {
-			    auto& anim = animView.get<MeshAnimationComponent>(entity);
-			    for (int input = 0; input < MeshAnimationComponent::AxisCount; input++) {
-			        MotionAxis inAxis = (MotionAxis)input;
-			        if (!ImGui::TreeNode(MotionAxisName(inAxis)))
-			            continue;
-			        bool anyShown = false;
-			
-			        // EXISTING MAPPINGS
-			        for (int output = 0; output < MeshAnimationComponent::AxisCount; output++) {
-			            auto& link = anim.Links[input][output];
-			
-			            if (!link.Enabled)
-			                continue;
-			
-			            anyShown = true;
-			            MotionAxis outAxis = (MotionAxis)output;
-			            std::string label = std::string(MotionAxisName(inAxis)) + " -> " + MotionAxisName(outAxis);
-			            bool removeMapping = false;
-			            if (ImGui::TreeNode(label.c_str())) {
-			                ImGui::Checkbox(("Enabled##" + label).c_str(), &link.Enabled);
-			                ImGui::DragFloat(("Magnitude##" + label).c_str(), &link.Magnitude, 0.01f);
-			                ImGui::DragFloat(("Frequency##" + label).c_str(), &link.Frequency, 0.01f, 0.01f, 20.0f);
-			                ImGui::DragFloat(("Damping##" + label).c_str(), &link.Damping, 0.01f, 0.0f, 10.0f);
-			                ImGui::DragFloat(("Response##" + label).c_str(), &link.Response, 0.01f, -10.0f, 10.0f);
-			                ImGui::DragFloat(("Clamp##" + label).c_str(), &link.Clamp, 0.01f, 0.0f, 1000.0f);
-			                ImGui::Text("Output: %.3f", link.Output);
+		if (ImGui::CollapsingHeader("Entity")) {
+			ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 20.0f);
+			ImGui::Indent();
 
+			auto& registry = m_Scene.Registry();
 
-							// Position Step Response
-							auto pvalues = Wankel::SecondOrderPreview::GetStepResponse(
-							    link.Frequency,
-							    link.Damping,
-							    link.Response
-							);
-							ImGui::PlotLines("Step Response##Pos", pvalues.data(), (int)pvalues.size(), 0, nullptr, -0.5f, 2.0f, ImVec2(0, 100));
+			// BUILD ENTITY LIST
+			std::vector<entt::entity> entities;
+			auto& storage = registry.storage<entt::entity>();
 
+			for (auto entity : storage)
+				entities.push_back(entity);
 
+			std::reverse(entities.begin(), entities.end());
 
+			// default selection
+			if (!entities.empty()) {
+				bool valid = m_SelectedAnimEntity != entt::null && registry.valid(m_SelectedAnimEntity);
 
-			                ImGui::Separator();
-			                if (ImGui::Button(("Remove##" + label).c_str())) {
-			                    removeMapping = true;
-			                }
-			
-			                ImGui::TreePop();
-			            }
-			
-			            // REMOVE AFTER UI
-			            if (removeMapping) {
-			                link = {};
-			            }
-			        }
-			
-			        if (!anyShown) {
-			            ImGui::TextDisabled("No active mappings");
-			        }
-			
-			        ImGui::Separator();
-			
-			        // ADD NEW MAPPING
-			        ImGui::SetNextItemWidth(120.0f);
-			        std::string buttonId = "+ Add Mapping##" + std::to_string(input);
-			
-			        if (ImGui::Button(buttonId.c_str())) {
-			            int output = selectedOutputAxis[input];
-			            auto& link = anim.Links[input][output];
-			
-			            // Only initialize if newly created
-			            if (!link.Enabled) {
-			
-			                link.Enabled = true;
-			
-			                link.Magnitude = 1.0f;
-			                link.Frequency = 2.0f;
-			                link.Damping = 0.5f;
-			                link.Response = 1.0f;
-			                link.Clamp = 10.0f;
-			            }
-			        }
-			        ImGui::SameLine();
-			        std::string comboId = "##AddMappingCombo" + std::to_string(input);
-			        ImGui::Combo(comboId.c_str(), &selectedOutputAxis[input], MotionAxisLabels, MeshAnimationComponent::AxisCount);
-			
-			        ImGui::TreePop();
-			    }
-			
-			    break;
+				if (!valid)
+				    m_SelectedAnimEntity = entities[0];
 			}
 
+			// ENTITY DROPDOWN
+			std::vector<std::string> storageNames;
+			std::vector<const char*> labels;
+			for (auto entity : entities) {
+				std::string name = "Unknown";
+				if (registry.all_of<TagComponent>(entity))
+				    name = registry.get<TagComponent>(entity).Name;
+				storageNames.push_back(name + " (" + std::to_string((uint32_t)entity) + ")");
+			}
+
+			for (auto& s : storageNames)
+				labels.push_back(s.c_str());
+
+			static int selectedIndex = 0;
+
+			if (!labels.empty()) {
+				if (ImGui::Combo("Selected Entity", &selectedIndex, labels.data(), (int)labels.size())) {
+				    m_SelectedAnimEntity = entities[selectedIndex];
+				}
+			}
+
+			ImGui::Separator();
+
+			// ANIMATION SECTION (ALWAYS VISIBLE)
+			if (ImGui::CollapsingHeader("Animation")) {
+				bool validEntity = m_SelectedAnimEntity != entt::null && registry.valid(m_SelectedAnimEntity);
+				if (!validEntity) {
+				    ImGui::TextDisabled("No entity selected.");
+				}
+				else if (!registry.all_of<MeshAnimationComponent>(m_SelectedAnimEntity)) {
+				    // NO COMPONENT → ADD BUTTON
+				    if (ImGui::Button("Add MeshAnimationComponent")) {
+				        registry.emplace<MeshAnimationComponent>(m_SelectedAnimEntity);
+				    }
+				}
+				else {
+				    // EDIT EXISTING COMPONENT
+				    auto& anim = registry.get<MeshAnimationComponent>(m_SelectedAnimEntity);
+				    static int selectedOutputAxis[MeshAnimationComponent::AxisCount] = {};
+				    for (int input = 0; input < MeshAnimationComponent::AxisCount; input++) {
+				        MotionAxis inAxis = (MotionAxis)input;
+
+				        if (!ImGui::TreeNode(MotionAxisName(inAxis)))
+				            continue;
+
+				        bool anyShown = false;
+				        for (int output = 0; output < MeshAnimationComponent::AxisCount; output++) {
+				            auto& link = anim.Links[input][output];
+
+				            if (!link.Enabled)
+				                continue;
+
+				            anyShown = true;
+				            MotionAxis outAxis = (MotionAxis)output;
+				            std::string label = std::string(MotionAxisName(inAxis)) + " -> " + MotionAxisName(outAxis);
+				            bool removeMapping = false;
+				            if (ImGui::TreeNode(label.c_str())) {
+				                ImGui::Checkbox(("Enabled##" + label).c_str(), &link.Enabled);
+				                ImGui::DragFloat(("Magnitude##" + label).c_str(), &link.Magnitude, 0.01f);
+				                ImGui::DragFloat(("Frequency##" + label).c_str(), &link.Frequency, 0.01f, 0.01f, 20.0f);
+				                ImGui::DragFloat(("Damping##" + label).c_str(), &link.Damping, 0.01f, 0.0f, 10.0f);
+				                ImGui::DragFloat(("Response##" + label).c_str(), &link.Response, 0.01f, -10.0f, 10.0f);
+				                ImGui::DragFloat(("Clamp##" + label).c_str(), &link.Clamp, 0.01f, 0.0f, 1000.0f);
+				                ImGui::Text("Output: %.3f", link.Output);
+				                ImGui::Separator();
+
+				                if (ImGui::Button(("Remove##" + label).c_str()))
+				                    removeMapping = true;
+
+				                ImGui::TreePop();
+				            }
+
+				            if (removeMapping)
+				                link = {};
+				        }
+
+				        if (!anyShown)
+				            ImGui::TextDisabled("No active mappings");
+
+				        ImGui::Separator();
+
+				        // ADD NEW LINK
+				        std::string buttonId = "+ Add Mapping##" + std::to_string(input);
+
+				        if (ImGui::Button(buttonId.c_str())) {
+				            int output = selectedOutputAxis[input];
+				            auto& link = anim.Links[input][output];
+
+				            if (!link.Enabled) {
+				                link.Enabled = true;
+				                link.Magnitude = 1.0f;
+				                link.Frequency = 2.0f;
+				                link.Damping = 0.5f;
+				                link.Response = 1.0f;
+				                link.Clamp = 10.0f;
+				            }
+				        }
+
+				        ImGui::SameLine();
+				        std::string comboId = "##AddMappingCombo" + std::to_string(input);
+				        ImGui::Combo(comboId.c_str(), &selectedOutputAxis[input], MotionAxisLabels, MeshAnimationComponent::AxisCount);
+
+				        ImGui::TreePop();
+				    }
+				}
+			}
+
+			ImGui::Unindent();
+			ImGui::PopStyleVar();
 		}
 
+
 		// WORLD DEBUG
-		if (ImGui::CollapsingHeader("World Tiling"))
-		{
+		if (ImGui::CollapsingHeader("World Tiling")) {
 		    ImGui::SliderFloat("Chunk Size", &m_ChunkSize, 1.0f, 500.0f, "%.1f");
 		    ImGui::SliderInt("Repeat N", &m_RepeatN, 0, 10);
 		    ImGui::Text("Grid: %d x %d x %d", 2 * m_RepeatN + 1, 2 * m_RepeatN + 1, 2 * m_RepeatN + 1);

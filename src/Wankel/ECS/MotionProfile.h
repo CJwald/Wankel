@@ -5,12 +5,12 @@
 namespace Wankel {
 
 	enum class MotionAxis : uint8_t {
-	    PosX = 0,
-	    PosY,
-	    PosZ,
-	    RotX,
-	    RotY,
-	    RotZ,
+	    X = 0,
+	    Y,
+	    Z,
+	    Pitch,
+	    Yaw,
+	    Roll,
 	
 	    Count
 	};

@@ -69,6 +69,11 @@ namespace Wankel {
     };
 
 
+	struct TagComponent {
+	    std::string Name;
+	}; 
+
+
 	struct PlayerControllerComponent {
 		enum class LookMode {
 			FPS,

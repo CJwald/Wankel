@@ -118,8 +118,8 @@ namespace Wankel {
         	    }
         	}
 
-        	anim.PositionOffset = glm::vec3(output[(int)MotionAxis::PosX], output[(int)MotionAxis::PosY], output[(int)MotionAxis::PosZ]);
-        	anim.RotationOffset = glm::vec3(output[(int)MotionAxis::RotX], output[(int)MotionAxis::RotY], output[(int)MotionAxis::RotZ]);
+        	anim.PositionOffset = glm::vec3(output[(int)MotionAxis::X], output[(int)MotionAxis::Y], output[(int)MotionAxis::Z]);
+        	anim.RotationOffset = glm::vec3(output[(int)MotionAxis::Pitch], output[(int)MotionAxis::Yaw], output[(int)MotionAxis::Roll]);
         	tc.VisualPosition = anim.PositionOffset;
 
         	glm::vec3 rotRad = glm::radians(anim.RotationOffset);
@@ -275,13 +275,13 @@ namespace Wankel {
 
 	static float GetAxisValue(MotionAxis axis, const glm::vec3& pos, const glm::vec3& rot) {
 	    switch (axis) {
-	        case MotionAxis::PosX: return pos.x;
-	        case MotionAxis::PosY: return pos.y;
-	        case MotionAxis::PosZ: return pos.z;
+	        case MotionAxis::X: return pos.x;
+	        case MotionAxis::Y: return pos.y;
+	        case MotionAxis::Z: return pos.z;
 	
-	        case MotionAxis::RotX: return rot.x;
-	        case MotionAxis::RotY: return rot.y;
-	        case MotionAxis::RotZ: return rot.z;
+	        case MotionAxis::Pitch: return rot.x;
+	        case MotionAxis::Yaw: return rot.y;
+	        case MotionAxis::Roll: return rot.z;
 	    }
 	
 	    return 0.0f;
