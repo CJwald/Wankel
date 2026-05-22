@@ -88,7 +88,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
 	// Ship Left
 	auto pShipL = m_Scene.CreateEntity();
-	pShipL.AddComponent<TagComponent>().Name = "Gun1";
+	pShipL.AddComponent<TagComponent>().Name = "Ship Left";
 	auto& psL = pShipL.AddComponent<TransformComponent>();
     psL.LocalPosition = {-0.2f,0.0f,0.0f};
 	pShipL.AddComponent<ParentComponent>().Parent = player;
@@ -135,7 +135,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
 	// Ship Right	
 	auto pShipR = m_Scene.CreateEntity();
-	pShipR.AddComponent<TagComponent>().Name = "Gun1";
+	pShipR.AddComponent<TagComponent>().Name = "Ship Right";
 	auto& psR = pShipR.AddComponent<TransformComponent>();
     psR.LocalPosition = {0.2f,0.0f,0.0f};
 	pShipR.AddComponent<ParentComponent>().Parent = player;
@@ -187,7 +187,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto gun1 = m_Scene.CreateEntity();
 	gun1.AddComponent<TagComponent>().Name = "Gun1";
 	auto& gt1 = gun1.AddComponent<TransformComponent>();
-    gt1.LocalPosition = {0.05f ,0.08f ,-0.125f};
+    gt1.LocalPosition = {0.05f ,0.08f ,0.f};
 	gun1.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
 	gun1.AddComponent<ParentComponent>().Parent = player;
     auto& gunAnim1 = gun1.AddComponent<MeshAnimationComponent>();
@@ -225,7 +225,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto gun2 = m_Scene.CreateEntity();
 	gun2.AddComponent<TagComponent>().Name = "Gun2";
 	auto& gt2 = gun2.AddComponent<TransformComponent>();
-    gt2.LocalPosition = {-0.05f ,0.08f ,-0.125f};
+    gt2.LocalPosition = {-0.05f ,0.08f ,0.0f};
 	gun2.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
 	gun2.AddComponent<ParentComponent>().Parent = player;
     auto& gunAnim2 = gun2.AddComponent<MeshAnimationComponent>();
