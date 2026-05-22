@@ -43,14 +43,22 @@ namespace Wankel {
     	glm::quat LocalRotation{1,0,0,0};
     	glm::vec3 LocalScale{1.0f};
 
+		bool MirrorX = false;
+		bool MirrorY = false;
+		bool MirrorZ = false;
+
     	glm::vec3 RotationPivot{0.0f};
 
 		glm::mat4 GetLocalTransform() const {
             glm::mat4 pivotToOrigin = glm::translate(glm::mat4(1.0f), -RotationPivot);
             glm::mat4 pivotBack = glm::translate(glm::mat4(1.0f), RotationPivot);
+			glm::vec3 finalScale = LocalScale;
+			if (MirrorX) finalScale.x *= -1.0f;
+			if (MirrorY) finalScale.y *= -1.0f;
+			if (MirrorZ) finalScale.z *= -1.0f;
             return glm::translate(glm::mat4(1.0f), LocalPosition) * 
 				pivotBack * glm::toMat4(LocalRotation) * 
-				pivotToOrigin * glm::scale(glm::mat4(1.0f), LocalScale);
+				pivotToOrigin * glm::scale(glm::mat4(1.0f), finalScale);
         }
     };
 

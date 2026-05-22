@@ -65,10 +65,11 @@ static const char* MotionAxisLabels[] = {
 SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
 	// Mesh setup
-	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP04.ply");
+	//m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP04.ply");
+	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP05.ply");
 	m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
 	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
-	m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, sizeof(Geometry::CubeVertices), Geometry::CubeIndices, sizeof(Geometry::CubeIndices) / sizeof(uint32_t));
+	m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices);
 
 	// Shader
 	m_Shader = std::make_unique<Shader>(
@@ -81,16 +82,22 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	player.AddComponent<TagComponent>().Name = "Player";
 	auto& pt = player.AddComponent<TransformComponent>();
     pt.LocalPosition = {0,1,0};
-
-    player.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
     player.AddComponent<PlayerControllerComponent>();
-    auto& anim = player.AddComponent<MeshAnimationComponent>();
-	//anim.PositionOffset = {10.0f, 0.0f, 0.0f};// This doesnt seem to work
-	//anim.RotationOffset = {0.0f, 0.0f, 0.0f};// This doesnt seem to work
+
+	// Ship Left
+	auto pShipL = m_Scene.CreateEntity();
+	pShipL.AddComponent<TagComponent>().Name = "Gun1";
+	auto& psL = pShipL.AddComponent<TransformComponent>();
+    psL.LocalPosition = {-0.4f,0.0f,0.4f};
+	pShipL.AddComponent<ParentComponent>().Parent = player;
+    pShipL.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
+	
+    auto& anim = pShipL.AddComponent<MeshAnimationComponent>();
+	{
 	// Forward velocity -> pitch
 	auto& ForwardPitch = anim.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
 	ForwardPitch.Enabled = true;
-	ForwardPitch.Magnitude = -0.2f;
+	ForwardPitch.Magnitude = 0.2f;
 	ForwardPitch.Frequency = 1.8f;
 	ForwardPitch.Damping = 0.4f;
 	ForwardPitch.Response = 2.0f;
@@ -122,7 +129,57 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	YawRoll.Damping = 0.7f;
 	YawRoll.Response = -1.5f;
 	YawRoll.Clamp = 9999.99f; // no clamp
+	}
+
+	// Ship Right	
+	auto pShipR = m_Scene.CreateEntity();
+	pShipR.AddComponent<TagComponent>().Name = "Gun1";
+	auto& psR = pShipR.AddComponent<TransformComponent>();
+    psR.LocalPosition = {0.4f,0.0f,0.4f};
+	pShipR.AddComponent<ParentComponent>().Parent = player;
+    //pShipR.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
+	//pShipR.MeshComponent.MorroredX = true;
+	m_ShipMeshMirrored = m_ShipMesh->CreateMirrored(true,false,false);
+	auto& meshComp = pShipR.AddComponent<MeshComponent>();
+	meshComp.MeshPtr = m_ShipMeshMirrored.get();
+    auto& animR = pShipR.AddComponent<MeshAnimationComponent>();
+	{
+	// Forward velocity -> pitch
+	auto& ForwardPitch = animR.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
+	ForwardPitch.Enabled = true;
+	ForwardPitch.Magnitude = 0.2f;
+	ForwardPitch.Frequency = 1.8f;
+	ForwardPitch.Damping = 0.4f;
+	ForwardPitch.Response = 2.0f;
+	ForwardPitch.Clamp = 8.0f;
 	
+	// Strafing -> roll
+	auto& StrafeRoll = animR.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	StrafeRoll.Enabled = true;
+	StrafeRoll.Magnitude = -0.4f;
+	StrafeRoll.Frequency = 2.0f;
+	StrafeRoll.Damping = 0.5f;
+	StrafeRoll.Response = 2.0f;
+	StrafeRoll.Clamp = 10.0f;
+	
+	// Vertical velocity -> vertical bob
+	auto& VertBob = animR.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
+	VertBob.Enabled = true;
+	VertBob.Magnitude = -0.002f;
+	VertBob.Frequency = 2.5f;
+	VertBob.Damping = 0.7f;
+	VertBob.Response = 1.5f;
+	VertBob.Clamp = 0.05f;
+	
+	// YAW -> Yaw Rot
+	auto& YawRoll = animR.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
+	YawRoll.Enabled = true;
+	YawRoll.Magnitude = -0.2f;
+	YawRoll.Frequency = 2.5f;
+	YawRoll.Damping = 0.7f;
+	YawRoll.Response = -1.5f;
+	YawRoll.Clamp = 9999.99f; // no clamp
+	}
 
     // PLAYER Gun ENTITY
 	auto gun1 = m_Scene.CreateEntity();
