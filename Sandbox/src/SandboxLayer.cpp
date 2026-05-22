@@ -69,6 +69,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP05.ply");
 	m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
 	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
+	m_EnemyBodyMesh = MeshLoader::Load("Assets/Mesh/StalkerBody01.ply");
+	m_EnemyLegMesh = MeshLoader::Load("Assets/Mesh/StalkerLeg01.ply");
 	m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices);
 
 	// Shader
@@ -88,7 +90,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto pShipL = m_Scene.CreateEntity();
 	pShipL.AddComponent<TagComponent>().Name = "Gun1";
 	auto& psL = pShipL.AddComponent<TransformComponent>();
-    psL.LocalPosition = {-0.4f,0.0f,0.4f};
+    psL.LocalPosition = {-0.2f,0.0f,0.0f};
 	pShipL.AddComponent<ParentComponent>().Parent = player;
     pShipL.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
 	
@@ -135,7 +137,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto pShipR = m_Scene.CreateEntity();
 	pShipR.AddComponent<TagComponent>().Name = "Gun1";
 	auto& psR = pShipR.AddComponent<TransformComponent>();
-    psR.LocalPosition = {0.4f,0.0f,0.4f};
+    psR.LocalPosition = {0.2f,0.0f,0.0f};
 	pShipR.AddComponent<ParentComponent>().Parent = player;
     //pShipR.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
 	//pShipR.MeshComponent.MorroredX = true;
@@ -280,6 +282,87 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto& rb = player.AddComponent<RigidbodyComponent>();
 	rb.Velocity = {0,0,0};
 	rb.IsStatic = false;	
+
+
+
+
+	// Enemy
+    auto enemy = m_Scene.CreateEntity();
+	enemy.AddComponent<TagComponent>().Name = "Enemy";
+	auto& et = enemy.AddComponent<TransformComponent>();
+    et.LocalPosition = {2,1,0};
+
+	// Body 
+	auto ebody = m_Scene.CreateEntity();
+	{
+	ebody.AddComponent<TagComponent>().Name = "Enemy Body";
+	auto& tc = ebody.AddComponent<TransformComponent>();
+    tc.LocalPosition = {0.0f,0.0f,0.0f};
+	ebody.AddComponent<ParentComponent>().Parent = enemy;
+    ebody.AddComponent<MeshComponent>().MeshPtr = m_EnemyBodyMesh.get();
+	}
+
+	// Leg1 
+	{
+	auto eLeg1 = m_Scene.CreateEntity();
+	eLeg1.AddComponent<TagComponent>().Name = "Enemy Leg FL";
+	auto& tc = eLeg1.AddComponent<TransformComponent>();
+    tc.LocalPosition = {0.6f,0.0f,-0.6f};
+	eLeg1.AddComponent<ParentComponent>().Parent = enemy;
+    eLeg1.AddComponent<MeshComponent>().MeshPtr = m_EnemyLegMesh.get();
+	}
+	// Leg2 
+	{
+	auto eLeg2 = m_Scene.CreateEntity();
+	eLeg2.AddComponent<TagComponent>().Name = "Enemy Leg BL";
+	auto& tc = eLeg2.AddComponent<TransformComponent>();
+    tc.LocalPosition = {0.6f,0.0f,0.6f};
+    tc.LocalOrientation = 
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	eLeg2.AddComponent<ParentComponent>().Parent = enemy;
+    eLeg2.AddComponent<MeshComponent>().MeshPtr = m_EnemyLegMesh.get();
+	}
+	// Leg3 
+	m_EnemyLegMeshMirrored = m_EnemyLegMesh->CreateMirrored(true,false,false);
+	{
+	auto eLeg3 = m_Scene.CreateEntity();
+	eLeg3.AddComponent<TagComponent>().Name = "Enemy Leg FR";
+	auto& tc = eLeg3.AddComponent<TransformComponent>();
+    tc.LocalPosition = {-0.6f,0.0f,-0.6f};
+	eLeg3.AddComponent<ParentComponent>().Parent = enemy;
+	auto& meshComp1 = eLeg3.AddComponent<MeshComponent>();
+	meshComp1.MeshPtr = m_EnemyLegMeshMirrored.get();
+	}
+	// Leg4 
+	{
+	auto eLeg4 = m_Scene.CreateEntity();
+	eLeg4.AddComponent<TagComponent>().Name = "Enemy Leg BR";
+	auto& tc = eLeg4.AddComponent<TransformComponent>();
+    tc.LocalPosition = {-0.6f,0.0f,0.6f};
+    tc.LocalOrientation = 
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	eLeg4.AddComponent<ParentComponent>().Parent = enemy;
+	auto& meshComp2 = eLeg4.AddComponent<MeshComponent>();
+	meshComp2.MeshPtr = m_EnemyLegMeshMirrored.get();
+	}
+	// Collider
+	{
+	auto& collider = enemy.AddComponent<AABBComponent>();
+	collider.HalfSize = {0.5f, 0.5f, 0.5f};
+	auto& rb = enemy.AddComponent<RigidbodyComponent>();
+	rb.Velocity = {0,0,0};
+	rb.IsStatic = false;	
+	}
+
+
+
+
+
+
 
 
     // RANDOM CUBES 

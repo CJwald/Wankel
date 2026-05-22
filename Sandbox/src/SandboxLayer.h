@@ -27,6 +27,9 @@ private:
 
 	std::unique_ptr<Mesh> m_ShipMesh;
 	std::unique_ptr<Mesh> m_ShipMeshMirrored;
+	std::unique_ptr<Mesh> m_EnemyBodyMesh;
+	std::unique_ptr<Mesh> m_EnemyLegMesh;
+	std::unique_ptr<Mesh> m_EnemyLegMeshMirrored;
 	std::unique_ptr<Mesh> m_GunMesh;
 	std::unique_ptr<Mesh> m_CubeMesh;
 	std::unique_ptr<Mesh> m_PlateMesh;
