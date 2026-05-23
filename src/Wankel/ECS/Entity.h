@@ -25,6 +25,19 @@ namespace Wankel {
         }
 
         operator bool() const { return m_EntityHandle != entt::null; }
+        
+        bool operator==(const Entity& other) const {
+			return m_EntityHandle == other.m_EntityHandle;
+		}
+
+		bool operator!=(const Entity& other) const {
+			return !(*this == other);
+		}
+		
+		bool IsValid() const {
+			return m_Registry &&
+				   m_Registry->valid(m_EntityHandle);
+		}
 
         entt::entity GetHandle() const { return m_EntityHandle; }
 

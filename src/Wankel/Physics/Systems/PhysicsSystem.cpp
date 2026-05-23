@@ -34,6 +34,7 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     for (auto e : buildView) {
         auto& t = buildView.get<TransformComponent>(e);
         m_Grid.Insert(e, t.LocalPosition);
+		//m_Grid.Insert(e, center); TODO: This would be better
     }
 
     // COLLISION
@@ -44,13 +45,16 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
         auto& ca = registry.get<AABBComponent>(a);
         auto& rba = registry.get<RigidbodyComponent>(a);
 
-        AABB aabbA = AABB::FromCenterHalfSize(ta.LocalPosition, ca.HalfSize);
+		glm::vec3 centerA = ta.LocalPosition + ca.Offset;
 
-        auto candidates = m_Grid.Query(ta.LocalPosition);
+        AABB aabbA = AABB::FromCenterHalfSize(centerA, ca.HalfSize);
+
+        //auto candidates = m_Grid.Query(ta.LocalPosition); TODO: if it runs, delete this
+        auto candidates = m_Grid.Query(centerA);
 
         for (auto b : candidates) {
+			if ((uint32_t)a >= (uint32_t)b) continue;
             if (a == b) continue;
-
             if (!registry.all_of<TransformComponent, AABBComponent, RigidbodyComponent>(b))
                 continue;
 
@@ -85,5 +89,12 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 rba.Velocity -= manifold.Normal * va;
         }
     }
+    
+    auto sphereView = registry.view<TransformComponent, SphereColliderComponent>();
+        
+    for (auto e : sphereView) {
+		auto& t = sphereView.get<TransformComponent>(e);
+		auto& c = sphereView.get<SphereColliderComponent>(e);
+	}
 }
 }

@@ -134,13 +134,13 @@ namespace Wankel {
 
 	struct RigidbodyComponent {
 	    glm::vec3 Velocity{0.0f};
-	    glm::vec3 ForcedVelocity{0.0f};
+	    glm::vec3 ForcedVelocity{0.0f}; // THis should be removed and add acceleration later
 	    float Mass = 1.0f;
 	    bool IsStatic = false;
 	};
 	
 
-	struct ColliderComponent {
+	struct ColliderComponent { // I SHOULD DELETE THIS. IT IS REDUNDANT. USE DISTINCT COMPONENTS
 	    enum class Type {
 	        AABB,
 	        Sphere,
@@ -155,6 +155,13 @@ namespace Wankel {
 
 	struct AABBComponent {
     	glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f};
+		glm::vec3 Offset{0.0f};
+	};
+
+
+	struct SphereColliderComponent {
+	    float Radius = 0.5f;
+		glm::vec3 Offset{0.0f};
 	};
 
 

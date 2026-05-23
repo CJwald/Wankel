@@ -11,6 +11,7 @@ Linux and Windows from terminal / PowerShell.
 
 ## REQUIREMENTS:
 g++ 13+ for entt
+.. Probably other things I need to add here
 
 
 ## EXAMPLE SETUP:
@@ -103,6 +104,7 @@ cd Sandbox
 - Raycast/collision queries
 - Sphere and capsule collision systems
 - Text Rendering
+- Collition box debug rendering
 - Lighting/Material pipeline
 - Basic UI/HUD Framework
 - Asset/Material separation
