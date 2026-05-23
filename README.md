@@ -79,18 +79,17 @@ cd Sandbox
 
 
 ## FEATURES:
-- imgui
-- logging
-- Application and entry point
 - Linux / Windows split
-- Mouse and Keyboard input
-- Controller Input
 - Event system
 - Window system
-- Camera
-- Camera Controller
-- Simple Renderer
 - ECS using Entt
+- Camera
+- ImGui
+- Logging
+- Application and entry point
+- Mouse and Keyboard input
+- Controller Input
+- Simple Renderer (OpenGL)
 - Sandbox example
 - AABB Collision
 - Second Order Dynamics Animation System
@@ -99,15 +98,21 @@ cd Sandbox
 
 
 ## TODO:
-- Procedural Animation Layering
+- Remove camera controller. All cameras should be setup as an entity and controlled that way.
+- Update 3d mesh system to read other files (glTF) and add normals to .ply
 - Raycast/collision queries
 - Sphere and capsule collision systems
 - Text Rendering
+- Lighting/Material pipeline
 - Basic UI/HUD Framework
 - Asset/Material separation
 - Audio System
+- Procedural Animation Layering (I need to evaluate if I want this)
 - Static triangle mesh collision
-- Lighting/Material pipeline
 - State machine helpers
 - Multiplayer Networking
 
+
+## BUGS:
+- Child and maybe parent objects animations jump when teleporting on world border (large negative vel)
+- Cant push an entity across the world border because the teleport doesnt work with colliders. 
