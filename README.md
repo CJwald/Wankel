@@ -93,6 +93,8 @@ cd Sandbox
 - Simple Renderer (OpenGL)
 - Sandbox example
 - AABB Collision
+- Raycast/collision queries
+- Sphere vs AABB Collision
 - Second Order Dynamics Animation System
 - Multi-mesh components
 - Debug Visualization system (coord. frames etc.)
@@ -101,8 +103,7 @@ cd Sandbox
 ## TODO:
 - Remove camera controller. All cameras should be setup as an entity and controlled that way.
 - Update 3d mesh system to read other files (glTF) and add normals to .ply
-- Raycast/collision queries
-- Sphere and capsule collision systems
+- Capsule collision systems
 - Text Rendering
 - Collition box debug rendering
 - Lighting/Material pipeline

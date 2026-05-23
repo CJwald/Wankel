@@ -12,9 +12,10 @@ namespace Wankel {
 
 bool IntersectRaySphere(const Ray& ray, const Sphere& sphere, float& outDistance) {
     glm::vec3 oc = ray.Origin - sphere.Center;
+	glm::vec3 dir = glm::normalize(ray.Direction);
 
-    float a = glm::dot(ray.Direction, ray.Direction);
-    float b = 2.0f * glm::dot(oc, ray.Direction);
+    float a = glm::dot(dir, dir);
+    float b = 2.0f * glm::dot(oc, dir);
     float c = glm::dot(oc, oc) - sphere.Radius * sphere.Radius;
 
     float discriminant = b * b - 4.0f * a * c;
@@ -40,7 +41,8 @@ bool IntersectRaySphere(const Ray& ray, const Sphere& sphere, float& outDistance
 
 
 bool IntersectRayAABB(const Ray& ray, const AABB& aabb, float& t) {
-    glm::vec3 invDir = 1.0f / ray.Direction; // TODO: This can devide by zero. Should add epsilon handling 
+	glm::vec3 dir = glm::normalize(ray.Direction);
+    glm::vec3 invDir = 1.0f / dir; // TODO: This can devide by zero. Should add epsilon handling 
 
     glm::vec3 t0 = (aabb.Min - ray.Origin) * invDir;
     glm::vec3 t1 = (aabb.Max - ray.Origin) * invDir;
@@ -68,6 +70,7 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
 
     bool hitAnything = false;
     float closest = maxDistance;
+	glm::vec3 dir = glm::normalize(ray.Direction);
 
     for (auto e : view) {
         auto& t = view.get<TransformComponent>(e);
@@ -88,7 +91,7 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
 
         outHit.HitEntity = Entity(e, &registry);
         outHit.Distance = distance;
-        outHit.Point = ray.Origin + ray.Direction * distance;
+        outHit.Point = ray.Origin + dir * distance;
 
         hitAnything = true;
     }
