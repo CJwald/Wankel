@@ -140,16 +140,20 @@ namespace Wankel {
 	};
 	
 
-	struct ColliderComponent { // I SHOULD DELETE THIS. IT IS REDUNDANT. USE DISTINCT COMPONENTS
-	    enum class Type {
+	struct ColliderComponent {
+	    enum class Type : uint8_t {
 	        AABB,
 	        Sphere,
 	        Capsule
-	    } Type;
+	    };
+
+		Type type;
 	
-	    // union or variant later
-	    glm::vec3 Size;   // AABB
-	    float Radius;     // Sphere
+	    glm::vec3 HalfSize{0.5f};   // AABB
+	    float Radius = 0.5f;        // Sphere
+	    float CapsuleHalfHeight = 0.5f; // Capsule
+
+	    glm::vec3 Offset{0.0f};
 	};
 
 

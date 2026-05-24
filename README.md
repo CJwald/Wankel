@@ -36,11 +36,9 @@ cd Sandbox
 ##### Requirements:
 - MSVC compiler from Visual Studio Build Tools 2022 -> https://visualstudio.microsoft.com/visual-cpp-build-tools/?utm_source=chatgpt.com
 - Ninja 
-```bash
-winget install Ninja-build.Ninja
-```
 - Cmake
 ```bash
+winget install Ninja-build.Ninja
 winget install Kitware.CMake
 ```
 
@@ -102,18 +100,18 @@ cd Sandbox
 
 ## TODO:
 - Remove camera controller. All cameras should be setup as an entity and controlled that way.
-- Update 3d mesh system to read other files (glTF) and add normals to .ply
 - Collider system redesign (AABB/Sphere/Capsule unified dispatch)
 - Capsule collision systems
-- Text Rendering
-- Collition box debug rendering
+- Static triangle mesh collision
+- Collision box debug rendering
 - Lighting/Material pipeline
+- Update 3d mesh system to read other files (glTF) and add normals to .ply
+- Text Rendering
 - Basic UI/HUD Framework
 - Asset/Material separation
-- Audio System
 - Procedural Animation Layering (I need to evaluate if I want this)
-- Static triangle mesh collision
 - State machine helpers
+- Audio System
 - Multiplayer Networking
 
 

@@ -19,6 +19,9 @@
 #include <Wankel/Renderer/Mesh.h>
 #include <Wankel/Core/Window.h>
 #include <Wankel/Renderer/DebugDraw.h>
+#include <Wankel/Physics/Raycast/Ray.h>
+#include <Wankel/Physics/Raycast/Raycast.h>
+#include <Wankel/Physics/Raycast/RaycastHit.h>
 
 #include <imgui.h>
 #include <GLFW/glfw3.h>
@@ -39,6 +42,13 @@ float RandomFloat() {
 
 
 namespace Wankel {
+
+Ray CreateCameraRay(const Camera& cam) {
+    Ray ray;
+    ray.Origin = cam.GetPosition() + glm::normalize(cam.GetForward()) * 1.6f;
+    ray.Direction = glm::normalize(cam.GetForward());
+    return ray;
+}
 
 static const char* MotionAxisName(MotionAxis axis) {
     switch (axis) {
@@ -361,20 +371,16 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
 
 
-
-
-
-
     // RANDOM CUBES 
 	int numCubes = 20;
-	float spawnRange = 25.f;
+	float spawnRange = 10.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
 		e.AddComponent<TagComponent>().Name = "Cube";
 
         auto& t = e.AddComponent<TransformComponent>();
 		float X = RandomFloat() * spawnRange;
-		float Y = RandomFloat() * spawnRange;
+		float Y = 20 + RandomFloat() * spawnRange;
 		float Z = RandomFloat() * spawnRange;
         t.LocalPosition = {X, Y, Z};
         t.LocalOrientation = 
@@ -461,6 +467,60 @@ void SandboxLayer::OnUpdate() {
 	glm::vec3 camForward = cam.GetForward();
     
 	Renderer::BeginScene(cam);
+	
+	// Cube click test
+	static bool lastClick = false;
+
+	bool click =
+		Input::IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) ||
+		ControllerInput::IsButtonPressed(0, GamepadButton::R1);
+	for (int i = 0; i < 16; i++)
+	{
+	    if (ControllerInput::IsButtonPressed(0, (GamepadButton)i))
+	    {
+	        WK_CORE_INFO("BUTTON PRESSED: {0}", i);
+	    }
+	}
+
+	if (click && !lastClick)
+	{
+		Ray ray = CreateCameraRay(m_Controller.GetCamera());
+
+		RaycastHit hit;
+		float maxDist = 1000.0f;
+
+		if (RaycastAABB(m_Scene, ray, hit, maxDist))
+		{
+			Entity e = hit.HitEntity;
+
+			auto& registry = m_Scene.Registry();
+
+			if (registry.all_of<TagComponent>(e.GetHandle()))
+			{
+				auto& tag = registry.get<TagComponent>(e.GetHandle());
+
+				WK_CORE_INFO("Ray hit entity: {0}", tag.Name);
+
+				// ONLY teleport cubes
+				if (tag.Name == "Cube")
+				{
+				    float range = 10.0f;
+
+				    glm::vec3 newPos(
+				        RandomFloat() * range,
+				        20.f+RandomFloat() * range,
+				        RandomFloat() * range
+				    );
+
+				    registry.get<TransformComponent>(e.GetHandle()).LocalPosition = newPos;
+				}
+			}
+		}
+	}
+
+	lastClick = click;
+	
+	
 
 	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
 
