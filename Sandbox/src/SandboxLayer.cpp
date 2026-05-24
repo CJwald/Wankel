@@ -594,7 +594,7 @@ void SandboxLayer::OnUpdate() {
 void SandboxLayer::OnImGuiRender() {
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->GetGlyphRangesDefault();
-	if (!m_GameFocused) {
+	if (!m_GameFocused || m_GameFocused) {// making this always on now. Better tesing
 		ImGui::Begin("Renderer Debug");
 		DebugOverlay::DrawFPSPanel();
 		
