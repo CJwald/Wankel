@@ -5,7 +5,7 @@
 #include <Wankel/ECS/Components.h>
 
 #include "../Collision/BroadPhase/AABB.h"
-#include "../Collision/NarrowPhase/AABBCollision.h"
+#include "../Collision/CollisionDispatcher.h"
 
 namespace Wankel {
 
@@ -17,58 +17,57 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
         auto view = registry.view<TransformComponent, RigidbodyComponent>();
 
         for (auto e : view) {
-            auto& t = view.get<TransformComponent>(e);
-            auto& rb = view.get<RigidbodyComponent>(e);
+            auto& t = registry.get<TransformComponent>(e);
+            auto& rb = registry.get<RigidbodyComponent>(e);
 
             if (!rb.IsStatic) {
-				rb.Velocity = rb.ForcedVelocity;
+                rb.Velocity = rb.ForcedVelocity;
                 t.LocalPosition += rb.Velocity * dt;
-			}
+            }
         }
     }
 
     // BUILD SPATIAL GRID
     m_Grid.Clear();
+
     auto buildView = registry.view<TransformComponent, AABBComponent>();
 
     for (auto e : buildView) {
-        auto& t = buildView.get<TransformComponent>(e);
-        m_Grid.Insert(e, t.LocalPosition);
-		//m_Grid.Insert(e, center); TODO: This would be better
+        auto& t = registry.get<TransformComponent>(e);
+        auto& c = registry.get<AABBComponent>(e);
+
+        glm::vec3 center = t.LocalPosition + c.Offset;
+
+        m_Grid.Insert(e, center);
     }
 
     // COLLISION
-    auto view = registry.view<TransformComponent, AABBComponent, RigidbodyComponent>();
+    auto view = registry.view<TransformComponent, RigidbodyComponent>();
 
     for (auto a : view) {
+
         auto& ta = registry.get<TransformComponent>(a);
-        auto& ca = registry.get<AABBComponent>(a);
         auto& rba = registry.get<RigidbodyComponent>(a);
 
-		glm::vec3 centerA = ta.LocalPosition + ca.Offset;
-
-        AABB aabbA = AABB::FromCenterHalfSize(centerA, ca.HalfSize);
-
-        //auto candidates = m_Grid.Query(ta.LocalPosition); TODO: if it runs, delete this
-        auto candidates = m_Grid.Query(centerA);
+        auto candidates = m_Grid.Query(ta.LocalPosition);
 
         for (auto b : candidates) {
-			if ((uint32_t)a >= (uint32_t)b) continue;
-            if (a == b) continue;
-            if (!registry.all_of<TransformComponent, AABBComponent, RigidbodyComponent>(b))
+
+            if (a == b)
                 continue;
 
-            auto& tb = registry.get<TransformComponent>(b);
-            auto& cb = registry.get<AABBComponent>(b);
-            auto& rbb = registry.get<RigidbodyComponent>(b);
+            CollisionManifold manifold;
 
-            AABB aabbB = AABB::FromCenterHalfSize(tb.LocalPosition, cb.HalfSize);
-
-            auto manifold = AABBvsAABB(aabbA, aabbB);
+            if (!ResolveCollision(scene, a, b, manifold))
+                continue;
 
             if (!manifold.Colliding)
                 continue;
 
+            auto& tb = registry.get<TransformComponent>(b);
+            auto& rbb = registry.get<RigidbodyComponent>(b);
+
+            // POSITION SOLVE
             if (rba.IsStatic && rbb.IsStatic)
                 continue;
 
@@ -83,18 +82,12 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 tb.LocalPosition += manifold.Normal * manifold.Penetration * 0.5f;
             }
 
-            // VELOCITY FIX
             float va = glm::dot(rba.Velocity, manifold.Normal);
+
             if (va < 0.0f)
                 rba.Velocity -= manifold.Normal * va;
         }
     }
-    
-    auto sphereView = registry.view<TransformComponent, SphereColliderComponent>();
-        
-    for (auto e : sphereView) {
-		auto& t = sphereView.get<TransformComponent>(e);
-		auto& c = sphereView.get<SphereColliderComponent>(e);
-	}
 }
+
 }

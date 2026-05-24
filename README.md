@@ -103,6 +103,7 @@ cd Sandbox
 ## TODO:
 - Remove camera controller. All cameras should be setup as an entity and controlled that way.
 - Update 3d mesh system to read other files (glTF) and add normals to .ply
+- Collider system redesign (AABB/Sphere/Capsule unified dispatch)
 - Capsule collision systems
 - Text Rendering
 - Collition box debug rendering

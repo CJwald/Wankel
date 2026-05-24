@@ -5,8 +5,6 @@
 
 namespace Wankel {
 
-CollisionManifold SpherevsSphere(
-    const Sphere& a,
-    const Sphere& b);
+CollisionManifold SpherevsSphere(const Sphere& a, const Sphere& b);
 
 }
