@@ -28,6 +28,7 @@ namespace Wankel {
     private:
         entt::registry m_Registry;
 		PhysicsSystem m_PhysicsSystem;
+		float m_dPosThreshold = 50.0f; // Change in position threshold for velocity calc. 
     };
 
 }

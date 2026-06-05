@@ -58,7 +58,13 @@ namespace Wankel {
         	tc.WorldTransform = ComputeWorldTransform(m_Registry, entity);
 
         	glm::vec3 worldPos = glm::vec3(tc.WorldTransform[3]);
-			glm::vec3 newVel = (worldPos - tc.PreviousWorldPosition) / glm::max(dt, 1e-6f);
+			glm::vec3 newVel = {0.f, 0.f,0.f};
+			if (glm::length(worldPos - tc.PreviousWorldPosition) < m_dPosThreshold) {
+				newVel = (worldPos - tc.PreviousWorldPosition) / glm::max(dt, 1e-6f);
+			} 
+			else {
+        		newVel = tc.WorldVelocity;
+			}
         	tc.WorldAcceleration = (newVel - tc.WorldVelocity) / glm::max(dt, 1e-6f);
         	tc.WorldVelocity = newVel;
 
