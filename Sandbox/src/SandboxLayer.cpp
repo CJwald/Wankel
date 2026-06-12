@@ -79,7 +79,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP05.ply");
 	m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
 	//m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
-	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Flat200m.ply");
+	//m_BoxMesh = MeshLoader::Load("Assets/Mesh/Flat200m.ply");
+	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Rolling200m.ply");
 	m_PlayerHeadMesh = MeshLoader::Load("Assets/Mesh/PlayerHead01.ply");
 	m_PlayerLegMesh = MeshLoader::Load("Assets/Mesh/PlayerLeg01.ply");
 	m_EnemyBodyMesh = MeshLoader::Load("Assets/Mesh/StalkerBody01.ply");
