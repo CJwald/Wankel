@@ -845,6 +845,7 @@ void SandboxLayer::OnUpdate() {
 	
 	
 
+	auto debugView = m_Scene.Registry().view<TransformComponent, AABBComponent>();
 	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
 
 	// X Y Z loop for tiling world
@@ -872,38 +873,58 @@ void SandboxLayer::OnUpdate() {
 				for (auto entity : view) {
 					auto& transform = view.get<TransformComponent>(entity);
     			    auto& mesh = view.get<MeshComponent>(entity);
-					glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform * mesh.GetLocalTransform();
+					//glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform * mesh.GetLocalTransform();
 
-					// DEBUG AXES
-					if (Renderer::DebugEnabled) {
-					    glm::vec3 origin = glm::vec3(model[3]);
-					    float axisLength = 0.125f;
-					
-					    glm::vec3 right = glm::normalize(glm::vec3(model[0])) * axisLength;
-					    glm::vec3 up = glm::normalize(glm::vec3(model[1])) * axisLength;
-					    glm::vec3 forward = glm::normalize(glm::vec3(model[2])) * axisLength;
-					
-					    std::vector<DebugLine> lines = {
-					        { origin, origin + right,   {0.8, 0.3, 0.0} },// X axis (Right)
-					        { origin, origin + up,      {0.6, 1.0, 0.0} },// Y axis (Up)
-					        { origin, origin + forward, {0.4, 0.0, 0.9} } // Z axis (Backward)
-					    };
-					
-					    // Parent link
-					    if (m_Scene.Registry().all_of<ParentComponent>(entity)) {
-					        auto parent = m_Scene.Registry().get<ParentComponent>(entity).Parent;
-					        if (parent) {
-								auto& childTransform = m_Scene.Registry().get<TransformComponent>(entity);
-					            auto& parentTransform = parent.GetComponent<TransformComponent>();
-								glm::vec3 childPos = glm::vec3(childTransform.WorldTransform[3]);
-					            glm::vec3 parentPos = glm::vec3(parentTransform.WorldTransform[3]);
-					            lines.push_back({childPos, parentPos, {1,1,1}});
-					        }
-					    }
-					    Renderer::SubmitDebugLines(lines);
-					}
-					
 					Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
+				}
+
+				// DEBUG AXES
+				if (Renderer::DebugEnabled) {
+					for (auto entity : debugView) {
+						auto& transform = debugView.get<TransformComponent>(entity);
+						glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform;
+    					//auto& collider = debugView.get<AABBComponent>(entity);
+				    	glm::vec3 origin = glm::vec3(model[3]);
+				    	float axisLength = 0.125f;
+				
+				    	glm::vec3 right = glm::normalize(glm::vec3(model[0]));
+				    	glm::vec3 up = glm::normalize(glm::vec3(model[1]));
+				    	glm::vec3 forward = glm::normalize(glm::vec3(model[2]));
+				
+				    	std::vector<DebugLine> lines = {
+				    	    { origin, origin + right * axisLength,   {0.8, 0.3, 0.0} },// X axis (Right)
+				    	    { origin, origin + up * axisLength,      {0.6, 1.0, 0.0} },// Y axis (Up)
+				    	    { origin, origin + forward * axisLength, {0.4, 0.0, 0.9} } // Z axis (Backward)
+				    	};
+						
+						//glm::vec3 cDims = collider.HalfSize;
+				    	//glm::vec3 cOrigin = glm::vec3(model[3]) + collider.Offset;
+						//lines.push_back({ cOrigin + right*cDims[0] + up*cDims[1] + forward*cDims[2], 
+						//                  cOrigin + right*cDims[0] + up*cDims[1] - forward*cDims[2], 
+						//                  {0.6, 1.0, 0.0} });
+						//lines.push_back({ cOrigin + right*cDims[0] + up*cDims[1] - forward*cDims[2], 
+						//                  cOrigin + right*cDims[0] - up*cDims[1] - forward*cDims[2], 
+						//                  {0.6, 1.0, 0.0} });
+						//lines.push_back({ cOrigin + right*cDims[0] - up*cDims[1] - forward*cDims[2], 
+						//                  cOrigin + right*cDims[0] - up*cDims[1] + forward*cDims[2], 
+						//                  {0.6, 1.0, 0.0} });
+						//lines.push_back({ cOrigin + right*cDims[0] - up*cDims[1] + forward*cDims[2], 
+						//                  cOrigin + right*cDims[0] + up*cDims[1] + forward*cDims[2], 
+						//                  {0.6, 1.0, 0.0} });
+				
+				    	// Parent link
+				    	if (m_Scene.Registry().all_of<ParentComponent>(entity)) {
+				    	    auto parent = m_Scene.Registry().get<ParentComponent>(entity).Parent;
+				    	    if (parent) {
+								auto& childTransform = m_Scene.Registry().get<TransformComponent>(entity);
+				    	        auto& parentTransform = parent.GetComponent<TransformComponent>();
+								glm::vec3 childPos = glm::vec3(childTransform.WorldTransform[3]);
+				    	        glm::vec3 parentPos = glm::vec3(parentTransform.WorldTransform[3]);
+				    	        lines.push_back({childPos, parentPos, {1,1,1}});
+				    	    }
+				    	}
+					}
+				    Renderer::SubmitDebugLines(lines);
 				}
 
 			} // Z
