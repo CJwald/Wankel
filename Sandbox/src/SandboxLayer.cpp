@@ -78,7 +78,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	//m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP04.ply");
 	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP05.ply");
 	m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
-	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
+	//m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
+	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Flat200m.ply");
 	m_PlayerHeadMesh = MeshLoader::Load("Assets/Mesh/PlayerHead01.ply");
 	m_PlayerLegMesh = MeshLoader::Load("Assets/Mesh/PlayerLeg01.ply");
 	m_EnemyBodyMesh = MeshLoader::Load("Assets/Mesh/StalkerBody01.ply");
@@ -729,7 +730,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto b = m_Scene.CreateEntity();
 	b.AddComponent<TagComponent>().Name = "World";
     auto& tb = b.AddComponent<TransformComponent>();
-    tb.LocalPosition = {0.0f, 0.0f, 0.0f};
+    tb.LocalPosition = {0.0f, -25.0f, 0.0f};
     tb.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
@@ -737,6 +738,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	b.AddComponent<MeshComponent>().MeshPtr = m_BoxMesh.get();
     auto& rb_box = b.AddComponent<RigidbodyComponent>();
     rb_box.IsStatic = true;
+    //auto& worldcollider = b.AddComponent<AABBComponent>();
+    //worldcollider.HalfSize = {100.0f, 25.0f, 100.0f}; // There are bugs with large colliders. 
 	
 
 	// DEFAULT FOG
