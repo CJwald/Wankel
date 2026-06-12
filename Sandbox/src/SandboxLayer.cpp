@@ -43,9 +43,9 @@ float RandomFloat() {
 
 namespace Wankel {
 
-Ray CreateCameraRay(const Camera& cam) {
+Ray CreateCameraRay(const Camera& cam, glm::vec3 origin) {
     Ray ray;
-    ray.Origin = cam.GetPosition() + glm::normalize(cam.GetForward()) * 1.6f;
+    ray.Origin = origin; //cam.GetPosition() + glm::normalize(cam.GetForward()) * 1.6f;
     ray.Direction = glm::normalize(cam.GetForward());
     return ray;
 }
@@ -79,6 +79,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP05.ply");
 	m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
 	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
+	m_PlayerHeadMesh = MeshLoader::Load("Assets/Mesh/PlayerHead01.ply");
+	m_PlayerLegMesh = MeshLoader::Load("Assets/Mesh/PlayerLeg01.ply");
 	m_EnemyBodyMesh = MeshLoader::Load("Assets/Mesh/StalkerBody01.ply");
 	m_EnemyLegMesh = MeshLoader::Load("Assets/Mesh/StalkerLeg01.ply");
 	m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices);
@@ -96,108 +98,471 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     pt.LocalPosition = {0,1,0};
     player.AddComponent<PlayerControllerComponent>();
 
-	// Ship Left
-	auto pShipL = m_Scene.CreateEntity();
-	pShipL.AddComponent<TagComponent>().Name = "Ship Left";
-	auto& psL = pShipL.AddComponent<TransformComponent>();
-    psL.LocalPosition = {-0.2f,0.0f,0.0f};
-	pShipL.AddComponent<ParentComponent>().Parent = player;
-    pShipL.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
-	
-    auto& anim = pShipL.AddComponent<MeshAnimationComponent>();
+	// head 
+	auto phead = m_Scene.CreateEntity();
 	{
-	// Forward velocity -> pitch
-	auto& ForwardPitch = anim.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
-	ForwardPitch.Enabled = true;
-	ForwardPitch.Magnitude = 0.2f;
-	ForwardPitch.Frequency = 1.8f;
-	ForwardPitch.Damping = 0.4f;
-	ForwardPitch.Response = 2.0f;
-	ForwardPitch.Clamp = 8.0f;
-	
-	// Strafing -> roll
-	auto& StrafeRoll = anim.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
-	StrafeRoll.Enabled = true;
-	StrafeRoll.Magnitude = -0.4f;
-	StrafeRoll.Frequency = 2.0f;
-	StrafeRoll.Damping = 0.5f;
-	StrafeRoll.Response = 2.0f;
-	StrafeRoll.Clamp = 10.0f;
-	
-	// Vertical velocity -> vertical bob
-	auto& VertBob = anim.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
-	VertBob.Enabled = true;
-	VertBob.Magnitude = -0.002f;
-	VertBob.Frequency = 2.5f;
-	VertBob.Damping = 0.7f;
-	VertBob.Response = 1.5f;
-	VertBob.Clamp = 0.05f;
-	
-	// YAW -> Yaw Rot
-	auto& YawRoll = anim.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
-	YawRoll.Enabled = true;
-	YawRoll.Magnitude = -0.2f;
-	YawRoll.Frequency = 2.5f;
-	YawRoll.Damping = 0.7f;
-	YawRoll.Response = -1.5f;
-	YawRoll.Clamp = 9999.99f; // no clamp
+	phead.AddComponent<TagComponent>().Name = "Player Head";
+	auto& tc = phead.AddComponent<TransformComponent>();
+    tc.LocalPosition = {0.0f,0.0f,0.0f};
+	phead.AddComponent<ParentComponent>().Parent = player;
+    phead.AddComponent<MeshComponent>().MeshPtr = m_PlayerHeadMesh.get();
+    auto& pheadAnim = phead.AddComponent<MeshAnimationComponent>();
+	// Strafe -> x
+	auto& pheadXX = pheadAnim.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
+	pheadXX.Enabled = true;
+	pheadXX.Magnitude = 0.5f *0.01f;
+	pheadXX.Frequency = 1.6f;
+	pheadXX.Damping = 0.6f;
+	pheadXX.Response = 1.4f;
+	pheadXX.Clamp = 45.0f;
+	// Strafe -> roll
+	auto& pheadXR = pheadAnim.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	pheadXR.Enabled = true;
+	pheadXR.Magnitude = -0.5f;
+	pheadXR.Frequency = 1.6f;
+	pheadXR.Damping = 1.6f;
+	pheadXR.Response = 1.4f;
+	pheadXR.Clamp = 45.0f;
+	// Forward -> Pitch
+	auto& pheadZP = pheadAnim.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
+	pheadZP.Enabled = true;
+	pheadZP.Magnitude = 0.2f;
+	pheadZP.Frequency = 1.6f;
+	pheadZP.Damping = 1.6f;
+	pheadZP.Response = 1.4f;
+	pheadZP.Clamp = 45.0f;
+	// Yaw -> yaw
+	auto& pheadYY = pheadAnim.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Yaw ];
+	pheadYY.Enabled = true;
+	pheadYY.Magnitude = 5.0f;
+	pheadYY.Frequency = 0.6f;
+	pheadYY.Damping = 1.6f;
+	pheadYY.Response = 1.6f;
+	pheadYY.Clamp = 45.0f;
+	// Pitch -> pitch
+	auto& pheadPP = pheadAnim.Links[ (int)MotionAxis::Pitch ][ (int)MotionAxis::Pitch ];
+	pheadPP.Enabled = true;
+	pheadPP.Magnitude = 5.0f;
+	pheadPP.Frequency = 0.6f;
+	pheadPP.Damping = 1.6f;
+	pheadPP.Response = 1.6f;
+	pheadPP.Clamp = 45.0f;
 	}
 
-	// Ship Right	
-	auto pShipR = m_Scene.CreateEntity();
-	pShipR.AddComponent<TagComponent>().Name = "Ship Right";
-	auto& psR = pShipR.AddComponent<TransformComponent>();
-    psR.LocalPosition = {0.2f,0.0f,0.0f};
-	pShipR.AddComponent<ParentComponent>().Parent = player;
-    //pShipR.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
-	//pShipR.MeshComponent.MorroredX = true;
-	m_ShipMeshMirrored = m_ShipMesh->CreateMirrored(true,false,false);
-	auto& meshComp = pShipR.AddComponent<MeshComponent>();
-	meshComp.MeshPtr = m_ShipMeshMirrored.get();
-    auto& animR = pShipR.AddComponent<MeshAnimationComponent>();
+	// Leg1 
 	{
-	// Forward velocity -> pitch
-	auto& ForwardPitch = animR.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
-	ForwardPitch.Enabled = true;
-	ForwardPitch.Magnitude = 0.2f;
-	ForwardPitch.Frequency = 1.8f;
-	ForwardPitch.Damping = 0.4f;
-	ForwardPitch.Response = 2.0f;
-	ForwardPitch.Clamp = 8.0f;
-	
-	// Strafing -> roll
-	auto& StrafeRoll = animR.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
-	StrafeRoll.Enabled = true;
-	StrafeRoll.Magnitude = -0.4f;
-	StrafeRoll.Frequency = 2.0f;
-	StrafeRoll.Damping = 0.5f;
-	StrafeRoll.Response = 2.0f;
-	StrafeRoll.Clamp = 10.0f;
-	
-	// Vertical velocity -> vertical bob
-	auto& VertBob = animR.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
-	VertBob.Enabled = true;
-	VertBob.Magnitude = -0.002f;
-	VertBob.Frequency = 2.5f;
-	VertBob.Damping = 0.7f;
-	VertBob.Response = 1.5f;
-	VertBob.Clamp = 0.05f;
-	
-	// YAW -> Yaw Rot
-	auto& YawRoll = animR.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
-	YawRoll.Enabled = true;
-	YawRoll.Magnitude = -0.2f;
-	YawRoll.Frequency = 2.5f;
-	YawRoll.Damping = 0.7f;
-	YawRoll.Response = -1.5f;
-	YawRoll.Clamp = 9999.99f; // no clamp
+	auto pLeg1 = m_Scene.CreateEntity();
+	pLeg1.AddComponent<TagComponent>().Name = "Player Leg FR";
+	auto& tc = pLeg1.AddComponent<TransformComponent>();
+    tc.LocalPosition = {0.6f,0.0f,-0.6f};
+	pLeg1.AddComponent<ParentComponent>().Parent = player;
+    pLeg1.AddComponent<MeshComponent>().MeshPtr = m_PlayerLegMesh.get();
+    auto& pLegAnim1 = pLeg1.AddComponent<MeshAnimationComponent>();
+	// Strafe -> x
+	auto& pLeg1XX = pLegAnim1.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
+	pLeg1XX.Enabled = true;
+	pLeg1XX.Magnitude = -1.0f *0.01f;
+	pLeg1XX.Frequency = 1.6f;
+	pLeg1XX.Damping = 0.6f;
+	pLeg1XX.Response = 1.4f;
+	pLeg1XX.Clamp = 45.0f;
+	// Forward -> z
+	auto& pLeg1ZZ = pLegAnim1.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
+	pLeg1ZZ.Enabled = true;
+	pLeg1ZZ.Magnitude = -1.0f *0.01f;
+	pLeg1ZZ.Frequency = 1.6f;
+	pLeg1ZZ.Damping = 0.6f;
+	pLeg1ZZ.Response = 1.4f;
+	pLeg1ZZ.Clamp = 45.0f;
+	// Up -> y
+	auto& pLeg1UU = pLegAnim1.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
+	pLeg1UU.Enabled = true;
+	pLeg1UU.Magnitude = -1.0f *0.01f;
+	pLeg1UU.Frequency = 1.6f;
+	pLeg1UU.Damping = 0.6f;
+	pLeg1UU.Response = 1.4f;
+	pLeg1UU.Clamp = 45.0f;
+	// Up -> x
+	auto& pLeg1UX = pLegAnim1.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::X ];
+	pLeg1UX.Enabled = true;
+	pLeg1UX.Magnitude = -1.0f *0.01f;
+	pLeg1UX.Frequency = 1.6f;
+	pLeg1UX.Damping = 0.6f;
+	pLeg1UX.Response = 1.4f;
+	pLeg1UX.Clamp = 45.0f;
+	// Up -> z
+	auto& pLeg1UZ = pLegAnim1.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Z ];
+	pLeg1UZ.Enabled = true;
+	pLeg1UZ.Magnitude = -1.0f *0.01f;
+	pLeg1UZ.Frequency = 1.6f;
+	pLeg1UZ.Damping = 0.6f;
+	pLeg1UZ.Response = 1.4f;
+	pLeg1UZ.Clamp = 45.0f;
+	// Strafe -> roll
+	auto& pLeg1XR = pLegAnim1.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	pLeg1XR.Enabled = true;
+	pLeg1XR.Magnitude = -5.0f;
+	pLeg1XR.Frequency = 1.6f;
+	pLeg1XR.Damping = 0.45f;
+	pLeg1XR.Response = 0.25f;
+	pLeg1XR.Clamp = 45.0f;
+	// Forward -> pitch
+	auto& pLeg1ZP = pLegAnim1.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
+	pLeg1ZP.Enabled = true;
+	pLeg1ZP.Magnitude = 5.0f;
+	pLeg1ZP.Frequency = 1.6f;
+	pLeg1ZP.Damping = 0.45f;
+	pLeg1ZP.Response = 0.25f;
+	pLeg1ZP.Clamp = 45.0f;
+	// up -> roll
+	auto& pLeg1UR = pLegAnim1.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Roll ];
+	pLeg1UR.Enabled = true;
+	pLeg1UR.Magnitude = -1.0f;
+	pLeg1UR.Frequency = 1.6f;
+	pLeg1UR.Damping = 0.6f;
+	pLeg1UR.Response = 1.4f;
+	pLeg1UR.Clamp = 45.0f;
+	// up -> pitch
+	auto& pLeg1UP = pLegAnim1.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Pitch ];
+	pLeg1UP.Enabled = true;
+	pLeg1UP.Magnitude = -1.0f;
+	pLeg1UP.Frequency = 1.6f;
+	pLeg1UP.Damping = 0.45f;
+	pLeg1UP.Response = 0.25f;
+	pLeg1UP.Clamp = 45.0f;
+	// yaw -> roll
+	auto& pLeg1YR = pLegAnim1.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
+	pLeg1YR.Enabled = true;
+	pLeg1YR.Magnitude = 0.5f;
+	pLeg1YR.Frequency = 1.6f;
+	pLeg1YR.Damping = 0.6f;
+	pLeg1YR.Response = 1.4f;
+	pLeg1YR.Clamp = 45.0f;
+	// yaw -> pitch
+	auto& pLeg1YP = pLegAnim1.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Pitch ];
+	pLeg1YP.Enabled = true;
+	pLeg1YP.Magnitude = -0.5f;
+	pLeg1YP.Frequency = 1.6f;
+	pLeg1YP.Damping = 0.45f;
+	pLeg1YP.Response = 0.25f;
+	pLeg1YP.Clamp = 45.0f;
 	}
+	// Leg2 
+	{
+	auto pLeg2 = m_Scene.CreateEntity();
+	pLeg2.AddComponent<TagComponent>().Name = "Player Leg BR";
+	auto& tc = pLeg2.AddComponent<TransformComponent>();
+    tc.LocalPosition = {0.6f,0.0f,0.6f};
+    tc.LocalOrientation = 
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	pLeg2.AddComponent<ParentComponent>().Parent = player;
+    pLeg2.AddComponent<MeshComponent>().MeshPtr = m_PlayerLegMesh.get();
+    auto& pLegAnim2 = pLeg2.AddComponent<MeshAnimationComponent>();
+	// Strafe -> x
+	auto& pLeg2XX = pLegAnim2.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
+	pLeg2XX.Enabled = true;
+	pLeg2XX.Magnitude = -1.0f *0.01f;
+	pLeg2XX.Frequency = 1.6f;
+	pLeg2XX.Damping = 0.6f;
+	pLeg2XX.Response = 1.4f;
+	pLeg2XX.Clamp = 45.0f;
+	// Forward -> z
+	auto& pLeg2ZZ = pLegAnim2.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
+	pLeg2ZZ.Enabled = true;
+	pLeg2ZZ.Magnitude = -1.0f *0.01f;
+	pLeg2ZZ.Frequency = 1.6f;
+	pLeg2ZZ.Damping = 0.6f;
+	pLeg2ZZ.Response = 1.4f;
+	pLeg2ZZ.Clamp = 45.0f;
+	// Up -> y
+	auto& pLeg2UU = pLegAnim2.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
+	pLeg2UU.Enabled = true;
+	pLeg2UU.Magnitude = -1.0f *0.01f;
+	pLeg2UU.Frequency = 1.6f;
+	pLeg2UU.Damping = 0.6f;
+	pLeg2UU.Response = 1.4f;
+	pLeg2UU.Clamp = 45.0f;
+	// Up -> x
+	auto& pLeg2UX = pLegAnim2.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::X ];
+	pLeg2UX.Enabled = true;
+	pLeg2UX.Magnitude = -1.0f *0.01f;
+	pLeg2UX.Frequency = 1.6f;
+	pLeg2UX.Damping = 0.6f;
+	pLeg2UX.Response = 1.4f;
+	pLeg2UX.Clamp = 45.0f;
+	// Up -> z
+	auto& pLeg2UZ = pLegAnim2.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Z ];
+	pLeg2UZ.Enabled = true;
+	pLeg2UZ.Magnitude = -1.0f *0.01f;
+	pLeg2UZ.Frequency = 1.6f;
+	pLeg2UZ.Damping = 0.6f;
+	pLeg2UZ.Response = 1.4f;
+	pLeg2UZ.Clamp = 45.0f;
+	// Strafe -> roll
+	auto& pLeg2XR = pLegAnim2.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	pLeg2XR.Enabled = true;
+	pLeg2XR.Magnitude = -5.0f;
+	pLeg2XR.Frequency = 1.6f;
+	pLeg2XR.Damping = 0.6f;
+	pLeg2XR.Response = 1.4f;
+	pLeg2XR.Clamp = 45.0f;
+	// Forward -> pitch
+	auto& pLeg2ZP = pLegAnim2.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
+	pLeg2ZP.Enabled = true;
+	pLeg2ZP.Magnitude = 5.0f;
+	pLeg2ZP.Frequency = 1.6f;
+	pLeg2ZP.Damping = 0.45f;
+	pLeg2ZP.Response = 0.25f;
+	pLeg2ZP.Clamp = 45.0f;
+	// up -> roll
+	auto& pLeg2UR = pLegAnim2.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Roll ];
+	pLeg2UR.Enabled = true;
+	pLeg2UR.Magnitude = -1.0f;
+	pLeg2UR.Frequency = 1.6f;
+	pLeg2UR.Damping = 0.45f;
+	pLeg2UR.Response = 0.25f;
+	pLeg2UR.Clamp = 45.0f;
+	// up -> pitch
+	auto& pLeg2UP = pLegAnim2.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Pitch ];
+	pLeg2UP.Enabled = true;
+	pLeg2UP.Magnitude = -1.0f;
+	pLeg2UP.Frequency = 1.6f;
+	pLeg2UP.Damping = 0.45f;
+	pLeg2UP.Response = 0.25f;
+	pLeg2UP.Clamp = 45.0f;
+	// yaw -> roll
+	auto& pLeg2YR = pLegAnim2.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
+	pLeg2YR.Enabled = true;
+	pLeg2YR.Magnitude = 2.5f;
+	pLeg2YR.Frequency = 1.6f;
+	pLeg2YR.Damping = 0.6f;
+	pLeg2YR.Response = 1.4f;
+	pLeg2YR.Clamp = 45.0f;
+	// yaw -> pitch
+	auto& pLeg2YP = pLegAnim2.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Pitch ];
+	pLeg2YP.Enabled = true;
+	pLeg2YP.Magnitude = -2.5f;
+	pLeg2YP.Frequency = 1.6f;
+	pLeg2YP.Damping = 0.45f;
+	pLeg2YP.Response = 0.25f;
+	pLeg2YP.Clamp = 45.0f;
+	}
+	// Leg3 
+	m_PlayerLegMeshMirrored = m_PlayerLegMesh->CreateMirrored(true,false,false);
+	{
+	auto pLeg3 = m_Scene.CreateEntity();
+	pLeg3.AddComponent<TagComponent>().Name = "Player Leg FL";
+	auto& tc = pLeg3.AddComponent<TransformComponent>();
+    tc.LocalPosition = {-0.6f,0.0f,-0.6f};
+	pLeg3.AddComponent<ParentComponent>().Parent = player;
+	auto& pmeshComp1 = pLeg3.AddComponent<MeshComponent>();
+	pmeshComp1.MeshPtr = m_PlayerLegMeshMirrored.get();
+    auto& pLegAnim3 = pLeg3.AddComponent<MeshAnimationComponent>();
+	// Strafe -> x
+	auto& pLeg3XX = pLegAnim3.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
+	pLeg3XX.Enabled = true;
+	pLeg3XX.Magnitude = -1.0f *0.01f;
+	pLeg3XX.Frequency = 1.6f;
+	pLeg3XX.Damping = 0.6f;
+	pLeg3XX.Response = 1.4f;
+	pLeg3XX.Clamp = 45.0f;
+	// Forward -> z
+	auto& pLeg3ZZ = pLegAnim3.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
+	pLeg3ZZ.Enabled = true;
+	pLeg3ZZ.Magnitude = -1.0f *0.01f;
+	pLeg3ZZ.Frequency = 1.6f;
+	pLeg3ZZ.Damping = 0.6f;
+	pLeg3ZZ.Response = 1.4f;
+	pLeg3ZZ.Clamp = 45.0f;
+	// Up -> y
+	auto& pLeg3UU = pLegAnim3.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
+	pLeg3UU.Enabled = true;
+	pLeg3UU.Magnitude = -1.0f *0.01f;
+	pLeg3UU.Frequency = 1.6f;
+	pLeg3UU.Damping = 0.6f;
+	pLeg3UU.Response = 1.4f;
+	pLeg3UU.Clamp = 45.0f;
+	// Up -> x
+	auto& pLeg3UX = pLegAnim3.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::X ];
+	pLeg3UX.Enabled = true;
+	pLeg3UX.Magnitude = -1.0f *0.01f;
+	pLeg3UX.Frequency = 1.6f;
+	pLeg3UX.Damping = 0.6f;
+	pLeg3UX.Response = 1.4f;
+	pLeg3UX.Clamp = 45.0f;
+	// Up -> z
+	auto& pLeg3UZ = pLegAnim3.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Z ];
+	pLeg3UZ.Enabled = true;
+	pLeg3UZ.Magnitude = -1.0f *0.01f;
+	pLeg3UZ.Frequency = 1.6f;
+	pLeg3UZ.Damping = 0.6f;
+	pLeg3UZ.Response = 1.4f;
+	pLeg3UZ.Clamp = 45.0f;
+	// Strafe -> roll
+	auto& pLeg3XR = pLegAnim3.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	pLeg3XR.Enabled = true;
+	pLeg3XR.Magnitude = -5.0f;
+	pLeg3XR.Frequency = 1.6f;
+	pLeg3XR.Damping = 0.45f;
+	pLeg3XR.Response = 0.25f;
+	pLeg3XR.Clamp = 45.0f;
+	// Forward -> pitch
+	auto& pLeg3ZP = pLegAnim3.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
+	pLeg3ZP.Enabled = true;
+	pLeg3ZP.Magnitude = 5.0f;
+	pLeg3ZP.Frequency = 1.6f;
+	pLeg3ZP.Damping = 0.45f;
+	pLeg3ZP.Response = 0.25f;
+	pLeg3ZP.Clamp = 45.0f;
+	// up -> roll
+	auto& pLeg3UR = pLegAnim3.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Roll ];
+	pLeg3UR.Enabled = true;
+	pLeg3UR.Magnitude = -1.0f;
+	pLeg3UR.Frequency = 1.6f;
+	pLeg3UR.Damping = 0.6f;
+	pLeg3UR.Response = 1.4f;
+	pLeg3UR.Clamp = 45.0f;
+	// up -> pitch
+	auto& pLeg3UP = pLegAnim3.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Pitch ];
+	pLeg3UP.Enabled = true;
+	pLeg3UP.Magnitude = -1.0f;
+	pLeg3UP.Frequency = 1.6f;
+	pLeg3UP.Damping = 0.6f;
+	pLeg3UP.Response = 1.4f;
+	pLeg3UP.Clamp = 45.0f;
+	// yaw -> roll
+	auto& pLeg3YR = pLegAnim3.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
+	pLeg3YR.Enabled = true;
+	pLeg3YR.Magnitude = 2.5f;
+	pLeg3YR.Frequency = 1.6f;
+	pLeg3YR.Damping = 0.45f;
+	pLeg3YR.Response = 0.25f;
+	pLeg3YR.Clamp = 45.0f;
+	// yaw -> pitch
+	auto& pLeg3YP = pLegAnim3.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Pitch ];
+	pLeg3YP.Enabled = true;
+	pLeg3YP.Magnitude = -2.5f;
+	pLeg3YP.Frequency = 1.6f;
+	pLeg3YP.Damping = 0.45f;
+	pLeg3YP.Response = 0.25f;
+	pLeg3YP.Clamp = 45.0f;
+	}
+	// Leg4 
+	{
+	auto pLeg4 = m_Scene.CreateEntity();
+	pLeg4.AddComponent<TagComponent>().Name = "Player Leg BL";
+	auto& tc = pLeg4.AddComponent<TransformComponent>();
+    tc.LocalPosition = {-0.6f,0.0f,0.6f};
+    tc.LocalOrientation = 
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+	pLeg4.AddComponent<ParentComponent>().Parent = player;
+	auto& pmeshComp2 = pLeg4.AddComponent<MeshComponent>();
+	pmeshComp2.MeshPtr = m_PlayerLegMeshMirrored.get();
+    auto& pLegAnim4 = pLeg4.AddComponent<MeshAnimationComponent>();
+	// Strafe -> x
+	auto& pLeg4XX = pLegAnim4.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
+	pLeg4XX.Enabled = true;
+	pLeg4XX.Magnitude = -1.0f *0.01f;
+	pLeg4XX.Frequency = 1.6f;
+	pLeg4XX.Damping = 0.6f;
+	pLeg4XX.Response = 1.4f;
+	pLeg4XX.Clamp = 45.0f;
+	// Forward -> z
+	auto& pLeg4ZZ = pLegAnim4.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
+	pLeg4ZZ.Enabled = true;
+	pLeg4ZZ.Magnitude = -1.0f *0.01f;
+	pLeg4ZZ.Frequency = 1.6f;
+	pLeg4ZZ.Damping = 0.6f;
+	pLeg4ZZ.Response = 1.4f;
+	pLeg4ZZ.Clamp = 45.0f;
+	// Up -> y
+	auto& pLeg4UU = pLegAnim4.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Y ];
+	pLeg4UU.Enabled = true;
+	pLeg4UU.Magnitude = -1.0f *0.01f;
+	pLeg4UU.Frequency = 1.6f;
+	pLeg4UU.Damping = 0.6f;
+	pLeg4UU.Response = 1.4f;
+	pLeg4UU.Clamp = 45.0f;
+	// Up -> x
+	auto& pLeg4UX = pLegAnim4.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::X ];
+	pLeg4UX.Enabled = true;
+	pLeg4UX.Magnitude = -1.0f *0.01f;
+	pLeg4UX.Frequency = 1.6f;
+	pLeg4UX.Damping = 0.6f;
+	pLeg4UX.Response = 1.4f;
+	pLeg4UX.Clamp = 45.0f;
+	// Up -> z
+	auto& pLeg4UZ = pLegAnim4.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Z ];
+	pLeg4UZ.Enabled = true;
+	pLeg4UZ.Magnitude = -1.0f *0.01f;
+	pLeg4UZ.Frequency = 1.6f;
+	pLeg4UZ.Damping = 0.6f;
+	pLeg4UZ.Response = 1.4f;
+	pLeg4UZ.Clamp = 45.0f;
+	// Strafe -> roll
+	auto& pLeg4XR = pLegAnim4.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	pLeg4XR.Enabled = true;
+	pLeg4XR.Magnitude = -5.0f;
+	pLeg4XR.Frequency = 1.6f;
+	pLeg4XR.Damping = 0.45f;
+	pLeg4XR.Response = 0.25f;
+	pLeg4XR.Clamp = 45.0f;
+	// Forward -> pitch
+	auto& pLeg4ZP = pLegAnim4.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
+	pLeg4ZP.Enabled = true;
+	pLeg4ZP.Magnitude = 5.0f;
+	pLeg4ZP.Frequency = 1.6f;
+	pLeg4ZP.Damping = 0.45f;
+	pLeg4ZP.Response = 0.25f;
+	pLeg4ZP.Clamp = 45.0f;
+	// up -> roll
+	auto& pLeg4UR = pLegAnim4.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Roll ];
+	pLeg4UR.Enabled = true;
+	pLeg4UR.Magnitude = -1.0f;
+	pLeg4UR.Frequency = 1.6f;
+	pLeg4UR.Damping = 0.6f;
+	pLeg4UR.Response = 1.4f;
+	pLeg4UR.Clamp = 45.0f;
+	// up -> pitch
+	auto& pLeg4UP = pLegAnim4.Links[ (int)MotionAxis::Y ][ (int)MotionAxis::Pitch ];
+	pLeg4UP.Enabled = true;
+	pLeg4UP.Magnitude = -1.0f;
+	pLeg4UP.Frequency = 1.6f;
+	pLeg4UP.Damping = 0.6f;
+	pLeg4UP.Response = 1.4f;
+	pLeg4UP.Clamp = 45.0f;
+	// yaw -> roll
+	auto& pLeg4YR = pLegAnim4.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Roll ];
+	pLeg4YR.Enabled = true;
+	pLeg4YR.Magnitude = 2.5f;
+	pLeg4YR.Frequency = 1.6f;
+	pLeg4YR.Damping = 0.45f;
+	pLeg4YR.Response = 0.25f;
+	pLeg4YR.Clamp = 45.0f;
+	// yaw -> pitch
+	auto& pLeg4YP = pLegAnim4.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Pitch ];
+	pLeg4YP.Enabled = true;
+	pLeg4YP.Magnitude = -2.5f;
+	pLeg4YP.Frequency = 1.6f;
+	pLeg4YP.Damping = 0.45f;
+	pLeg4YP.Response = 0.25f;
+	pLeg4YP.Clamp = 45.0f;
+	}
+
+
+
+
+
 
     // PLAYER Gun ENTITY
 	auto gun1 = m_Scene.CreateEntity();
 	gun1.AddComponent<TagComponent>().Name = "Gun1";
 	auto& gt1 = gun1.AddComponent<TransformComponent>();
-    gt1.LocalPosition = {0.05f ,0.08f ,0.f};
+    gt1.LocalPosition = {0.06f ,-0.06f ,-0.8f};
 	gun1.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
 	gun1.AddComponent<ParentComponent>().Parent = player;
     auto& gunAnim1 = gun1.AddComponent<MeshAnimationComponent>();
@@ -208,66 +573,29 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	Gun1StrafeRoll.Frequency = 1.8f;
 	Gun1StrafeRoll.Damping = 0.8f;
 	Gun1StrafeRoll.Response = 2.0f;
-	Gun1StrafeRoll.Clamp = 8.0f;
+	Gun1StrafeRoll.Clamp = 45.0f;
 	auto& Gun1ForwardLag = gunAnim1.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
 	Gun1ForwardLag.Enabled = true;
 	Gun1ForwardLag.Magnitude = 0.002f;
 	Gun1ForwardLag.Frequency = 1.8f;
 	Gun1ForwardLag.Damping = 0.8f;
 	Gun1ForwardLag.Response = 2.0f;
-	Gun1ForwardLag.Clamp = 8.0f;
+	Gun1ForwardLag.Clamp = 45.0f;
 	auto& Gun1YawYaw = gunAnim1.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Yaw ];
 	Gun1YawYaw.Enabled = true;
-	Gun1YawYaw.Magnitude = 1.2f;
+	Gun1YawYaw.Magnitude = 5.0f;
 	Gun1YawYaw.Frequency = 1.8f;
-	Gun1YawYaw.Damping = 0.8f;
-	Gun1YawYaw.Response = 2.0f;
-	Gun1YawYaw.Clamp = 8.0f;
+	Gun1YawYaw.Damping = 1.3f;
+	Gun1YawYaw.Response = 0.5f;
+	Gun1YawYaw.Clamp = 45.0f;
 	auto& Gun1PitchPitch = gunAnim1.Links[ (int)MotionAxis::Pitch ][ (int)MotionAxis::Pitch ];
 	Gun1PitchPitch.Enabled = true;
-	Gun1PitchPitch.Magnitude = 1.2f;
+	Gun1PitchPitch.Magnitude = 3.5f;
 	Gun1PitchPitch.Frequency = 1.8f;
-	Gun1PitchPitch.Damping = 0.8f;
-	Gun1PitchPitch.Response = 2.0f;
-	Gun1PitchPitch.Clamp = 8.0f;
+	Gun1PitchPitch.Damping = 1.3f;
+	Gun1PitchPitch.Response = 0.5f;
+	Gun1PitchPitch.Clamp = 45.0f;
 
-    // PLAYER Gun ENTITY2
-	auto gun2 = m_Scene.CreateEntity();
-	gun2.AddComponent<TagComponent>().Name = "Gun2";
-	auto& gt2 = gun2.AddComponent<TransformComponent>();
-    gt2.LocalPosition = {-0.05f ,0.08f ,0.0f};
-	gun2.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
-	gun2.AddComponent<ParentComponent>().Parent = player;
-    auto& gunAnim2 = gun2.AddComponent<MeshAnimationComponent>();
-	// Forward velocity -> pitch
-	auto& Gun2StrafeRoll = gunAnim2.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
-	Gun2StrafeRoll.Enabled = true;
-	Gun2StrafeRoll.Magnitude = -1.2f;
-	Gun2StrafeRoll.Frequency = 1.8f;
-	Gun2StrafeRoll.Damping = 0.8f;
-	Gun2StrafeRoll.Response = 2.0f;
-	Gun2StrafeRoll.Clamp = 8.0f;
-	auto& Gun2ForwardLag = gunAnim2.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Z ];
-	Gun2ForwardLag.Enabled = true;
-	Gun2ForwardLag.Magnitude = 0.002f;
-	Gun2ForwardLag.Frequency = 1.8f;
-	Gun2ForwardLag.Damping = 0.8f;
-	Gun2ForwardLag.Response = 2.0f;
-	Gun2ForwardLag.Clamp = 8.0f;
-	auto& Gun2YawYaw = gunAnim2.Links[ (int)MotionAxis::Yaw ][ (int)MotionAxis::Yaw ];
-	Gun2YawYaw.Enabled = true;
-	Gun2YawYaw.Magnitude = 1.2f;
-	Gun2YawYaw.Frequency = 1.8f;
-	Gun2YawYaw.Damping = 0.8f;
-	Gun2YawYaw.Response = 2.0f;
-	Gun2YawYaw.Clamp = 8.0f;
-	auto& Gun2PitchPitch = gunAnim2.Links[ (int)MotionAxis::Pitch ][ (int)MotionAxis::Pitch ];
-	Gun2PitchPitch.Enabled = true;
-	Gun2PitchPitch.Magnitude = 1.2f;
-	Gun2PitchPitch.Frequency = 1.8f;
-	Gun2PitchPitch.Damping = 0.8f;
-	Gun2PitchPitch.Response = 2.0f;
-	Gun2PitchPitch.Clamp = 8.0f;
 
     // CAMERA ENTITY
     auto camEntity = m_Scene.CreateEntity();
@@ -276,8 +604,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
-    //follow.Offset = {0.0f, 0.15f, 0.0f};
-    follow.Offset = {0.0f, 0.15f, 0.4f};
+    //follow.Offset = {0.0f, 0.0f, -0.35f};
+    follow.Offset = {0.0f, 0.3f, 3.35f};
 	float roll = 0.0f; float pitch = 0.0f; float yaw = 0.0f; 
 	follow.RotationOffset =
     	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
@@ -471,47 +799,38 @@ void SandboxLayer::OnUpdate() {
 	// Cube click test
 	static bool lastClick = false;
 
-	bool click =
-		Input::IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) ||
-		ControllerInput::IsButtonPressed(0, GamepadButton::R1);
-	for (int i = 0; i < 16; i++)
-	{
-	    if (ControllerInput::IsButtonPressed(0, (GamepadButton)i))
-	    {
+	bool click = Input::IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) || ControllerInput::IsButtonPressed(0, GamepadButton::R1);
+	for (int i = 0; i < 16; i++) {
+	    if (ControllerInput::IsButtonPressed(0, (GamepadButton)i)) {
 	        WK_CORE_INFO("BUTTON PRESSED: {0}", i);
 	    }
 	}
 
-	if (click && !lastClick)
-	{
-		Ray ray = CreateCameraRay(m_Controller.GetCamera());
+	if (click && !lastClick) {
+		Ray ray = CreateCameraRay(cam, camPos);
+		for (auto entity : playerView) {
+    		auto& playerTransform = playerView.get<TransformComponent>(entity);
+			ray.Direction = playerTransform.LocalOrientation * glm::vec3(0, 0, -1);
+			ray.Origin = playerTransform.LocalPosition + glm::normalize(ray.Direction)*0.7f;
+		}
 
 		RaycastHit hit;
 		float maxDist = 1000.0f;
 
-		if (RaycastAABB(m_Scene, ray, hit, maxDist))
-		{
+		if (RaycastAABB(m_Scene, ray, hit, maxDist)) {
 			Entity e = hit.HitEntity;
 
 			auto& registry = m_Scene.Registry();
 
-			if (registry.all_of<TagComponent>(e.GetHandle()))
-			{
+			if (registry.all_of<TagComponent>(e.GetHandle())) {
 				auto& tag = registry.get<TagComponent>(e.GetHandle());
 
 				WK_CORE_INFO("Ray hit entity: {0}", tag.Name);
 
 				// ONLY teleport cubes
-				if (tag.Name == "Cube")
-				{
+				if (tag.Name == "Cube") {
 				    float range = 10.0f;
-
-				    glm::vec3 newPos(
-				        RandomFloat() * range,
-				        20.f+RandomFloat() * range,
-				        RandomFloat() * range
-				    );
-
+				    glm::vec3 newPos(RandomFloat() * range, 20.f+RandomFloat() * range, RandomFloat() * range);
 				    registry.get<TransformComponent>(e.GetHandle()).LocalPosition = newPos;
 				}
 			}
