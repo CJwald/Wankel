@@ -741,7 +741,15 @@ void SandboxLayer::OnImGuiRender() {
 				                ImGui::DragFloat(("Response##" + label).c_str(), &link.Response, 0.01f, -10.0f, 10.0f);
 				                ImGui::DragFloat(("Clamp##" + label).c_str(), &link.Clamp, 0.01f, 0.0f, 1000.0f);
 				                ImGui::Text("Output: %.3f", link.Output);
-				                ImGui::Separator();
+	 			                ImGui::Separator();
+								auto values = Wankel::SecondOrderPreview::GetStepResponse(link.Frequency, link.Damping, link.Response);
+								ImGui::PlotLines("Step Response", values.data(), (int)values.size(),
+								    0,
+								    nullptr,
+								    -0.5f,
+								    2.0f,
+								    ImVec2(0, 100)
+								);
 
 				                if (ImGui::Button(("Remove##" + label).c_str()))
 				                    removeMapping = true;
