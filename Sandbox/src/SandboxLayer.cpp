@@ -744,7 +744,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	
 
 	// DEFAULT FOG
-	m_Fog.Color = {0.32f, 0.3f, 0.38f};
+	m_Fog.Color = {0.68f, 0.96f, 1.0f};
 	m_Fog.Density = 0.008f;
 
 	// Lock mouse initially
@@ -866,7 +866,7 @@ void SandboxLayer::OnUpdate() {
 						float d = glm::dot( toChunk / chunklen, camForward );
 						
 						// Skip chunks behind camera
-						if (d < -0.1f)
+						if (d < -0.05f)
 						    continue;
 					}
 				}
@@ -928,45 +928,47 @@ void SandboxLayer::OnUpdate() {
 						
 						glm::vec3 cDims = collider.HalfSize;
 				    	glm::vec3 cOrigin = glm::vec3(model[3]) + collider.Offset;
+						//glm::vec3 colliderLineColor = {0.6, 1.0, 0.0};
+						glm::vec3 colliderLineColor = {0.4f, 0.0f, 1.0f};
 						// Right
 						lines.push_back({ cOrigin + right*cDims[0] + up*cDims[1] + forward*cDims[2], 
 						                  cOrigin + right*cDims[0] + up*cDims[1] - forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin + right*cDims[0] + up*cDims[1] - forward*cDims[2], 
 						                  cOrigin + right*cDims[0] - up*cDims[1] - forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin + right*cDims[0] - up*cDims[1] - forward*cDims[2], 
 						                  cOrigin + right*cDims[0] - up*cDims[1] + forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin + right*cDims[0] - up*cDims[1] + forward*cDims[2], 
 						                  cOrigin + right*cDims[0] + up*cDims[1] + forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						// Left
 						lines.push_back({ cOrigin - right*cDims[0] + up*cDims[1] + forward*cDims[2], 
 						                  cOrigin - right*cDims[0] + up*cDims[1] - forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin - right*cDims[0] + up*cDims[1] - forward*cDims[2], 
 						                  cOrigin - right*cDims[0] - up*cDims[1] - forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin - right*cDims[0] - up*cDims[1] - forward*cDims[2], 
 						                  cOrigin - right*cDims[0] - up*cDims[1] + forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin - right*cDims[0] - up*cDims[1] + forward*cDims[2], 
 						                  cOrigin - right*cDims[0] + up*cDims[1] + forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						// Connection lines
 						lines.push_back({ cOrigin + right*cDims[0] + up*cDims[1] + forward*cDims[2], 
 						                  cOrigin - right*cDims[0] + up*cDims[1] + forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin + right*cDims[0] + up*cDims[1] - forward*cDims[2], 
 						                  cOrigin - right*cDims[0] + up*cDims[1] - forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin + right*cDims[0] - up*cDims[1] + forward*cDims[2], 
 						                  cOrigin - right*cDims[0] - up*cDims[1] + forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 						lines.push_back({ cOrigin + right*cDims[0] - up*cDims[1] - forward*cDims[2], 
 						                  cOrigin - right*cDims[0] - up*cDims[1] - forward*cDims[2], 
-						                  {0.6, 1.0, 0.0} });
+						                  colliderLineColor });
 				
 				    	Renderer::SubmitDebugLines(lines);
 					}
@@ -990,13 +992,13 @@ void SandboxLayer::OnImGuiRender() {
 		
 		// FOG
 		if (ImGui::CollapsingHeader("Fog")) { 
-			if (ImGui::CollapsingHeader("Color Picker")) { 
-				ImGui::SameLine();
-				ImGui::ColorPicker3("##FogColor", 
-					&m_Fog.Color[0], 
-					ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_Float
-				);
-			}
+			//if (ImGui::CollapsingHeader("Color Picker")) { 
+			//	ImGui::SameLine();
+			//	ImGui::ColorPicker3("##FogColor", 
+			//		&m_Fog.Color[0], 
+			//		ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_Float
+			//	);
+			//}
 			ImGui::ColorEdit3("Fog Color", &m_Fog.Color[0], ImGuiColorEditFlags_Float);
 			ImGui::SliderFloat("Fog Density", &m_Fog.Density, 0.0001f, 0.1f, "%.4f", ImGuiSliderFlags_Logarithmic);
 
@@ -1073,7 +1075,8 @@ void SandboxLayer::OnImGuiRender() {
 				std::string name = "Unknown";
 				if (registry.all_of<TagComponent>(entity))
 				    name = registry.get<TagComponent>(entity).Name;
-				storageNames.push_back(name + " (" + std::to_string((uint32_t)entity) + ")");
+				//storageNames.push_back(name + " (" + std::to_string((uint32_t)entity) + ")");
+				storageNames.push_back( "[" + std::to_string((uint32_t)entity) + "]  |  " + name);
 			}
 
 			for (auto& s : storageNames)
@@ -1082,7 +1085,7 @@ void SandboxLayer::OnImGuiRender() {
 			static int selectedIndex = 0;
 
 			if (!labels.empty()) {
-				if (ImGui::Combo("Selected Entity", &selectedIndex, labels.data(), (int)labels.size())) {
+				if (ImGui::Combo("Selected", &selectedIndex, labels.data(), (int)labels.size())) {
 				    m_SelectedAnimEntity = entities[selectedIndex];
 				}
 			}
