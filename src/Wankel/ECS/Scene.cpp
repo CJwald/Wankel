@@ -153,7 +153,7 @@ namespace Wankel {
 		
 
         // Player Movement System
-        auto view = m_Registry.view< TransformComponent, PlayerControllerComponent, RigidbodyComponent>();
+        auto view = m_Registry.view<TransformComponent, PlayerControllerComponent, RigidbodyComponent>();
 
         for (auto entity : view) {
 

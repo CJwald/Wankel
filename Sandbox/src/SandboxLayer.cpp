@@ -929,7 +929,7 @@ void SandboxLayer::OnUpdate() {
 						glm::vec3 cDims = collider.HalfSize;
 				    	glm::vec3 cOrigin = glm::vec3(model[3]) + collider.Offset;
 						//glm::vec3 colliderLineColor = {0.6, 1.0, 0.0};
-						glm::vec3 colliderLineColor = {0.6f, 0.35f, 1.0f};
+						glm::vec3 colliderLineColor = {0.4f, 0.0f, 1.0f};
 						// Right
 						lines.push_back({ cOrigin + right*cDims[0] + up*cDims[1] + forward*cDims[2], 
 						                  cOrigin + right*cDims[0] + up*cDims[1] - forward*cDims[2], 
