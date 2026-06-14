@@ -24,9 +24,6 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             if (rb.IsStatic)
             	continue; // if body is static, no integration (go next)
 
-            //rb.Velocity = rb.ForcedVelocity;
-            //t.LocalPosition += rb.Velocity * dt;
-
 			// ACCELERATION
 			float accel = glm::length(rb.MoveIntent) > 0.001f ? rb.Acceleration : rb.Deceleration;
 
