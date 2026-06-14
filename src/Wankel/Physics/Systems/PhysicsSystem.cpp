@@ -15,20 +15,21 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
 
     // INTEGRATE
     {
-        auto view = registry.view<TransformComponent, RigidbodyComponent>();
+        auto view = registry.view<TransformComponent, RigidbodyComponent, MovementComponent>();
 
         for (auto e : view) {
             auto& t = registry.get<TransformComponent>(e);
             auto& rb = registry.get<RigidbodyComponent>(e);
+            auto& m = registry.get<MovementComponent>(e);
 
             if (rb.IsStatic)
             	continue; // if body is static, no integration (go next)
 
 			// ACCELERATION
-			float accel = glm::length(rb.MoveIntent) > 0.001f ? rb.Acceleration : rb.Deceleration;
+			float accel = glm::length(m.MoveIntent) > 0.001f ? m.Acceleration : m.Deceleration;
 
 			// VELOCITY
-			glm::vec3 targetVel = rb.MoveIntent * rb.MaxSpeed;
+			glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed;
 			glm::vec3 deltaVel = targetVel - rb.Velocity;
 			float deltaMag = glm::length(deltaVel);
 

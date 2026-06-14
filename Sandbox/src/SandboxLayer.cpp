@@ -620,6 +620,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto& collider = player.AddComponent<AABBComponent>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
 	auto& rb = player.AddComponent<RigidbodyComponent>();
+	auto& m = player.AddComponent<MovementComponent>();
 	rb.Velocity = {0,0,0};
 	rb.IsStatic = false;	
 
@@ -694,6 +695,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto& collider = enemy.AddComponent<AABBComponent>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
 	auto& rb = enemy.AddComponent<RigidbodyComponent>();
+	auto& m = enemy.AddComponent<MovementComponent>();
 	rb.Velocity = {0,0,0};
 	rb.IsStatic = false;	
 	}

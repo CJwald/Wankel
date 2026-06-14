@@ -153,13 +153,14 @@ namespace Wankel {
 		
 
         // Player Movement System
-        auto view = m_Registry.view<TransformComponent, PlayerControllerComponent, RigidbodyComponent>();
+        auto view = m_Registry.view<TransformComponent, PlayerControllerComponent, RigidbodyComponent, MovementComponent>();
 
         for (auto entity : view) {
 
             auto& transform  = view.get<TransformComponent>(entity);
             auto& controller = view.get<PlayerControllerComponent>(entity);
             auto& rb         = view.get<RigidbodyComponent>(entity);
+            auto& movement   = view.get<MovementComponent>(entity);
 
             // INPUT
             float dx = controller.LookDeltaX * controller.WindowSensitivity;
@@ -225,14 +226,14 @@ namespace Wankel {
                 moveDir = glm::normalize(moveDir);
 			}
 
-			// TODO: this is a hack, the movement component impilementation will fix this
+			// TODO: this is a hack, this should be controlled from sandbox
             if (controller.Boost) {
-				rb.MaxSpeed = rb.SavedMaxSpeed * controller.BoostMultiplier;
+				movement.MaxSpeed = movement.SavedMaxSpeed * controller.BoostMultiplier;
 			}
 			else { 
-				rb.MaxSpeed = rb.SavedMaxSpeed;
+				movement.MaxSpeed = movement.SavedMaxSpeed;
 			}
-			rb.MoveIntent = moveDir;
+			movement.MoveIntent = moveDir;
 
             // APPLY TRANSFORM
             transform.LocalOrientation = controller.Orientation;
