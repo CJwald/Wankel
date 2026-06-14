@@ -196,7 +196,7 @@ namespace Wankel {
                 glm::quat pitchQuat = glm::angleAxis( controller.Pitch, bodyRight );
 				controller.Orientation = glm::normalize( pitchQuat * controller.BodyOrientation );
 				
-				// Movement TODO: is this needed here:
+				// Movement TODO: is this needed here?:
                 forward = controller.BodyOrientation * glm::vec3(0,0,-1);
                 right =   controller.BodyOrientation * glm::vec3(1,0,0);
                 up =      controller.BodyOrientation * glm::vec3(0,1,0);
@@ -225,13 +225,14 @@ namespace Wankel {
                 moveDir = glm::normalize(moveDir);
 			}
 
-            float speed = controller.MoveSpeed;
-
+			// TODO: this is a hack, the movement component impilementation will fix this
             if (controller.Boost) {
-                speed *= controller.BoostMultiplier;
+				rb.MaxSpeed = rb.SavedMaxSpeed * controller.BoostMultiplier;
 			}
-
-            rb.ForcedVelocity = moveDir * speed;
+			else { 
+				rb.MaxSpeed = rb.SavedMaxSpeed;
+			}
+			rb.MoveIntent = moveDir;
 
             // APPLY TRANSFORM
             transform.LocalOrientation = controller.Orientation;

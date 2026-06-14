@@ -10,6 +10,7 @@
 namespace Wankel {
 
 void PhysicsSystem::Update(Scene& scene, float dt) {
+
     auto& registry = scene.Registry();
 
     // INTEGRATE
@@ -20,10 +21,30 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             auto& t = registry.get<TransformComponent>(e);
             auto& rb = registry.get<RigidbodyComponent>(e);
 
-            if (!rb.IsStatic) {
-                rb.Velocity = rb.ForcedVelocity;
-                t.LocalPosition += rb.Velocity * dt;
-            }
+            if (rb.IsStatic)
+            	continue; // if body is static, no integration (go next)
+
+            //rb.Velocity = rb.ForcedVelocity;
+            //t.LocalPosition += rb.Velocity * dt;
+
+			// ACCELERATION
+			float accel = glm::length(rb.MoveIntent) > 0.001f ? rb.Acceleration : rb.Deceleration;
+
+			// VELOCITY
+			glm::vec3 targetVel = rb.MoveIntent * rb.MaxSpeed;
+			glm::vec3 deltaVel = targetVel - rb.Velocity;
+			float deltaMag = glm::length(deltaVel);
+
+			float maxDV = accel * dt;
+
+			if (deltaMag > maxDV) { 
+				deltaVel = glm::normalize(deltaVel) * maxDV;
+			}
+
+			rb.Velocity += deltaVel;
+
+			// POSITION
+			t.LocalPosition += rb.Velocity * dt;
         }
     }
 
@@ -45,14 +66,11 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     auto view = registry.view<TransformComponent, RigidbodyComponent>();
 
     for (auto a : view) {
-
         auto& ta = registry.get<TransformComponent>(a);
         auto& rba = registry.get<RigidbodyComponent>(a);
-
         auto candidates = m_Grid.Query(ta.LocalPosition);
 
         for (auto b : candidates) {
-
             if (a == b)
                 continue;
 

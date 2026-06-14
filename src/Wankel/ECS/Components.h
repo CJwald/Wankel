@@ -76,6 +76,17 @@ namespace Wankel {
         glm::quat RotationOffset{1, 0, 0, 0};
     };
 
+	// TODO: Not used. Will takeover some RB component tasks
+	struct MovementComponent {
+	    float MaxSpeed = 10.0f; 
+
+		float Acceleration = 20.0f; 
+		float Deceleration = 30.0f;
+
+		float AirAcceleration = 10.0f;
+		float AirDeceleration = 5.0f;
+	};
+
 
 	struct TagComponent {
 	    std::string Name;
@@ -134,9 +145,18 @@ namespace Wankel {
 
 	struct RigidbodyComponent {
 	    glm::vec3 Velocity{0.0f};
-	    glm::vec3 ForcedVelocity{0.0f}; // THis should be removed and add acceleration later
+	    glm::vec3 ForcedVelocity{0.0f};
+	    glm::vec3 MoveIntent{0.0f};
+
 	    float Mass = 1.0f;
 	    bool IsStatic = false;
+
+		// TODO: Remove these once the MovementComponent is integrated
+		float SavedMaxSpeed = 5.0f; // TODO: Remove, this is a hack to get boost working before full refactor
+		float MaxSpeed = 5.0f;
+		float Acceleration = 50.0f;
+		float Deceleration = 50.0f; // low decel rate with fast acc fells good for space flight
+
 	};
 	
 
