@@ -81,6 +81,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	//m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
 	//m_BoxMesh = MeshLoader::Load("Assets/Mesh/Flat200m.ply");
 	m_BoxMesh = MeshLoader::Load("Assets/Mesh/Rolling200m.ply");
+	//m_BoxMesh = MeshLoader::Load("Assets/Mesh/Rolling1000m.ply");
 	m_PlayerHeadMesh = MeshLoader::Load("Assets/Mesh/PlayerHead01.ply");
 	m_PlayerLegMesh = MeshLoader::Load("Assets/Mesh/PlayerLeg01.ply");
 	m_EnemyBodyMesh = MeshLoader::Load("Assets/Mesh/StalkerBody01.ply");
@@ -746,7 +747,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	
 
 	// DEFAULT FOG
-	m_Fog.Color = {0.68f, 0.96f, 1.0f};
+	m_Fog.Color = {0.78f, 0.98f, 1.0f};
 	m_Fog.Density = 0.008f;
 
 	// Lock mouse initially
