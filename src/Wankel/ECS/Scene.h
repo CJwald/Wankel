@@ -3,6 +3,11 @@
 #include "Wankel/Renderer/Camera.h"
 #include "Wankel/Physics/Systems/PhysicsSystem.h"
 
+#include "Systems/PlayerControllerSystem.h"
+#include "Systems/TransformSystem.h"
+#include "Systems/ProceduralAnimationSystem.h"
+#include "Systems/CameraSystem.h"
+
 namespace Wankel {
 
     class Scene {
@@ -20,15 +25,16 @@ namespace Wankel {
         entt::registry& Registry() { return m_Registry; }
 
 	private:
-    	void UpdateTransforms(float dt);
     	void UpdateKinematics(float dt);
-    	void UpdateProceduralAnimation(float dt);
-		void UpdateFinalTransforms();
 
     private:
+		PlayerControllerSystem m_PlayerControllerSystem;
+		TransformSystem m_TransformSystem;
+		ProceduralAnimationSystem m_ProceduralAnimationSystem;
+		CameraSystem m_CameraSystem;
+
         entt::registry m_Registry;
 		PhysicsSystem m_PhysicsSystem;
-		float m_dPosThreshold = 50.0f; // Change in position threshold for velocity calc. 
     };
 
 }
