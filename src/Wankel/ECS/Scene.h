@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "Wankel/Physics/Systems/PhysicsSystem.h"
 #include "Wankel/ECS/Systems/PlayerControllerSystem.h"
+#include "Wankel/ECS/Systems/TransformSystem.h"
 #include "Wankel/ECS/Systems/KinematicsSystem.h"
 #include "Wankel/ECS/Systems/ProceduralAnimationSystem.h"
 #include "Wankel/ECS/Systems/CameraSystem.h"
@@ -25,6 +26,7 @@ namespace Wankel {
 
     private:
 		PlayerControllerSystem m_PlayerControllerSystem;
+		TransformSystem m_TransformSystem;
 		KinematicsSystem m_KinematicsSystem;
 		ProceduralAnimationSystem m_ProceduralAnimationSystem;
 		CameraSystem m_CameraSystem;
