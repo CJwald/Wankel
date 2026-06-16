@@ -6,7 +6,8 @@ can be flown through).
 Right now I do all development from terminal (Vim), usually on Linux. I have tested and built in both 
 Linux and Windows from terminal / PowerShell.
 
-![Wankel Sandbox Screenshot](Documents/WankelScreenshot.png)
+![Wankel Sandbox Screenshot](Documents/WankelScreenshot02.png)
+![Wankel Sandbox Screenshot](Documents/WankelScreenshot01.png)
 
 
 ## REQUIREMENTS:
