@@ -15,12 +15,12 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
 
     // INTEGRATE
     {
-        auto view = registry.view<TransformComponent, RigidbodyComponent, MovementComponent>();
+        auto view = registry.view<Transform, Rigidbody, Movement>();
 
         for (auto e : view) {
-            auto& t = registry.get<TransformComponent>(e);
-            auto& rb = registry.get<RigidbodyComponent>(e);
-            auto& m = registry.get<MovementComponent>(e);
+            auto& t = registry.get<Transform>(e);
+            auto& rb = registry.get<Rigidbody>(e);
+            auto& m = registry.get<Movement>(e);
 
             if (rb.IsStatic)
             	continue; // if body is static, no integration (go next)
@@ -49,10 +49,10 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // BUILD SPATIAL GRID
     m_Grid.Clear();
 
-    auto buildView = registry.view<TransformComponent, AABBComponent>();
+    auto buildView = registry.view<Transform, AABBComponent>();
 
     for (auto e : buildView) {
-        auto& t = registry.get<TransformComponent>(e);
+        auto& t = registry.get<Transform>(e);
         auto& c = registry.get<AABBComponent>(e);
 
         glm::vec3 center = t.LocalPosition + c.Offset;
@@ -61,11 +61,11 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     }
 
     // COLLISION
-    auto view = registry.view<TransformComponent, RigidbodyComponent>();
+    auto view = registry.view<Transform, Rigidbody>();
 
     for (auto a : view) {
-        auto& ta = registry.get<TransformComponent>(a);
-        auto& rba = registry.get<RigidbodyComponent>(a);
+        auto& ta = registry.get<Transform>(a);
+        auto& rba = registry.get<Rigidbody>(a);
         auto candidates = m_Grid.Query(ta.LocalPosition);
 
         for (auto b : candidates) {
@@ -80,8 +80,8 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             if (!manifold.Colliding)
                 continue;
 
-            auto& tb = registry.get<TransformComponent>(b);
-            auto& rbb = registry.get<RigidbodyComponent>(b);
+            auto& tb = registry.get<Transform>(b);
+            auto& rbb = registry.get<Rigidbody>(b);
 
             // POSITION SOLVE
             if (rba.IsStatic && rbb.IsStatic)

@@ -9,7 +9,7 @@
 
 namespace Wankel {
 
-	struct TransformComponent {
+	struct Transform {
 	    // SIMULATION
 	    glm::vec3 LocalPosition{0.0f};
 	    glm::quat LocalOrientation{1,0,0,0};
@@ -27,7 +27,7 @@ namespace Wankel {
 	};
 
 
-	struct KinematicsComponent {
+	struct Kinematics {
 	    glm::vec3 WorldVelocity{0};
 	    glm::vec3 WorldAcceleration{0};
 	
@@ -39,7 +39,7 @@ namespace Wankel {
 	};
 
 
-	struct MeshComponent {
+	struct MeshRenderer {
         Mesh* MeshPtr = nullptr;
 
 		glm::vec3 LocalPosition{0.0f};
@@ -80,12 +80,12 @@ namespace Wankel {
     };
 
 
-	struct TagComponent {
+	struct Tag {
 	    std::string Name;
 	}; 
 
 
-	struct PlayerControllerComponent {
+	struct PlayerController {
 		enum class LookMode {
 			FPS,
 			Flight
@@ -118,7 +118,7 @@ namespace Wankel {
     };
 
 
-	struct ParentComponent {
+	struct Parent {
 	    Entity Parent;
 	
 	    bool InheritPosition = true;
@@ -130,12 +130,12 @@ namespace Wankel {
 	};
 
 
-	struct ChildrenComponent {
+	struct Children {
 	    std::vector<Entity> Children;
 	};
 
 
-	struct MovementComponent {
+	struct Movement {
 	    glm::vec3 MoveIntent{0.0f};
 
 	    float MaxSpeed = 5.0f; 
@@ -145,7 +145,7 @@ namespace Wankel {
 	};
 
 
-	struct RigidbodyComponent {
+	struct Rigidbody {
 	    glm::vec3 Velocity{0.0f};
 	    glm::vec3 Force{0.0f}; // Not used, I think I want it eventually
 
@@ -154,7 +154,7 @@ namespace Wankel {
 	};
 	
 
-	struct ColliderComponent {
+	struct Collider {
 	    enum class Type : uint8_t {
 	        AABB,
 	        Sphere,
@@ -177,13 +177,13 @@ namespace Wankel {
 	};
 
 
-	struct SphereColliderComponent {
+	struct SphereCollider {
 	    float Radius = 0.5f;
 		glm::vec3 Offset{0.0f};
 	};
 
 
-	struct MeshAnimationComponent {
+	struct MeshAnimation {
 		static constexpr int AxisCount = (int)MotionAxis::Count;
 
     	MotionLink Links[AxisCount][AxisCount];

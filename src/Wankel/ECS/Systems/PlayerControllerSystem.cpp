@@ -13,14 +13,14 @@ namespace Wankel {
 		auto& registry = scene.Registry();
 
         // Player Movement System
-        auto view = registry.view<TransformComponent, PlayerControllerComponent, RigidbodyComponent, MovementComponent>();
+        auto view = registry.view<Transform, PlayerController, Rigidbody, Movement>();
 
         for (auto entity : view) {
 
-            auto& transform  = view.get<TransformComponent>(entity);
-            auto& controller = view.get<PlayerControllerComponent>(entity);
-            auto& rb         = view.get<RigidbodyComponent>(entity);
-            auto& movement   = view.get<MovementComponent>(entity);
+            auto& transform  = view.get<Transform>(entity);
+            auto& controller = view.get<PlayerController>(entity);
+            auto& rb         = view.get<Rigidbody>(entity);
+            auto& movement   = view.get<Movement>(entity);
 
             // INPUT
             float dx = controller.LookDeltaX * controller.WindowSensitivity;
@@ -35,7 +35,7 @@ namespace Wankel {
             glm::vec3 up      = controller.Orientation * glm::vec3(0,1,0);
 
             // FPS LOOK MODE
-            if (controller.Mode == PlayerControllerComponent::LookMode::FPS) {
+            if (controller.Mode == PlayerController::LookMode::FPS) {
 				
             	glm::vec3 bodyForward = controller.BodyOrientation * glm::vec3(0,0,-1);
             	glm::vec3 bodyRight   = controller.BodyOrientation * glm::vec3(1,0,0);
@@ -64,7 +64,7 @@ namespace Wankel {
             }
 
             // FLIGHT MODE
-            else if (controller.Mode == PlayerControllerComponent::LookMode::Flight) {
+            else if (controller.Mode == PlayerController::LookMode::Flight) {
 
 				// MOVEMENT TODO: is this needed here?
                 forward = controller.Orientation * glm::vec3(0,0,-1);

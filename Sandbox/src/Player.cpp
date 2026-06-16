@@ -17,34 +17,34 @@ void Player::Build(Scene& scene) {
 
     // ROOT PLAYER
     m_Player = scene.CreateEntity();
-    m_Player.AddComponent<TagComponent>().Name = "Player";
+    m_Player.AddComponent<Tag>().Name = "Player";
 
-    auto& pt = m_Player.AddComponent<TransformComponent>();
+    auto& pt = m_Player.AddComponent<Transform>();
     pt.LocalPosition = {0, 1, 0};
 
-    m_Player.AddComponent<PlayerControllerComponent>();
+    m_Player.AddComponent<PlayerController>();
     m_Player.AddComponent<AABBComponent>().HalfSize = {0.5f, 0.5f, 0.5f};
 
-    auto& rb = m_Player.AddComponent<RigidbodyComponent>();
+    auto& rb = m_Player.AddComponent<Rigidbody>();
     rb.IsStatic = false;
 
     auto MakeShip = [&](glm::vec3 offset, const char* name, bool Mirrored) {
         auto ship = scene.CreateEntity();
-        ship.AddComponent<TagComponent>().Name = name;
+        ship.AddComponent<Tag>().Name = name;
 
-        auto& t = ship.AddComponent<TransformComponent>();
+        auto& t = ship.AddComponent<Transform>();
         t.LocalPosition = offset;
 
 		if (Mirrored) {
     		m_ShipMeshMirrored = m_ShipMesh->CreateMirrored(true, false, false);
-    		ship.AddComponent<MeshComponent>().MeshPtr = m_ShipMeshMirrored.get();
+    		ship.AddComponent<MeshRenderer>().MeshPtr = m_ShipMeshMirrored.get();
 		}
 		else {
-        	ship.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
+        	ship.AddComponent<MeshRenderer>().MeshPtr = m_ShipMesh.get();
 		}
-        ship.AddComponent<ParentComponent>().Parent = m_Player;
+        ship.AddComponent<Parent>().Parent = m_Player;
 
-        auto& anim = ship.AddComponent<MeshAnimationComponent>();
+        auto& anim = ship.AddComponent<MeshAnimation>();
 		// Forward velocity -> pitch
 		auto& ForwardPitch = anim.Links[ (int)MotionAxis::Z ][ (int)MotionAxis::Pitch ];
 		ForwardPitch.Enabled = true;
@@ -88,43 +88,43 @@ void Player::Build(Scene& scene) {
     m_ShipLeft = MakeShip({-0.4f, 0.0f, 0.4f}, "ShipL", false);
     m_ShipRight = MakeShip({0.4f, 0.0f, 0.4f}, "ShipR", true);
     //auto shipL = scene.CreateEntity();
-    //shipL.AddComponent<TagComponent>().Name = "ShipL";
+    //shipL.AddComponent<Tag>().Name = "ShipL";
 
-    //auto& slT = shipL.AddComponent<TransformComponent>();
+    //auto& slT = shipL.AddComponent<Transform>();
     //slT.LocalPosition = {-0.4f, 0.0f, 0.4f};
-    //shipL.AddComponent<ParentComponent>().Parent = m_Player;
-    //shipL.AddComponent<MeshComponent>().MeshPtr = m_ShipMesh.get();
+    //shipL.AddComponent<Parent>().Parent = m_Player;
+    //shipL.AddComponent<MeshRenderer>().MeshPtr = m_ShipMesh.get();
 
-    //auto& animL = shipL.AddComponent<MeshAnimationComponent>();
+    //auto& animL = shipL.AddComponent<MeshAnimation>();
 
 
 
     // RIGHT SHIP (MIRRORED)
     //auto shipR = scene.CreateEntity();
-    //shipR.AddComponent<TagComponent>().Name = "ShipR";
+    //shipR.AddComponent<Tag>().Name = "ShipR";
 
-    //auto& srT = shipR.AddComponent<TransformComponent>();
+    //auto& srT = shipR.AddComponent<Transform>();
     //srT.LocalPosition = {0.4f, 0.0f, 0.4f};
 
-    //shipR.AddComponent<ParentComponent>().Parent = m_Player;
+    //shipR.AddComponent<Parent>().Parent = m_Player;
 
     //m_ShipMeshMirrored = m_ShipMesh->CreateMirrored(true, false, false);
-    //shipR.AddComponent<MeshComponent>().MeshPtr = m_ShipMeshMirrored.get();
+    //shipR.AddComponent<MeshRenderer>().MeshPtr = m_ShipMeshMirrored.get();
 
     //m_GunRight = shipR;
 
     // GUNS
     auto MakeGun = [&](glm::vec3 offset, const char* name) {
         auto gun = scene.CreateEntity();
-        gun.AddComponent<TagComponent>().Name = name;
+        gun.AddComponent<Tag>().Name = name;
 
-        auto& t = gun.AddComponent<TransformComponent>();
+        auto& t = gun.AddComponent<Transform>();
         t.LocalPosition = offset;
 
-        gun.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
-        gun.AddComponent<ParentComponent>().Parent = m_Player;
+        gun.AddComponent<MeshRenderer>().MeshPtr = m_GunMesh.get();
+        gun.AddComponent<Parent>().Parent = m_Player;
 
-        auto& anim = gun.AddComponent<MeshAnimationComponent>();
+        auto& anim = gun.AddComponent<MeshAnimation>();
 		// Forward velocity -> pitch
 		auto& GunStrafeRoll = anim.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
 		GunStrafeRoll.Enabled = true;
@@ -163,9 +163,9 @@ void Player::Build(Scene& scene) {
 
     // CAMERA
     m_Camera = scene.CreateEntity();
-    m_Camera.AddComponent<TagComponent>().Name = "Player Camera";
+    m_Camera.AddComponent<Tag>().Name = "Player Camera";
 
-    auto& camT = m_Camera.AddComponent<TransformComponent>();
+    auto& camT = m_Camera.AddComponent<Transform>();
 
     auto& follow = m_Camera.AddComponent<FollowCameraComponent>();
     follow.Target = m_Player;

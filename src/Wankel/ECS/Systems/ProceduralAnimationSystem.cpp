@@ -9,12 +9,12 @@
 
 namespace Wankel {
 
-	static void InitMeshAnimation(MeshAnimationComponent& anim) {
+	static void InitMeshAnimation(MeshAnimation& anim) {
 	    if (anim.Initialized)
 	        return;
 
-		for (int in = 0; in < MeshAnimationComponent::AxisCount; in++) {
-    	    for (int out = 0; out < MeshAnimationComponent::AxisCount; out++) {
+		for (int in = 0; in < MeshAnimation::AxisCount; in++) {
+    	    for (int out = 0; out < MeshAnimation::AxisCount; out++) {
     	        auto& link = anim.Links[in][out];
     	        link.Spring = SecondOrderDynamics(link.Frequency, link.Damping, link.Response, 0.0f);
     	    }
@@ -41,12 +41,12 @@ namespace Wankel {
 	
 	void ProceduralAnimationSystem::Update(Scene& scene, float dt) {
 		auto& registry = scene.Registry();
-		auto view = registry.view<TransformComponent, KinematicsComponent, MeshAnimationComponent>();
+		auto view = registry.view<Transform, Kinematics, MeshAnimation>();
 	
 	    for (auto entity : view) {
-	        auto& tc = view.get<TransformComponent>(entity);
-	        auto& kc = view.get<KinematicsComponent>(entity);
-	        auto& anim = view.get<MeshAnimationComponent>(entity);
+	        auto& tc = view.get<Transform>(entity);
+	        auto& kc = view.get<Kinematics>(entity);
+	        auto& anim = view.get<MeshAnimation>(entity);
 	
 	        InitMeshAnimation(anim);
 

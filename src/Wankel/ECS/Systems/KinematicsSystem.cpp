@@ -12,13 +12,11 @@ namespace Wankel {
 	void KinematicsSystem::Update(Scene& scene, float dt) {
 
 		auto& registry = scene.Registry();
-		auto view = registry.view<TransformComponent, KinematicsComponent>();
+		auto view = registry.view<Transform, Kinematics>();
 	
 	    for (auto entity : view) {
-	        auto& tc = view.get<TransformComponent>(entity);
-	        auto& kc = view.get<KinematicsComponent>(entity);
-			//tc.LocalTransform = ComposeTransform(tc);
-        	//tc.WorldTransform = ComputeWorldTransform(registry, entity);
+	        auto& tc = view.get<Transform>(entity);
+	        auto& kc = view.get<Kinematics>(entity);
 
         	glm::vec3 worldPos = glm::vec3(tc.WorldTransform[3]);
 			glm::vec3 newVel = {0.f, 0.f,0.f};
