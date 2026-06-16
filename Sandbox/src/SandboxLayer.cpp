@@ -97,6 +97,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto player = m_Scene.CreateEntity();
 	player.AddComponent<TagComponent>().Name = "Player";
 	auto& pt = player.AddComponent<TransformComponent>();
+	auto& kin = player.AddComponent<KinematicsComponent>();
     pt.LocalPosition = {0,1,0};
     player.AddComponent<PlayerControllerComponent>();
 
@@ -105,6 +106,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	{
 	phead.AddComponent<TagComponent>().Name = "Player Head";
 	auto& tc = phead.AddComponent<TransformComponent>();
+	auto& kin = phead.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {0.0f,0.0f,0.0f};
 	phead.AddComponent<ParentComponent>().Parent = player;
     phead.AddComponent<MeshComponent>().MeshPtr = m_PlayerHeadMesh.get();
@@ -156,6 +158,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto pLeg1 = m_Scene.CreateEntity();
 	pLeg1.AddComponent<TagComponent>().Name = "Player Leg FR";
 	auto& tc = pLeg1.AddComponent<TransformComponent>();
+	auto& kin = pLeg1.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {0.6f,0.0f,-0.6f};
 	pLeg1.AddComponent<ParentComponent>().Parent = player;
     pLeg1.AddComponent<MeshComponent>().MeshPtr = m_PlayerLegMesh.get();
@@ -254,6 +257,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto pLeg2 = m_Scene.CreateEntity();
 	pLeg2.AddComponent<TagComponent>().Name = "Player Leg BR";
 	auto& tc = pLeg2.AddComponent<TransformComponent>();
+	auto& kin = pLeg2.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
@@ -357,6 +361,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto pLeg3 = m_Scene.CreateEntity();
 	pLeg3.AddComponent<TagComponent>().Name = "Player Leg FL";
 	auto& tc = pLeg3.AddComponent<TransformComponent>();
+	auto& kin = pLeg3.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {-0.6f,0.0f,-0.6f};
 	pLeg3.AddComponent<ParentComponent>().Parent = player;
 	auto& pmeshComp1 = pLeg3.AddComponent<MeshComponent>();
@@ -456,6 +461,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto pLeg4 = m_Scene.CreateEntity();
 	pLeg4.AddComponent<TagComponent>().Name = "Player Leg BL";
 	auto& tc = pLeg4.AddComponent<TransformComponent>();
+	auto& kin = pLeg4.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {-0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
@@ -564,6 +570,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto gun1 = m_Scene.CreateEntity();
 	gun1.AddComponent<TagComponent>().Name = "Gun1";
 	auto& gt1 = gun1.AddComponent<TransformComponent>();
+	auto& king1 = gun1.AddComponent<KinematicsComponent>();
     gt1.LocalPosition = {0.06f ,-0.06f ,-0.8f};
 	gun1.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
 	gun1.AddComponent<ParentComponent>().Parent = player;
@@ -603,6 +610,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto camEntity = m_Scene.CreateEntity();
 	camEntity.AddComponent<TagComponent>().Name = "Player Camera";
     camEntity.AddComponent<TransformComponent>();
+	camEntity.AddComponent<KinematicsComponent>();
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
@@ -631,6 +639,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     auto enemy = m_Scene.CreateEntity();
 	enemy.AddComponent<TagComponent>().Name = "Enemy";
 	auto& et = enemy.AddComponent<TransformComponent>();
+	auto& eKin = enemy.AddComponent<KinematicsComponent>();
     et.LocalPosition = {2,1,0};
 
 	// Body 
@@ -638,6 +647,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	{
 	ebody.AddComponent<TagComponent>().Name = "Enemy Body";
 	auto& tc = ebody.AddComponent<TransformComponent>();
+	auto& eKin = ebody.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {0.0f,0.0f,0.0f};
 	ebody.AddComponent<ParentComponent>().Parent = enemy;
     ebody.AddComponent<MeshComponent>().MeshPtr = m_EnemyBodyMesh.get();
@@ -648,6 +658,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto eLeg1 = m_Scene.CreateEntity();
 	eLeg1.AddComponent<TagComponent>().Name = "Enemy Leg FL";
 	auto& tc = eLeg1.AddComponent<TransformComponent>();
+	auto& eKin = eLeg1.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {0.6f,0.0f,-0.6f};
 	eLeg1.AddComponent<ParentComponent>().Parent = enemy;
     eLeg1.AddComponent<MeshComponent>().MeshPtr = m_EnemyLegMesh.get();
@@ -657,6 +668,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto eLeg2 = m_Scene.CreateEntity();
 	eLeg2.AddComponent<TagComponent>().Name = "Enemy Leg BL";
 	auto& tc = eLeg2.AddComponent<TransformComponent>();
+	auto& eKin = eLeg2.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
@@ -671,6 +683,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto eLeg3 = m_Scene.CreateEntity();
 	eLeg3.AddComponent<TagComponent>().Name = "Enemy Leg FR";
 	auto& tc = eLeg3.AddComponent<TransformComponent>();
+	auto& eKin = eLeg3.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {-0.6f,0.0f,-0.6f};
 	eLeg3.AddComponent<ParentComponent>().Parent = enemy;
 	auto& meshComp1 = eLeg3.AddComponent<MeshComponent>();
@@ -681,6 +694,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	auto eLeg4 = m_Scene.CreateEntity();
 	eLeg4.AddComponent<TagComponent>().Name = "Enemy Leg BR";
 	auto& tc = eLeg4.AddComponent<TransformComponent>();
+	auto& eKin = eLeg4.AddComponent<KinematicsComponent>();
     tc.LocalPosition = {-0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *

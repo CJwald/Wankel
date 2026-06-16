@@ -1,13 +1,19 @@
+#include "wkpch.h"
+#include "PlayerControllerSystem.h"
+
+#include "Wankel/ECS/Scene.h"
+#include "Wankel/ECS/Components.h"
+
+#include <glm/gtx/quaternion.hpp>
+
 
 namespace Wankel {
 
-class Scene;
-
-	class PlayerControllerSystem::Update(Scene& scene, float dt) {
+	void PlayerControllerSystem::Update(Scene& scene, float dt) {
 		auto& registry = scene.Registry();
 
         // Player Movement System
-        auto view = m_Registry.view<TransformComponent, PlayerControllerComponent, RigidbodyComponent, MovementComponent>();
+        auto view = registry.view<TransformComponent, PlayerControllerComponent, RigidbodyComponent, MovementComponent>();
 
         for (auto entity : view) {
 

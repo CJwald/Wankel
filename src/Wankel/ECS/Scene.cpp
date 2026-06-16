@@ -1,19 +1,17 @@
 #include "wkpch.h"
 #include "Scene.h"
 #include "Components.h"
-#include "Wankel/Math/SecondOrderDynamics.h"
-#include "Wankel/Renderer/Camera.h"
 
-#include <glm/gtx/quaternion.hpp>
 
 namespace Wankel {
 
     void Scene::OnUpdate(float dt, Camera& camera) {
 
-        m_PhysicsSystem.Update(*this, dt);
-		UpdateTransforms(dt);
-		UpdateProceduralAnimation(dt);
-		UpdateFinalTransforms();
+		m_PlayerControllerSystem.Update(*this, dt);
+    	m_PhysicsSystem.Update(*this, dt);
+    	m_KinematicsSystem.Update(*this, dt);
+    	m_ProceduralAnimationSystem.Update(*this, dt);
+    	m_CameraSystem.Update(*this, camera);
 
 	}
 }

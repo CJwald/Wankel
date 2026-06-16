@@ -1,9 +1,16 @@
+#include "wkpch.h"
+#include "KinematicsSystem.h"
+
+#include "Wankel/ECS/Scene.h"
+#include "Wankel/ECS/Components.h"
+
+#include <glm/gtx/quaternion.hpp>
 
 
 namespace Wankel {
 
-	void TransformSystem::Update(Scene& scene, float dt) {
-		UpdateTransforms(scene, dt);
+	void KinematicsSystem::Update(Scene& scene, float dt) {
+		UpdateKinematics(scene, dt);
 		UpdateFinalTransforms(scene);
 	}
 
@@ -32,28 +39,30 @@ namespace Wankel {
 	}
 
 
-	void Scene::UpdateTransforms(float dt) {
+	void KinematicsSystem::UpdateKinematics(Scene& scene, float dt) {
 
-	    auto view = m_Registry.view<TransformComponent>();
+		auto& registry = scene.Registry();
+		auto view = registry.view<TransformComponent, KinematicsComponent>();
 	
 	    for (auto entity : view) {
 	        auto& tc = view.get<TransformComponent>(entity);
+	        auto& kc = view.get<KinematicsComponent>(entity);
 			tc.LocalTransform = ComposeTransform(tc);
-        	tc.WorldTransform = ComputeWorldTransform(m_Registry, entity);
+        	tc.WorldTransform = ComputeWorldTransform(registry, entity);
 
         	glm::vec3 worldPos = glm::vec3(tc.WorldTransform[3]);
 			glm::vec3 newVel = {0.f, 0.f,0.f};
-			if (glm::length(worldPos - tc.PreviousWorldPosition) < m_dPosThreshold) {
-				newVel = (worldPos - tc.PreviousWorldPosition) / glm::max(dt, 1e-6f);
+			if (glm::length(worldPos - kc.PreviousWorldPosition) < m_dPosThreshold) {
+				newVel = (worldPos - kc.PreviousWorldPosition) / glm::max(dt, 1e-6f);
 			} 
 			else {
-        		newVel = tc.WorldVelocity;
+        		newVel = kc.WorldVelocity;
 			}
-        	tc.WorldAcceleration = (newVel - tc.WorldVelocity) / glm::max(dt, 1e-6f);
-        	tc.WorldVelocity = newVel;
+        	kc.WorldAcceleration = (newVel - kc.WorldVelocity) / glm::max(dt, 1e-6f);
+        	kc.WorldVelocity = newVel;
 
         	glm::quat currentRot = glm::quat_cast(tc.WorldTransform);
-        	glm::quat delta = currentRot * glm::inverse(tc.PreviousWorldRotation);
+        	glm::quat delta = currentRot * glm::inverse(kc.PreviousWorldRotation);
 
         	float angle = glm::angle(delta);
         	if (angle > glm::pi<float>())
@@ -64,16 +73,18 @@ namespace Wankel {
         	    axis = glm::axis(delta);
 
 			glm::vec3 newAngVel = axis * (angle / glm::max(dt, 1e-6f));
-        	tc.WorldAngularAcceleration = (newAngVel - tc.WorldAngularVelocity) / glm::max(dt, 1e-6f);
-        	tc.WorldAngularVelocity = newAngVel;
-        	tc.PreviousWorldPosition = worldPos;
-        	tc.PreviousWorldRotation = currentRot;
+        	kc.WorldAngularAcceleration = (newAngVel - kc.WorldAngularVelocity) / glm::max(dt, 1e-6f);
+        	kc.WorldAngularVelocity = newAngVel;
+        	kc.PreviousWorldPosition = worldPos;
+        	kc.PreviousWorldRotation = currentRot;
 	    }
 	}
 
 
-	void Scene::UpdateFinalTransforms() {
-	    auto view = m_Registry.view<TransformComponent>();
+	void KinematicsSystem::UpdateFinalTransforms(Scene& scene) {
+		auto& registry = scene.Registry();
+		auto view = registry.view<TransformComponent>();
+
 	    for (auto entity : view) {
 	        auto& tc = view.get<TransformComponent>(entity);
 
@@ -83,10 +94,4 @@ namespace Wankel {
         	tc.FinalTransform = tc.WorldTransform * visual;
 	    }
 	}
-
-
-
-
-
-
 }

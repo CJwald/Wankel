@@ -19,20 +19,23 @@ namespace Wankel {
 	    glm::vec3 VisualPosition{0.0f};
 	    glm::quat VisualRotation{1,0,0,0};
 	
-	    // KINEMATICS
-	    glm::vec3 PreviousWorldPosition{0.0f};
-	    glm::quat PreviousWorldRotation{1,0,0,0};
-	
-	    glm::vec3 WorldVelocity{0.0f};
-	    glm::vec3 WorldAngularVelocity{0.0f};
-		glm::vec3 WorldAcceleration{0.0f};
-		glm::vec3 WorldAngularAcceleration{0.0f};
-	
 	    // CACHED TRANSFORMS
 	    glm::mat4 LocalTransform{1.0f};
 	    glm::mat4 WorldTransform{1.0f};
 	    glm::mat4 VisualTransform{1.0f};
 	    glm::mat4 FinalTransform{1.0f};
+	};
+
+
+	struct KinematicsComponent {
+	    glm::vec3 WorldVelocity{0};
+	    glm::vec3 WorldAcceleration{0};
+	
+	    glm::vec3 WorldAngularVelocity{0};
+	    glm::vec3 WorldAngularAcceleration{0};
+	
+	    glm::vec3 PreviousWorldPosition{0};
+	    glm::quat PreviousWorldRotation{1,0,0,0};
 	};
 
 

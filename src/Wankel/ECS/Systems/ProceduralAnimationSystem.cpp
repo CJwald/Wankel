@@ -1,4 +1,11 @@
+#include "wkpch.h"
+#include "ProceduralAnimationSystem.h"
 
+#include "Wankel/ECS/Scene.h"
+#include "Wankel/ECS/Components.h"
+#include "Wankel/Math/SecondOrderDynamics.h"
+
+#include <glm/gtx/quaternion.hpp>
 
 namespace Wankel {
 
@@ -32,21 +39,22 @@ namespace Wankel {
 	}
 
 	
-	void Scene::UpdateProceduralAnimation(float dt) {
-	    auto view = m_Registry.view< TransformComponent, MeshAnimationComponent>();
+	void ProceduralAnimationSystem::Update(Scene& scene, float dt) {
+		auto& registry = scene.Registry();
+		auto view = registry.view<TransformComponent, KinematicsComponent, MeshAnimationComponent>();
 	
 	    for (auto entity : view) {
 	        auto& tc = view.get<TransformComponent>(entity);
+	        auto& kc = view.get<KinematicsComponent>(entity);
 	        auto& anim = view.get<MeshAnimationComponent>(entity);
 	
 	        InitMeshAnimation(anim);
 
 			glm::quat worldRot = glm::quat_cast(tc.WorldTransform);
 			glm::quat invRot = glm::inverse(worldRot);
-			//glm::quat invRot = glm::inverse(tc.LocalOrientation);
 
-        	glm::vec3 localVel = invRot * tc.WorldVelocity;
-        	glm::vec3 localAngVel = invRot * tc.WorldAngularVelocity;
+        	glm::vec3 localVel = invRot * kc.WorldVelocity;
+        	glm::vec3 localAngVel = invRot * kc.WorldAngularVelocity;
 
         	float input[(int)MotionAxis::Count] = {
         	    localVel.x, localVel.y, localVel.z,

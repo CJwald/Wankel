@@ -1,12 +1,11 @@
 #pragma once
 #include "Entity.h"
-#include "Wankel/Renderer/Camera.h"
 #include "Wankel/Physics/Systems/PhysicsSystem.h"
-
-#include "Systems/PlayerControllerSystem.h"
-#include "Systems/TransformSystem.h"
-#include "Systems/ProceduralAnimationSystem.h"
-#include "Systems/CameraSystem.h"
+#include "Wankel/ECS/Systems/PlayerControllerSystem.h"
+#include "Wankel/ECS/Systems/KinematicsSystem.h"
+#include "Wankel/ECS/Systems/ProceduralAnimationSystem.h"
+#include "Wankel/ECS/Systems/CameraSystem.h"
+#include "Wankel/Renderer/Camera.h"
 
 namespace Wankel {
 
@@ -24,12 +23,9 @@ namespace Wankel {
 
         entt::registry& Registry() { return m_Registry; }
 
-	private:
-    	void UpdateKinematics(float dt);
-
     private:
 		PlayerControllerSystem m_PlayerControllerSystem;
-		TransformSystem m_TransformSystem;
+		KinematicsSystem m_KinematicsSystem;
 		ProceduralAnimationSystem m_ProceduralAnimationSystem;
 		CameraSystem m_CameraSystem;
 
