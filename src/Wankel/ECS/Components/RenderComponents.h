@@ -39,13 +39,8 @@ namespace Wankel {
         float FOV = 66.0f; // Vertical FOV ~= 100 Horizontal on 16:9
         float Near = 0.1f;
         float Far = 1000.0f;
-    };
 
-
-	struct FollowCameraComponent {
-        Entity Target;
-        glm::vec3 Offset{0.0f, 0.0f, 0.0f};
-        glm::quat RotationOffset{1, 0, 0, 0};
+		bool Primary = true;
     };
 
 }
