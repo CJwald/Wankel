@@ -96,20 +96,22 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     // PLAYER ENTITY
     auto player = m_Scene.CreateEntity();
-	player.AddComponent<TagComponent>().Name = "Player";
-	auto& pt = player.AddComponent<TransformComponent>();
+	player.AddComponent<Tag>().Name = "Player";
+	auto& pt = player.AddComponent<Transform>();
+	auto& kin = player.AddComponent<Kinematics>();
     pt.LocalPosition = {0,1,0};
-    player.AddComponent<PlayerControllerComponent>();
+    player.AddComponent<PlayerController>();
 
 	// head 
 	auto phead = m_Scene.CreateEntity();
 	{
-	phead.AddComponent<TagComponent>().Name = "Player Head";
-	auto& tc = phead.AddComponent<TransformComponent>();
+	phead.AddComponent<Tag>().Name = "Player Head";
+	auto& tc = phead.AddComponent<Transform>();
+	auto& kin = phead.AddComponent<Kinematics>();
     tc.LocalPosition = {0.0f,0.0f,0.0f};
-	phead.AddComponent<ParentComponent>().Parent = player;
-    phead.AddComponent<MeshComponent>().MeshPtr = m_PlayerHeadMesh.get();
-    auto& pheadAnim = phead.AddComponent<MeshAnimationComponent>();
+	phead.AddComponent<Parent>().Parent = player;
+    phead.AddComponent<MeshRenderer>().MeshPtr = m_PlayerHeadMesh.get();
+    auto& pheadAnim = phead.AddComponent<MeshAnimation>();
 	// Strafe -> x
 	auto& pheadXX = pheadAnim.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
 	pheadXX.Enabled = true;
@@ -155,12 +157,13 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	// Leg1 
 	{
 	auto pLeg1 = m_Scene.CreateEntity();
-	pLeg1.AddComponent<TagComponent>().Name = "Player Leg FR";
-	auto& tc = pLeg1.AddComponent<TransformComponent>();
+	pLeg1.AddComponent<Tag>().Name = "Player Leg FR";
+	auto& tc = pLeg1.AddComponent<Transform>();
+	auto& kin = pLeg1.AddComponent<Kinematics>();
     tc.LocalPosition = {0.6f,0.0f,-0.6f};
-	pLeg1.AddComponent<ParentComponent>().Parent = player;
-    pLeg1.AddComponent<MeshComponent>().MeshPtr = m_PlayerLegMesh.get();
-    auto& pLegAnim1 = pLeg1.AddComponent<MeshAnimationComponent>();
+	pLeg1.AddComponent<Parent>().Parent = player;
+    pLeg1.AddComponent<MeshRenderer>().MeshPtr = m_PlayerLegMesh.get();
+    auto& pLegAnim1 = pLeg1.AddComponent<MeshAnimation>();
 	// Strafe -> x
 	auto& pLeg1XX = pLegAnim1.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
 	pLeg1XX.Enabled = true;
@@ -253,16 +256,17 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	// Leg2 
 	{
 	auto pLeg2 = m_Scene.CreateEntity();
-	pLeg2.AddComponent<TagComponent>().Name = "Player Leg BR";
-	auto& tc = pLeg2.AddComponent<TransformComponent>();
+	pLeg2.AddComponent<Tag>().Name = "Player Leg BR";
+	auto& tc = pLeg2.AddComponent<Transform>();
+	auto& kin = pLeg2.AddComponent<Kinematics>();
     tc.LocalPosition = {0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-	pLeg2.AddComponent<ParentComponent>().Parent = player;
-    pLeg2.AddComponent<MeshComponent>().MeshPtr = m_PlayerLegMesh.get();
-    auto& pLegAnim2 = pLeg2.AddComponent<MeshAnimationComponent>();
+	pLeg2.AddComponent<Parent>().Parent = player;
+    pLeg2.AddComponent<MeshRenderer>().MeshPtr = m_PlayerLegMesh.get();
+    auto& pLegAnim2 = pLeg2.AddComponent<MeshAnimation>();
 	// Strafe -> x
 	auto& pLeg2XX = pLegAnim2.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
 	pLeg2XX.Enabled = true;
@@ -356,13 +360,14 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	m_PlayerLegMeshMirrored = m_PlayerLegMesh->CreateMirrored(true,false,false);
 	{
 	auto pLeg3 = m_Scene.CreateEntity();
-	pLeg3.AddComponent<TagComponent>().Name = "Player Leg FL";
-	auto& tc = pLeg3.AddComponent<TransformComponent>();
+	pLeg3.AddComponent<Tag>().Name = "Player Leg FL";
+	auto& tc = pLeg3.AddComponent<Transform>();
+	auto& kin = pLeg3.AddComponent<Kinematics>();
     tc.LocalPosition = {-0.6f,0.0f,-0.6f};
-	pLeg3.AddComponent<ParentComponent>().Parent = player;
-	auto& pmeshComp1 = pLeg3.AddComponent<MeshComponent>();
+	pLeg3.AddComponent<Parent>().Parent = player;
+	auto& pmeshComp1 = pLeg3.AddComponent<MeshRenderer>();
 	pmeshComp1.MeshPtr = m_PlayerLegMeshMirrored.get();
-    auto& pLegAnim3 = pLeg3.AddComponent<MeshAnimationComponent>();
+    auto& pLegAnim3 = pLeg3.AddComponent<MeshAnimation>();
 	// Strafe -> x
 	auto& pLeg3XX = pLegAnim3.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
 	pLeg3XX.Enabled = true;
@@ -455,17 +460,18 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	// Leg4 
 	{
 	auto pLeg4 = m_Scene.CreateEntity();
-	pLeg4.AddComponent<TagComponent>().Name = "Player Leg BL";
-	auto& tc = pLeg4.AddComponent<TransformComponent>();
+	pLeg4.AddComponent<Tag>().Name = "Player Leg BL";
+	auto& tc = pLeg4.AddComponent<Transform>();
+	auto& kin = pLeg4.AddComponent<Kinematics>();
     tc.LocalPosition = {-0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-	pLeg4.AddComponent<ParentComponent>().Parent = player;
-	auto& pmeshComp2 = pLeg4.AddComponent<MeshComponent>();
+	pLeg4.AddComponent<Parent>().Parent = player;
+	auto& pmeshComp2 = pLeg4.AddComponent<MeshRenderer>();
 	pmeshComp2.MeshPtr = m_PlayerLegMeshMirrored.get();
-    auto& pLegAnim4 = pLeg4.AddComponent<MeshAnimationComponent>();
+    auto& pLegAnim4 = pLeg4.AddComponent<MeshAnimation>();
 	// Strafe -> x
 	auto& pLeg4XX = pLegAnim4.Links[ (int)MotionAxis::X ][ (int)MotionAxis::X ];
 	pLeg4XX.Enabled = true;
@@ -563,12 +569,13 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     // PLAYER Gun ENTITY
 	auto gun1 = m_Scene.CreateEntity();
-	gun1.AddComponent<TagComponent>().Name = "Gun1";
-	auto& gt1 = gun1.AddComponent<TransformComponent>();
+	gun1.AddComponent<Tag>().Name = "Gun1";
+	auto& gt1 = gun1.AddComponent<Transform>();
+	auto& king1 = gun1.AddComponent<Kinematics>();
     gt1.LocalPosition = {0.06f ,-0.06f ,-0.8f};
-	gun1.AddComponent<MeshComponent>().MeshPtr = m_GunMesh.get();
-	gun1.AddComponent<ParentComponent>().Parent = player;
-    auto& gunAnim1 = gun1.AddComponent<MeshAnimationComponent>();
+	gun1.AddComponent<MeshRenderer>().MeshPtr = m_GunMesh.get();
+	gun1.AddComponent<Parent>().Parent = player;
+    auto& gunAnim1 = gun1.AddComponent<MeshAnimation>();
 	// Forward velocity -> pitch
 	auto& Gun1StrafeRoll = gunAnim1.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
 	Gun1StrafeRoll.Enabled = true;
@@ -602,8 +609,9 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
     // CAMERA ENTITY
     auto camEntity = m_Scene.CreateEntity();
-	camEntity.AddComponent<TagComponent>().Name = "Player Camera";
-    camEntity.AddComponent<TransformComponent>();
+	camEntity.AddComponent<Tag>().Name = "Player Camera";
+    camEntity.AddComponent<Transform>();
+	camEntity.AddComponent<Kinematics>();
     auto& follow = camEntity.AddComponent<FollowCameraComponent>();
 
     follow.Target = player;
@@ -618,10 +626,10 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	m_DebugFollow = &follow;
 
 	// Collider
-	auto& collider = player.AddComponent<AABBComponent>();
+	auto& collider = player.AddComponent<AABBCollider>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
-	auto& rb = player.AddComponent<RigidbodyComponent>();
-	auto& m = player.AddComponent<MovementComponent>();
+	auto& rb = player.AddComponent<Rigidbody>();
+	auto& m = player.AddComponent<Movement>();
 	rb.Velocity = {0,0,0};
 	rb.IsStatic = false;	
 
@@ -630,73 +638,79 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 
 	// Enemy
     auto enemy = m_Scene.CreateEntity();
-	enemy.AddComponent<TagComponent>().Name = "Enemy";
-	auto& et = enemy.AddComponent<TransformComponent>();
+	enemy.AddComponent<Tag>().Name = "Enemy";
+	auto& et = enemy.AddComponent<Transform>();
+	auto& eKin = enemy.AddComponent<Kinematics>();
     et.LocalPosition = {2,1,0};
 
 	// Body 
 	auto ebody = m_Scene.CreateEntity();
 	{
-	ebody.AddComponent<TagComponent>().Name = "Enemy Body";
-	auto& tc = ebody.AddComponent<TransformComponent>();
+	ebody.AddComponent<Tag>().Name = "Enemy Body";
+	auto& tc = ebody.AddComponent<Transform>();
+	auto& eKin = ebody.AddComponent<Kinematics>();
     tc.LocalPosition = {0.0f,0.0f,0.0f};
-	ebody.AddComponent<ParentComponent>().Parent = enemy;
-    ebody.AddComponent<MeshComponent>().MeshPtr = m_EnemyBodyMesh.get();
+	ebody.AddComponent<Parent>().Parent = enemy;
+    ebody.AddComponent<MeshRenderer>().MeshPtr = m_EnemyBodyMesh.get();
 	}
 
 	// Leg1 
 	{
 	auto eLeg1 = m_Scene.CreateEntity();
-	eLeg1.AddComponent<TagComponent>().Name = "Enemy Leg FL";
-	auto& tc = eLeg1.AddComponent<TransformComponent>();
+	eLeg1.AddComponent<Tag>().Name = "Enemy Leg FL";
+	auto& tc = eLeg1.AddComponent<Transform>();
+	auto& eKin = eLeg1.AddComponent<Kinematics>();
     tc.LocalPosition = {0.6f,0.0f,-0.6f};
-	eLeg1.AddComponent<ParentComponent>().Parent = enemy;
-    eLeg1.AddComponent<MeshComponent>().MeshPtr = m_EnemyLegMesh.get();
+	eLeg1.AddComponent<Parent>().Parent = enemy;
+    eLeg1.AddComponent<MeshRenderer>().MeshPtr = m_EnemyLegMesh.get();
 	}
 	// Leg2 
 	{
 	auto eLeg2 = m_Scene.CreateEntity();
-	eLeg2.AddComponent<TagComponent>().Name = "Enemy Leg BL";
-	auto& tc = eLeg2.AddComponent<TransformComponent>();
+	eLeg2.AddComponent<Tag>().Name = "Enemy Leg BL";
+	auto& tc = eLeg2.AddComponent<Transform>();
+	auto& eKin = eLeg2.AddComponent<Kinematics>();
     tc.LocalPosition = {0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(-90.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-	eLeg2.AddComponent<ParentComponent>().Parent = enemy;
-    eLeg2.AddComponent<MeshComponent>().MeshPtr = m_EnemyLegMesh.get();
+	eLeg2.AddComponent<Parent>().Parent = enemy;
+    eLeg2.AddComponent<MeshRenderer>().MeshPtr = m_EnemyLegMesh.get();
 	}
 	// Leg3 
 	m_EnemyLegMeshMirrored = m_EnemyLegMesh->CreateMirrored(true,false,false);
 	{
 	auto eLeg3 = m_Scene.CreateEntity();
-	eLeg3.AddComponent<TagComponent>().Name = "Enemy Leg FR";
-	auto& tc = eLeg3.AddComponent<TransformComponent>();
+	eLeg3.AddComponent<Tag>().Name = "Enemy Leg FR";
+	auto& tc = eLeg3.AddComponent<Transform>();
+	auto& eKin = eLeg3.AddComponent<Kinematics>();
     tc.LocalPosition = {-0.6f,0.0f,-0.6f};
-	eLeg3.AddComponent<ParentComponent>().Parent = enemy;
-	auto& meshComp1 = eLeg3.AddComponent<MeshComponent>();
+	eLeg3.AddComponent<Parent>().Parent = enemy;
+	auto& meshComp1 = eLeg3.AddComponent<MeshRenderer>();
 	meshComp1.MeshPtr = m_EnemyLegMeshMirrored.get();
 	}
 	// Leg4 
 	{
 	auto eLeg4 = m_Scene.CreateEntity();
-	eLeg4.AddComponent<TagComponent>().Name = "Enemy Leg BR";
-	auto& tc = eLeg4.AddComponent<TransformComponent>();
+	eLeg4.AddComponent<Tag>().Name = "Enemy Leg BR";
+	auto& tc = eLeg4.AddComponent<Transform>();
+	auto& eKin = eLeg4.AddComponent<Kinematics>();
     tc.LocalPosition = {-0.6f,0.0f,0.6f};
     tc.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-	eLeg4.AddComponent<ParentComponent>().Parent = enemy;
-	auto& meshComp2 = eLeg4.AddComponent<MeshComponent>();
+	eLeg4.AddComponent<Parent>().Parent = enemy;
+	auto& meshComp2 = eLeg4.AddComponent<MeshRenderer>();
 	meshComp2.MeshPtr = m_EnemyLegMeshMirrored.get();
 	}
 	// Collider
 	{
-	auto& collider = enemy.AddComponent<AABBComponent>();
+	auto& collider = enemy.AddComponent<AABBCollider>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
-	auto& rb = enemy.AddComponent<RigidbodyComponent>();
-	auto& m = enemy.AddComponent<MovementComponent>();
+	auto& rb = enemy.AddComponent<Rigidbody>();
+	auto& m = enemy.AddComponent<Movement>();
 	rb.Velocity = {0,0,0};
 	rb.IsStatic = false;	
 	}
@@ -709,9 +723,9 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	float spawnRange = 10.f;
     for (int i = 0; i < numCubes; i++) {
         auto e = m_Scene.CreateEntity();
-		e.AddComponent<TagComponent>().Name = "Cube";
+		e.AddComponent<Tag>().Name = "Cube";
 
-        auto& t = e.AddComponent<TransformComponent>();
+        auto& t = e.AddComponent<Transform>();
 		float X = RandomFloat() * spawnRange;
 		float Y = 20 + RandomFloat() * spawnRange;
 		float Z = RandomFloat() * spawnRange;
@@ -720,29 +734,29 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
     		glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(1,0,0)) *
     		glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(0,1,0)) *
     		glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(0,0,1));
-		e.AddComponent<MeshComponent>().MeshPtr = m_CubeMesh.get();
+		e.AddComponent<MeshRenderer>().MeshPtr = m_CubeMesh.get();
 
-        auto& rb = e.AddComponent<RigidbodyComponent>();
+        auto& rb = e.AddComponent<Rigidbody>();
         rb.IsStatic = true;
 	
         // Collider
-        auto& collider = e.AddComponent<AABBComponent>();
+        auto& collider = e.AddComponent<AABBCollider>();
         collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
     // WORLD 
 	auto b = m_Scene.CreateEntity();
-	b.AddComponent<TagComponent>().Name = "World";
-    auto& tb = b.AddComponent<TransformComponent>();
+	b.AddComponent<Tag>().Name = "World";
+    auto& tb = b.AddComponent<Transform>();
     tb.LocalPosition = {0.0f, -25.0f, 0.0f};
     tb.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-	b.AddComponent<MeshComponent>().MeshPtr = m_BoxMesh.get();
-    auto& rb_box = b.AddComponent<RigidbodyComponent>();
+	b.AddComponent<MeshRenderer>().MeshPtr = m_BoxMesh.get();
+    auto& rb_box = b.AddComponent<Rigidbody>();
     rb_box.IsStatic = true;
-    //auto& worldcollider = b.AddComponent<AABBComponent>();
+    //auto& worldcollider = b.AddComponent<AABBCollider>();
     //worldcollider.HalfSize = {100.0f, 25.0f, 100.0f}; // There are bugs with large colliders. 
 	
 
@@ -783,10 +797,10 @@ void SandboxLayer::OnUpdate() {
 
     m_Scene.OnUpdate(dt, m_Controller.GetCamera());
 	
-	auto playerView = m_Scene.Registry().view<TransformComponent, PlayerControllerComponent>();
+	auto playerView = m_Scene.Registry().view<Transform, PlayerController>();
 
 	for (auto entity : playerView) {
-    	auto& playerTransform = playerView.get<TransformComponent>(entity);
+    	auto& playerTransform = playerView.get<Transform>(entity);
 
 		// Wrap player if they chunk border limit
 		glm::vec3 pos = playerTransform.LocalPosition;
@@ -816,7 +830,7 @@ void SandboxLayer::OnUpdate() {
 	if (click && !lastClick) {
 		Ray ray = CreateCameraRay(cam, camPos);
 		for (auto entity : playerView) {
-    		auto& playerTransform = playerView.get<TransformComponent>(entity);
+    		auto& playerTransform = playerView.get<Transform>(entity);
 			ray.Direction = playerTransform.LocalOrientation * glm::vec3(0, 0, -1);
 			ray.Origin = playerTransform.LocalPosition + glm::normalize(ray.Direction)*0.7f;
 		}
@@ -829,8 +843,8 @@ void SandboxLayer::OnUpdate() {
 
 			auto& registry = m_Scene.Registry();
 
-			if (registry.all_of<TagComponent>(e.GetHandle())) {
-				auto& tag = registry.get<TagComponent>(e.GetHandle());
+			if (registry.all_of<Tag>(e.GetHandle())) {
+				auto& tag = registry.get<Tag>(e.GetHandle());
 
 				WK_CORE_INFO("Ray hit entity: {0}", tag.Name);
 
@@ -838,7 +852,7 @@ void SandboxLayer::OnUpdate() {
 				if (tag.Name == "Cube") {
 				    float range = 10.0f;
 				    glm::vec3 newPos(RandomFloat() * range, 20.f+RandomFloat() * range, RandomFloat() * range);
-				    registry.get<TransformComponent>(e.GetHandle()).LocalPosition = newPos;
+				    registry.get<Transform>(e.GetHandle()).LocalPosition = newPos;
 				}
 			}
 		}
@@ -848,10 +862,10 @@ void SandboxLayer::OnUpdate() {
 	
 	
 
-	auto debugView = m_Scene.Registry().view<TransformComponent, MeshComponent>();
-	auto colliderView = m_Scene.Registry().view<TransformComponent, AABBComponent>();
-	//auto colliderView = m_Scene.Registry().view<TransformComponent, ColliderComponent>();
-	auto view = m_Scene.Registry().view<TransformComponent, MeshComponent>();
+	auto debugView = m_Scene.Registry().view<Transform, MeshRenderer>();
+	auto colliderView = m_Scene.Registry().view<Transform, AABBCollider>();
+	//auto colliderView = m_Scene.Registry().view<Transform, Collider>();
+	auto view = m_Scene.Registry().view<Transform, MeshRenderer>();
 
 	// X Y Z loop for tiling world
 	//  This needs to be factored out of this lol
@@ -876,8 +890,8 @@ void SandboxLayer::OnUpdate() {
 
 				// Render
 				for (auto entity : view) {
-					auto& transform = view.get<TransformComponent>(entity);
-    			    auto& mesh = view.get<MeshComponent>(entity);
+					auto& transform = view.get<Transform>(entity);
+    			    auto& mesh = view.get<MeshRenderer>(entity);
 					glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform * mesh.GetLocalTransform();
 
 					Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
@@ -886,7 +900,7 @@ void SandboxLayer::OnUpdate() {
 				// DEBUG AXES
 				if (Renderer::DebugEnabled) {
 					for (auto entity : debugView) {
-						auto& transform = debugView.get<TransformComponent>(entity);
+						auto& transform = debugView.get<Transform>(entity);
 						glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform;
 				    	glm::vec3 origin = glm::vec3(model[3]);
 				    	float axisLength = 0.25f;
@@ -902,11 +916,11 @@ void SandboxLayer::OnUpdate() {
 				    	};
 						
 				    	// Parent link
-				    	if (m_Scene.Registry().all_of<ParentComponent>(entity)) {
-				    	    auto parent = m_Scene.Registry().get<ParentComponent>(entity).Parent;
+				    	if (m_Scene.Registry().all_of<Parent>(entity)) {
+				    	    auto parent = m_Scene.Registry().get<Parent>(entity).Parent;
 				    	    if (parent) {
-								auto& childTransform = m_Scene.Registry().get<TransformComponent>(entity);
-				    	        auto& parentTransform = parent.GetComponent<TransformComponent>();
+								auto& childTransform = m_Scene.Registry().get<Transform>(entity);
+				    	        auto& parentTransform = parent.GetComponent<Transform>();
 								glm::vec3 childPos = glm::vec3(childTransform.WorldTransform[3]);
 				    	        glm::vec3 parentPos = glm::vec3(parentTransform.WorldTransform[3]);
 				    	        lines.push_back({childPos, parentPos, {1,1,1}});
@@ -917,9 +931,9 @@ void SandboxLayer::OnUpdate() {
 
 					// Collider Debug
 					for (auto entity : colliderView) {
-						auto& transform = colliderView.get<TransformComponent>(entity);
+						auto& transform = colliderView.get<Transform>(entity);
 						glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform;
-    					auto& collider = colliderView.get<AABBComponent>(entity);
+    					auto& collider = colliderView.get<AABBCollider>(entity);
 				    	glm::vec3 origin = glm::vec3(model[3]);
 				    	float axisLength = 0.25f;
 				
@@ -1076,8 +1090,8 @@ void SandboxLayer::OnImGuiRender() {
 			std::vector<const char*> labels;
 			for (auto entity : entities) {
 				std::string name = "Unknown";
-				if (registry.all_of<TagComponent>(entity))
-				    name = registry.get<TagComponent>(entity).Name;
+				if (registry.all_of<Tag>(entity))
+				    name = registry.get<Tag>(entity).Name;
 				//storageNames.push_back(name + " (" + std::to_string((uint32_t)entity) + ")");
 				storageNames.push_back( "[" + std::to_string((uint32_t)entity) + "]  |  " + name);
 			}
@@ -1101,24 +1115,24 @@ void SandboxLayer::OnImGuiRender() {
 				if (!validEntity) {
 				    ImGui::TextDisabled("No entity selected.");
 				}
-				else if (!registry.all_of<MeshAnimationComponent>(m_SelectedAnimEntity)) {
+				else if (!registry.all_of<MeshAnimation>(m_SelectedAnimEntity)) {
 				    // NO COMPONENT → ADD BUTTON
-				    if (ImGui::Button("Add MeshAnimationComponent")) {
-				        registry.emplace<MeshAnimationComponent>(m_SelectedAnimEntity);
+				    if (ImGui::Button("Add MeshAnimation")) {
+				        registry.emplace<MeshAnimation>(m_SelectedAnimEntity);
 				    }
 				}
 				else {
 				    // EDIT EXISTING COMPONENT
-				    auto& anim = registry.get<MeshAnimationComponent>(m_SelectedAnimEntity);
-				    static int selectedOutputAxis[MeshAnimationComponent::AxisCount] = {};
-				    for (int input = 0; input < MeshAnimationComponent::AxisCount; input++) {
+				    auto& anim = registry.get<MeshAnimation>(m_SelectedAnimEntity);
+				    static int selectedOutputAxis[MeshAnimation::AxisCount] = {};
+				    for (int input = 0; input < MeshAnimation::AxisCount; input++) {
 				        MotionAxis inAxis = (MotionAxis)input;
 
 				        if (!ImGui::TreeNode(MotionAxisName(inAxis)))
 				            continue;
 
 				        bool anyShown = false;
-				        for (int output = 0; output < MeshAnimationComponent::AxisCount; output++) {
+				        for (int output = 0; output < MeshAnimation::AxisCount; output++) {
 				            auto& link = anim.Links[input][output];
 
 				            if (!link.Enabled)
@@ -1180,7 +1194,7 @@ void SandboxLayer::OnImGuiRender() {
 
 				        ImGui::SameLine();
 				        std::string comboId = "##AddMappingCombo" + std::to_string(input);
-				        ImGui::Combo(comboId.c_str(), &selectedOutputAxis[input], MotionAxisLabels, MeshAnimationComponent::AxisCount);
+				        ImGui::Combo(comboId.c_str(), &selectedOutputAxis[input], MotionAxisLabels, MeshAnimation::AxisCount);
 
 				        ImGui::TreePop();
 				    }

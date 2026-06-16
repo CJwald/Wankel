@@ -16,12 +16,12 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
     auto& reg = scene.Registry();
 
     // AABB vs AABB
-    if (reg.all_of<AABBComponent>(a) && reg.all_of<AABBComponent>(b)) {
-        auto& ta = reg.get<TransformComponent>(a);
-        auto& tb = reg.get<TransformComponent>(b);
+    if (reg.all_of<AABBCollider>(a) && reg.all_of<AABBCollider>(b)) {
+        auto& ta = reg.get<Transform>(a);
+        auto& tb = reg.get<Transform>(b);
 
-        auto& ca = reg.get<AABBComponent>(a);
-        auto& cb = reg.get<AABBComponent>(b);
+        auto& ca = reg.get<AABBCollider>(a);
+        auto& cb = reg.get<AABBCollider>(b);
 
         AABB A = AABB::FromCenterHalfSize(ta.LocalPosition + ca.Offset, ca.HalfSize);
 
@@ -32,12 +32,12 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
     }
 
     // Sphere vs Sphere
-    if (reg.all_of<SphereColliderComponent>(a) && reg.all_of<SphereColliderComponent>(b)) {
-        auto& ta = reg.get<TransformComponent>(a);
-        auto& tb = reg.get<TransformComponent>(b);
+    if (reg.all_of<SphereCollider>(a) && reg.all_of<SphereCollider>(b)) {
+        auto& ta = reg.get<Transform>(a);
+        auto& tb = reg.get<Transform>(b);
 
-        auto& sa = reg.get<SphereColliderComponent>(a);
-        auto& sb = reg.get<SphereColliderComponent>(b);
+        auto& sa = reg.get<SphereCollider>(a);
+        auto& sb = reg.get<SphereCollider>(b);
 
         Sphere A{ ta.LocalPosition, sa.Radius };
         Sphere B{ tb.LocalPosition, sb.Radius };
@@ -47,12 +47,12 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
     }
 
     // Sphere (A) vs AABB (B)
-    if (reg.all_of<SphereColliderComponent>(a) && reg.all_of<AABBComponent>(b)) {
-        auto& ta = reg.get<TransformComponent>(a);
-        auto& tb = reg.get<TransformComponent>(b);
+    if (reg.all_of<SphereCollider>(a) && reg.all_of<AABBCollider>(b)) {
+        auto& ta = reg.get<Transform>(a);
+        auto& tb = reg.get<Transform>(b);
 
-        auto& sa = reg.get<SphereColliderComponent>(a);
-        auto& cb = reg.get<AABBComponent>(b);
+        auto& sa = reg.get<SphereCollider>(a);
+        auto& cb = reg.get<AABBCollider>(b);
 
         Sphere s{ ta.LocalPosition, sa.Radius };
 
@@ -63,12 +63,12 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
     }
 
     // AABB (A) vs Sphere (B)
-    if (reg.all_of<AABBComponent>(a) && reg.all_of<SphereColliderComponent>(b)) {
-        auto& ta = reg.get<TransformComponent>(a);
-        auto& tb = reg.get<TransformComponent>(b);
+    if (reg.all_of<AABBCollider>(a) && reg.all_of<SphereCollider>(b)) {
+        auto& ta = reg.get<Transform>(a);
+        auto& tb = reg.get<Transform>(b);
 
-        auto& ca = reg.get<AABBComponent>(a);
-        auto& sb = reg.get<SphereColliderComponent>(b);
+        auto& ca = reg.get<AABBCollider>(a);
+        auto& sb = reg.get<SphereCollider>(b);
 
         AABB box = AABB::FromCenterHalfSize(ta.LocalPosition + ca.Offset, ca.HalfSize);
 

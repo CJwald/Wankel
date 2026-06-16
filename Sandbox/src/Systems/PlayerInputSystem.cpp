@@ -9,7 +9,7 @@
 namespace Wankel {
 
 void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
-    auto controllerView = scene.Registry().view<PlayerControllerComponent>();
+    auto controllerView = scene.Registry().view<PlayerController>();
 
     // TODO: these probably shouldnt live here in the full game
     constexpr float MouseSensitivity = 1.0f;     // pixels -> degrees multiplier
@@ -22,7 +22,7 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
         if (!gameFocused)
             continue;
 
-        auto& controller = controllerView.get<PlayerControllerComponent>(entity);
+        auto& controller = controllerView.get<PlayerController>(entity);
 
         int pad = 0;
         
@@ -35,11 +35,11 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
 		}
 
 		if (r3Pressed && !r3PressedLastFrame) {
-			if (controller.Mode == PlayerControllerComponent::LookMode::FPS) {
-				controller.Mode = PlayerControllerComponent::LookMode::Flight;
+			if (controller.Mode == PlayerController::LookMode::FPS) {
+				controller.Mode = PlayerController::LookMode::Flight;
 			}
 			else {
-				controller.Mode = PlayerControllerComponent::LookMode::FPS;
+				controller.Mode = PlayerController::LookMode::FPS;
 			}
 		}
 
@@ -49,7 +49,7 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
 
         // KEYBOARD INPUT
         controller.BoostMultiplier = 1.6f; // COD tac sprint seems to add 60%, normal is ~40%
-		if (controller.Mode == PlayerControllerComponent::LookMode::FPS) {
+		if (controller.Mode == PlayerController::LookMode::FPS) {
         	controller.BoostMultiplier = 1.6f; // COD tac sprint seems to add 60%, normal is ~40%
 		}
 		else {
