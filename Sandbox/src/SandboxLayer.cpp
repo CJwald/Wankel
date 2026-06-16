@@ -625,7 +625,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	m_DebugFollow = &follow;
 
 	// Collider
-	auto& collider = player.AddComponent<AABBComponent>();
+	auto& collider = player.AddComponent<AABBCollider>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
 	auto& rb = player.AddComponent<Rigidbody>();
 	auto& m = player.AddComponent<Movement>();
@@ -706,7 +706,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	}
 	// Collider
 	{
-	auto& collider = enemy.AddComponent<AABBComponent>();
+	auto& collider = enemy.AddComponent<AABBCollider>();
 	collider.HalfSize = {0.5f, 0.5f, 0.5f};
 	auto& rb = enemy.AddComponent<Rigidbody>();
 	auto& m = enemy.AddComponent<Movement>();
@@ -739,7 +739,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
         rb.IsStatic = true;
 	
         // Collider
-        auto& collider = e.AddComponent<AABBComponent>();
+        auto& collider = e.AddComponent<AABBCollider>();
         collider.HalfSize = {0.5f, 0.5f, 0.5f};
     }
 
@@ -755,7 +755,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	b.AddComponent<MeshRenderer>().MeshPtr = m_BoxMesh.get();
     auto& rb_box = b.AddComponent<Rigidbody>();
     rb_box.IsStatic = true;
-    //auto& worldcollider = b.AddComponent<AABBComponent>();
+    //auto& worldcollider = b.AddComponent<AABBCollider>();
     //worldcollider.HalfSize = {100.0f, 25.0f, 100.0f}; // There are bugs with large colliders. 
 	
 
@@ -862,7 +862,7 @@ void SandboxLayer::OnUpdate() {
 	
 
 	auto debugView = m_Scene.Registry().view<Transform, MeshRenderer>();
-	auto colliderView = m_Scene.Registry().view<Transform, AABBComponent>();
+	auto colliderView = m_Scene.Registry().view<Transform, AABBCollider>();
 	//auto colliderView = m_Scene.Registry().view<Transform, Collider>();
 	auto view = m_Scene.Registry().view<Transform, MeshRenderer>();
 
@@ -932,7 +932,7 @@ void SandboxLayer::OnUpdate() {
 					for (auto entity : colliderView) {
 						auto& transform = colliderView.get<Transform>(entity);
 						glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform;
-    					auto& collider = colliderView.get<AABBComponent>(entity);
+    					auto& collider = colliderView.get<AABBCollider>(entity);
 				    	glm::vec3 origin = glm::vec3(model[3]);
 				    	float axisLength = 0.25f;
 				

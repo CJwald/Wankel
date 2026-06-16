@@ -3,6 +3,8 @@
 
 #include "Wankel/ECS/Scene.h"
 #include "Wankel/ECS/Components.h"
+#include "Wankel/ECS/Components/MotionProfile.h"
+//#include "Wankel/Math/SecondOrderDynamics.h"
 
 #include <glm/gtx/quaternion.hpp>
 

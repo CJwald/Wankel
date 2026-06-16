@@ -49,11 +49,11 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // BUILD SPATIAL GRID
     m_Grid.Clear();
 
-    auto buildView = registry.view<Transform, AABBComponent>();
+    auto buildView = registry.view<Transform, AABBCollider>();
 
     for (auto e : buildView) {
         auto& t = registry.get<Transform>(e);
-        auto& c = registry.get<AABBComponent>(e);
+        auto& c = registry.get<AABBCollider>(e);
 
         glm::vec3 center = t.LocalPosition + c.Offset;
 

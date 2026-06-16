@@ -66,7 +66,7 @@ bool IntersectRayAABB(const Ray& ray, const AABB& aabb, float& t) {
 
 bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDistance) {
     auto& registry = scene.Registry();
-    auto view = registry.view<Transform, AABBComponent>();
+    auto view = registry.view<Transform, AABBCollider>();
 
     bool hitAnything = false;
     float closest = maxDistance;
@@ -74,7 +74,7 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
 
     for (auto e : view) {
         auto& t = view.get<Transform>(e);
-        auto& c = view.get<AABBComponent>(e);
+        auto& c = view.get<AABBCollider>(e);
 
 		glm::vec3 center = t.LocalPosition + c.Offset;
         AABB aabb = AABB::FromCenterHalfSize(center, c.HalfSize);

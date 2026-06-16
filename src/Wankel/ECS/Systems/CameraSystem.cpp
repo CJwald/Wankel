@@ -4,6 +4,7 @@
 #include "Wankel/Renderer/Camera.h"
 #include "Wankel/ECS/Scene.h"
 #include "Wankel/ECS/Components.h"
+#include "Wankel/ECS/Components/MotionProfile.h"
 
 //#include <glm/gtx/quaternion.hpp>
 

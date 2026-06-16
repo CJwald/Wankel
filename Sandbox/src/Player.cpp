@@ -23,7 +23,7 @@ void Player::Build(Scene& scene) {
     pt.LocalPosition = {0, 1, 0};
 
     m_Player.AddComponent<PlayerController>();
-    m_Player.AddComponent<AABBComponent>().HalfSize = {0.5f, 0.5f, 0.5f};
+    m_Player.AddComponent<AABBCollider>().HalfSize = {0.5f, 0.5f, 0.5f};
 
     auto& rb = m_Player.AddComponent<Rigidbody>();
     rb.IsStatic = false;
