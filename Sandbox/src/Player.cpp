@@ -167,15 +167,8 @@ void Player::Build(Scene& scene) {
 
     auto& camT = m_Camera.AddComponent<Transform>();
 
-    auto& follow = m_Camera.AddComponent<FollowCameraComponent>();
-    follow.Target = m_Player;
-    follow.Offset = {0.0f, 0.15f, 0.4f};
 
     float pitch = 0, yaw = 0, roll = 0;
-    follow.RotationOffset =
-        glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
-        glm::angleAxis(glm::radians(yaw),   glm::vec3(0,1,0)) *
-        glm::angleAxis(glm::radians(roll),  glm::vec3(0,0,1));
 }
 
 }

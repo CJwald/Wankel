@@ -31,8 +31,10 @@
 #include "Wankel/Renderer/Renderer.h"
 #include "Wankel/Renderer/Shader.h" // Maybe remove in the future
 #include "Wankel/Renderer/Camera.h"
-#include "Wankel/Renderer/CameraController.h"
 
+// -----------------------------
+// ImGui
+// -----------------------------
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
 
 // -----------------------------

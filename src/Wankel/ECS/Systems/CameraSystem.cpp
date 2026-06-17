@@ -16,8 +16,8 @@ namespace Wankel {
 		auto view = scene.Registry().view<Transform, CameraComponent>();
 		for (auto entity : view) { 
 			auto& transform = view.get<Transform>(entity);
-			auto& cameraComp = view.get<CameraComponent>(entity);
-			if (!cameraComp.Primary) 
+			auto& cam = view.get<CameraComponent>(entity);
+			if (!cam.Primary) 
 				continue;
 
 			// POSITION
@@ -28,9 +28,9 @@ namespace Wankel {
 			glm::quat rotation = glm::quat_cast(transform.WorldTransform);
 			camera.SetOrientation(rotation); 
 			
-			camera.SetFOV(cameraComponent.FOV); 
-			camera.SetNearClip(cameraComponent.Near); 
-			camera.SetFarClip(cameraComponent.Far); 
+			camera.SetFOV(cam.FOV); 
+			camera.SetNearClip(cam.Near); 
+			camera.SetFarClip(cam.Far); 
 
 			break;
 		}

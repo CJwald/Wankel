@@ -72,7 +72,8 @@ static const char* MotionAxisLabels[] = {
     "Roll"
 };
 
-SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
+//SandboxLayer::SandboxLayer() : Layer("Cube"), m_RenderCamera(66.0f, 1280.0f / 720.0f, 0.01f, 1000.0f) {
+SandboxLayer::SandboxLayer() : Layer("Cube") {
 
 	// Mesh setup
 	//m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP04.ply");
@@ -614,8 +615,9 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	camEntity.AddComponent<Kinematics>();
     camEntity.AddComponent<CameraComponent>();
     camEntity.AddComponent<Parent>().Parent = player;
-    camEntity.LocalPosition = {0.0f, 0.3f , 3.35f};
-    camEntity.LocalOrientation = 
+    auto& camTransform = camEntity.GetComponent<Transform>();
+    camTransform.LocalPosition = {0.0f, 0.3f , 3.35f};
+    camTransform.LocalOrientation = 
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
@@ -791,13 +793,7 @@ void SandboxLayer::OnUpdate() {
 
 	m_PlayerInputSystem.Update(m_Scene, dt, m_GameFocused);
 
-	auto camView = m_Scene.Registry().view<CameraComponent>();
-	for (auto entity : camView) {
-    	auto& cameraComp = playerView.get<CameraComponent>(entity);
-		if (cameraComp.Primary) {
-    		m_Scene.OnUpdate(dt, cameraComp);
-		}
-	}
+    m_Scene.OnUpdate(dt, m_RenderCamera);
 	
 	auto playerView = m_Scene.Registry().view<Transform, PlayerController>();
 
@@ -813,11 +809,10 @@ void SandboxLayer::OnUpdate() {
 
 	Renderer::SetFog(m_Fog);
 
-	auto& cam = m_Controller.GetCamera();
-	glm::vec3 camPos = cam.GetPosition();
-	glm::vec3 camForward = cam.GetForward();
+	glm::vec3 camPos = m_RenderCamera.GetPosition();
+	glm::vec3 camForward = m_RenderCamera.GetForward();
     
-	Renderer::BeginScene(cam);
+	Renderer::BeginScene(m_RenderCamera);
 	
 	// Cube click test
 	static bool lastClick = false;
@@ -830,7 +825,7 @@ void SandboxLayer::OnUpdate() {
 	}
 
 	if (click && !lastClick) {
-		Ray ray = CreateCameraRay(cam, camPos);
+		Ray ray = CreateCameraRay(m_RenderCamera, camPos);
 		for (auto entity : playerView) {
     		auto& playerTransform = playerView.get<Transform>(entity);
 			ray.Direction = playerTransform.LocalOrientation * glm::vec3(0, 0, -1);
@@ -1040,29 +1035,27 @@ void SandboxLayer::OnImGuiRender() {
 
 		// CAMERA (GLOBAL)
 		if (ImGui::CollapsingHeader("Camera")) { 
-			auto& cam = m_Controller.GetCamera();
-			float fov = cam.GetFOV();
-			float nearClip = cam.GetNearClip();
-			float farClip = cam.GetFarClip();
+			auto camView = m_Scene.Registry().view<Transform, CameraComponent>();
+			for (auto entity : camView) {
+			    auto& transform = camView.get<Transform>(entity);
+			    auto& camera = camView.get<CameraComponent>(entity);
 			
-			ImGui::Text("Camera Settings");
-			if (ImGui::SliderFloat("FOV (Vertical)", &fov, 30.0f, 120.0f))
-			    cam.SetFOV(fov);
-			if (ImGui::SliderFloat("Near Clip", &nearClip, 0.001f, 5.0f))
-			    cam.SetNearClip(nearClip);
-			if (ImGui::SliderFloat("Far Clip", &farClip, 10.0f, 10000.0f))
-			    cam.SetFarClip(farClip);
-			
-			// TODO: Need to update this with new camera stuff
-			//glm::vec3 eulerDeg = glm::degrees(glm::eulerAngles(m_DebugFollow->RotationOffset));
-			//if (m_DebugFollow) {
-			//    ImGui::Separator();
-			//    ImGui::Text("Follow Camera");
-			//    ImGui::DragFloat3("Offset", &m_DebugFollow->Offset[0], 0.01f);
-			//    ImGui::DragFloat3("Rotation Offset [pyr]", &eulerDeg[0], 0.1f);
-			//	glm::vec3 eulerRad = glm::radians(eulerDeg);
-    		//	m_DebugFollow->RotationOffset = glm::quat(eulerRad);
-			//}
+			    if (!camera.Primary)
+			        continue;
+				
+				ImGui::Text("Camera Settings");
+				ImGui::SliderFloat("FOV (Vertical)", &camera.FOV, 30.0f, 120.0f);
+				ImGui::SliderFloat("Near Clip", &camera.Near, 0.001f, 5.0f);
+				ImGui::SliderFloat("Far Clip", &camera.Far, 10.0f, 10000.0f);
+				
+				ImGui::Separator();
+				glm::vec3 eulerDeg = glm::degrees(glm::eulerAngles(transform.LocalOrientation));
+				ImGui::Text("Camera Transform");
+				ImGui::DragFloat3("Offset", &transform.LocalPosition.x, 0.01f);
+				if (ImGui::DragFloat3("Rotation Offset [pyr]", &eulerDeg.x, 0.1f)) {
+					transform.LocalOrientation = glm::quat(glm::radians(eulerDeg));
+				}
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Entity")) {
@@ -1231,7 +1224,8 @@ void SandboxLayer::OnEvent(Event& e) { // TODO: I DONT KNOW IF THIS SHOULD BE HE
     EventDispatcher dispatcher(e);
 
     dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e) {
-        m_Controller.OnResize((float)e.GetWidth(), (float)e.GetHeight());
+        //m_Controller.OnResize((float)e.GetWidth(), (float)e.GetHeight());
+		m_RenderCamera.SetAspect((float)e.GetWidth() / (float)e.GetHeight());
         return false;
     });
 }

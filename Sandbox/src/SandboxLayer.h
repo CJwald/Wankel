@@ -4,7 +4,6 @@
 
 #include <Wankel/Core/Layer.h>
 #include <Wankel/Renderer/Shader.h>
-#include <Wankel/Renderer/CameraController.h>
 #include <Wankel/ECS/Scene.h>
 #include <Wankel/Renderer/Renderer.h>
 #include <Wankel/ECS/Components.h>
@@ -44,8 +43,7 @@ private:
 	float m_ChunkSize = 200.0f; // ±100m cutoff
 	int m_RepeatN = 1;          // 1 = 3x3 grid
 
-	FollowCameraComponent* m_DebugFollow = nullptr;
-	CameraController m_Controller;
+	Camera m_RenderCamera;
 	Scene m_Scene;
 	PlayerInputSystem m_PlayerInputSystem;
 

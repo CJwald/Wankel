@@ -7,7 +7,7 @@ namespace Wankel {
 
 	class Camera {
 	public:
-		Camera(float fov, float aspect, float nearClip, float farClip);
+		Camera(float fov = 66.0f, float aspect = 16.0f/9.0f, float nearClip = 0.01f, float farClip = 1000.0f);
 
 		void SetPosition(const glm::vec3& position);
 		void SetFOV(const float& fov);
