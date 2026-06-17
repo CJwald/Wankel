@@ -97,25 +97,26 @@ cd Sandbox
 - Second Order Dynamics Animation System
 - Multi-mesh components
 - Debug Visualization system (coord. frames etc.)
+- Collision box debug rendering
 
 
 ## TODO:
-- Remove camera controller. All cameras should be setup as an entity and controlled that way.
 - Collider system redesign (AABB/Sphere/Capsule unified dispatch)
 - Capsule collision systems
 - Static triangle mesh collision
-- Collision box debug rendering
 - Lighting/Material pipeline
 - Update 3d mesh system to read other files (glTF) and add normals to .ply
 - Text Rendering
 - Basic UI/HUD Framework
 - Asset/Material separation
+- Asset manager
 - Procedural Animation Layering (I need to evaluate if I want this)
 - State machine helpers
 - Audio System
 - Multiplayer Networking
+- Database System (may be SQL)
+- Update Debug Lines to support thickness
 
 
 ## BUGS:
-- Child and maybe parent objects animations jump when teleporting on world border (large negative vel)
 - Cant push an entity across the world border because the teleport doesnt work with colliders. 
