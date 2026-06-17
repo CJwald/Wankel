@@ -12,39 +12,27 @@
 namespace Wankel {
 	
 	void CameraSystem::Update(Scene& scene, Camera& camera) {
-		// FOLLOW CAMERA SYSTEM
-		auto& registry = scene.Registry();
-		auto camView = registry.view<Transform, FollowCameraComponent>();
-		
-		for (auto entity : camView) {
-		    //auto& transform = camView.get<Transform>(entity);
-		    auto& follow = camView.get<FollowCameraComponent>(entity);
-		
-		    if (!follow.Target)
-		        continue;
-		
-		    auto& targetTransform = follow.Target.GetComponent<Transform>();
-		
-		    // BUILD TARGET TRANSFORM
-			glm::mat4 targetMat = targetTransform.WorldTransform;
-		
-		    // BUILD CAMERA OFFSET
-		    glm::mat4 offsetMat =
-		        glm::translate(glm::mat4(1.0f), follow.Offset) *
-		        glm::mat4_cast(follow.RotationOffset);
-		
-		    // FINAL CAMERA TRANSFORM
-		    glm::mat4 cameraMat = targetMat * offsetMat;
-		
-		    // POSITION
-		    glm::vec3 cameraPos = glm::vec3(cameraMat[3]);
-		    camera.SetPosition(cameraPos);
-		
-		    // ROTATION
-		    glm::mat4 rotMat = cameraMat;
-		    rotMat[3] = glm::vec4(0,0,0,1);
-		    glm::quat cameraRot = glm::quat_cast(rotMat);
-		    camera.SetOrientation(cameraRot);
+
+		auto view = scene.Registry().view<Transform, CameraComponent>();
+		for (auto entity : view) { 
+			auto& transform = view.get<Transform>(entity);
+			auto& cameraComp = view.get<CameraComponent>(entity);
+			if (!cameraComp.Primary) 
+				continue;
+
+			// POSITION
+			glm::vec3 position = glm::vec3(transform.WorldTransform[3]);
+			camera.SetPosition(position); 
+
+			// ROTATION
+			glm::quat rotation = glm::quat_cast(transform.WorldTransform);
+			camera.SetOrientation(rotation); 
+			
+			camera.SetFOV(cameraComponent.FOV); 
+			camera.SetNearClip(cameraComponent.Near); 
+			camera.SetFarClip(cameraComponent.Far); 
+
+			break;
 		}
 	}
 }

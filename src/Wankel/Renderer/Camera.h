@@ -9,7 +9,6 @@ namespace Wankel {
 	public:
 		Camera(float fov, float aspect, float nearClip, float farClip);
 
-		// Position
 		void SetPosition(const glm::vec3& position);
 		void SetFOV(const float& fov);
 		void SetAspect(const float& aspect);
@@ -34,6 +33,7 @@ namespace Wankel {
 		// Matrices
 		glm::mat4 GetViewMatrix() const;
 		glm::mat4 GetProjectionMatrix() const;
+
 
 	private:
 		glm::vec3 m_Position{0.0f, 0.0f, 3.0f};

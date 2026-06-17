@@ -612,18 +612,14 @@ SandboxLayer::SandboxLayer() : Layer("Cube"), m_Controller(1280.0f / 720.0f) {
 	camEntity.AddComponent<Tag>().Name = "Player Camera";
     camEntity.AddComponent<Transform>();
 	camEntity.AddComponent<Kinematics>();
-    auto& follow = camEntity.AddComponent<FollowCameraComponent>();
+    camEntity.AddComponent<CameraComponent>();
+    camEntity.AddComponent<Parent>().Parent = player;
+    camEntity.LocalPosition = {0.0f, 0.3f , 3.35f};
+    camEntity.LocalOrientation = 
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
+    	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
 
-    follow.Target = player;
-    //follow.Offset = {0.0f, 0.0f, -0.35f};
-    follow.Offset = {0.0f, 0.3f, 3.35f};
-	float roll = 0.0f; float pitch = 0.0f; float yaw = 0.0f; 
-	follow.RotationOffset =
-    	glm::angleAxis(glm::radians(pitch), glm::vec3(1,0,0)) *
-    	glm::angleAxis(glm::radians(yaw), glm::vec3(0,1,0)) *
-    	glm::angleAxis(glm::radians(roll), glm::vec3(0,0,1));
-
-	m_DebugFollow = &follow;
 
 	// Collider
 	auto& collider = player.AddComponent<AABBCollider>();
@@ -795,7 +791,13 @@ void SandboxLayer::OnUpdate() {
 
 	m_PlayerInputSystem.Update(m_Scene, dt, m_GameFocused);
 
-    m_Scene.OnUpdate(dt, m_Controller.GetCamera());
+	auto camView = m_Scene.Registry().view<CameraComponent>();
+	for (auto entity : camView) {
+    	auto& cameraComp = playerView.get<CameraComponent>(entity);
+		if (cameraComp.Primary) {
+    		m_Scene.OnUpdate(dt, cameraComp);
+		}
+	}
 	
 	auto playerView = m_Scene.Registry().view<Transform, PlayerController>();
 
@@ -1051,15 +1053,16 @@ void SandboxLayer::OnImGuiRender() {
 			if (ImGui::SliderFloat("Far Clip", &farClip, 10.0f, 10000.0f))
 			    cam.SetFarClip(farClip);
 			
-			glm::vec3 eulerDeg = glm::degrees(glm::eulerAngles(m_DebugFollow->RotationOffset));
-			if (m_DebugFollow) {
-			    ImGui::Separator();
-			    ImGui::Text("Follow Camera");
-			    ImGui::DragFloat3("Offset", &m_DebugFollow->Offset[0], 0.01f);
-			    ImGui::DragFloat3("Rotation Offset [pyr]", &eulerDeg[0], 0.1f);
-				glm::vec3 eulerRad = glm::radians(eulerDeg);
-    			m_DebugFollow->RotationOffset = glm::quat(eulerRad);
-			}
+			// TODO: Need to update this with new camera stuff
+			//glm::vec3 eulerDeg = glm::degrees(glm::eulerAngles(m_DebugFollow->RotationOffset));
+			//if (m_DebugFollow) {
+			//    ImGui::Separator();
+			//    ImGui::Text("Follow Camera");
+			//    ImGui::DragFloat3("Offset", &m_DebugFollow->Offset[0], 0.01f);
+			//    ImGui::DragFloat3("Rotation Offset [pyr]", &eulerDeg[0], 0.1f);
+			//	glm::vec3 eulerRad = glm::radians(eulerDeg);
+    		//	m_DebugFollow->RotationOffset = glm::quat(eulerRad);
+			//}
 		}
 
 		if (ImGui::CollapsingHeader("Entity")) {
