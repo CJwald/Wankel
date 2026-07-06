@@ -19,7 +19,6 @@ namespace Wankel {
 	    // CACHED TRANSFORMS
 	    glm::mat4 LocalTransform{1.0f};
 	    glm::mat4 WorldTransform{1.0f};
-	    glm::mat4 VisualTransform{1.0f};
 	    glm::mat4 FinalTransform{1.0f};
 	};
 

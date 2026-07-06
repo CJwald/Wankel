@@ -21,7 +21,6 @@ namespace Wankel {
 
             auto& transform  = view.get<Transform>(entity);
             auto& controller = view.get<PlayerController>(entity);
-            auto& rb         = view.get<Rigidbody>(entity);
             auto& movement   = view.get<Movement>(entity);
 
             // INPUT

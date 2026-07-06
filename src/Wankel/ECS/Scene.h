@@ -1,5 +1,6 @@
 #pragma once
 #include "Entity.h"
+#include "Wankel/ECS/Components/HiearchyComponents.h"
 #include "Wankel/Physics/Systems/PhysicsSystem.h"
 #include "Wankel/ECS/Systems/PlayerControllerSystem.h"
 #include "Wankel/ECS/Systems/TransformSystem.h"
@@ -17,7 +18,15 @@ namespace Wankel {
         }
 
         void DestroyEntity(Entity entity) {
-            m_Registry.destroy(entity.GetHandle());
+            auto handle = entity.GetHandle();
+
+            auto view = m_Registry.view<Parent>();
+            for (auto e : view) {
+                if (view.get<Parent>(e).Parent.GetHandle() == handle)
+                    m_Registry.remove<Parent>(e);
+            }
+
+            m_Registry.destroy(handle);
         }
 
 		void OnUpdate(float dt, Camera& camera);

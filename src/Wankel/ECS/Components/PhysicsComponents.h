@@ -15,23 +15,6 @@ namespace Wankel {
 	};
 	
 
-	struct Collider {
-	    enum class Type : uint8_t {
-	        AABB,
-	        Sphere,
-	        Capsule
-	    };
-
-		Type type;
-	
-	    glm::vec3 HalfSize{0.5f};   // AABB
-	    float Radius = 0.5f;        // Sphere
-	    float CapsuleHalfHeight = 0.5f; // Capsule
-
-	    glm::vec3 Offset{0.0f};
-	};
-
-
 	struct AABBCollider {
     	glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f};
 		glm::vec3 Offset{0.0f};

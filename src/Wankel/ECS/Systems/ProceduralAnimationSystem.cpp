@@ -25,21 +25,6 @@ namespace Wankel {
 	}
 
 
-	static float GetAxisValue(MotionAxis axis, const glm::vec3& pos, const glm::vec3& rot) {
-	    switch (axis) {
-	        case MotionAxis::X: return pos.x;
-	        case MotionAxis::Y: return pos.y;
-	        case MotionAxis::Z: return pos.z;
-	
-	        case MotionAxis::Pitch: return rot.x;
-	        case MotionAxis::Yaw: return rot.y;
-	        case MotionAxis::Roll: return rot.z;
-	    }
-	
-	    return 0.0f;
-	}
-
-	
 	void ProceduralAnimationSystem::Update(Scene& scene, float dt) {
 		auto& registry = scene.Registry();
 		auto view = registry.view<Transform, Kinematics, MeshAnimation>();
