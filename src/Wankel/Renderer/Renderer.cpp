@@ -37,6 +37,7 @@ namespace Wankel {
 	
 
 	static RendererData s_Data;
+	static constexpr size_t kMaxDebugVertices = 65536;
 
 
 	void Renderer::Init() {
@@ -53,7 +54,7 @@ namespace Wankel {
 		glGenBuffers(1, &s_Data.DebugVBO);
 		glBindVertexArray(s_Data.DebugVAO);
 		glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(DebugVertex) * 65536, nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(DebugVertex) * kMaxDebugVertices, nullptr, GL_DYNAMIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3,	GL_FLOAT, GL_FALSE,	sizeof(DebugVertex), (void*)offsetof(DebugVertex, Position));
 		glEnableVertexAttribArray(1);
@@ -67,6 +68,8 @@ namespace Wankel {
 
 	void Renderer::Shutdown() {
 		delete s_Data.DebugShader;
+		s_Data.DebugShader = nullptr;
+
 		glDeleteBuffers(1, &s_Data.DebugVBO);
 		glDeleteVertexArrays(1, &s_Data.DebugVAO);
 	}
@@ -83,15 +86,22 @@ namespace Wankel {
 	void Renderer::EndScene() {
 		// DEBUG PASS
 		if (DebugEnabled && !s_Data.DebugVertices.empty()) {
+			size_t vertexCount = s_Data.DebugVertices.size();
+
+			if (vertexCount > kMaxDebugVertices) {
+				WK_CORE_WARNING("Renderer::EndScene - {0} debug vertices submitted, truncating to capacity ({1})", vertexCount, kMaxDebugVertices);
+				vertexCount = kMaxDebugVertices;
+			}
+
 			s_Data.DebugShader->Bind();
 			s_Data.DebugShader->SetMat4("view", s_Data.View);
 			s_Data.DebugShader->SetMat4("projection", s_Data.Projection);
 
 			glBindVertexArray(s_Data.DebugVAO);
 			glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, s_Data.DebugVertices.size()	* sizeof(DebugVertex), s_Data.DebugVertices.data());
+			glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), s_Data.DebugVertices.data());
 			glDisable(GL_CULL_FACE);
-			glDrawArrays(GL_LINES, 0, (GLsizei)s_Data.DebugVertices.size());
+			glDrawArrays(GL_LINES, 0, (GLsizei)vertexCount);
 			glEnable(GL_CULL_FACE);
 		}
 	}

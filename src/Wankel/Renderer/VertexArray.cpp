@@ -23,22 +23,20 @@ namespace Wankel {
 	
 		const auto& layout = vb.GetLayout();
 		const auto& elements = layout.GetElements();
-	
-		uint32_t index = 0;
-	
+
 		for (const auto& e : elements) {
-			glEnableVertexAttribArray(index);
-	
+			glEnableVertexAttribArray(m_NextAttribIndex);
+
 			glVertexAttribPointer(
-				index,
+				m_NextAttribIndex,
 				e.Count,
 				e.Type,
 				e.Normalized ? GL_TRUE : GL_FALSE,
 				layout.GetStride(),
 				(const void*)(intptr_t)e.Offset
 			);
-	
-			index++;
+
+			m_NextAttribIndex++;
 		}
 	}
 

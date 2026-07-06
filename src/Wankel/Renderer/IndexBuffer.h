@@ -7,7 +7,10 @@ namespace Wankel {
 	public:
 	    IndexBuffer(const uint32_t* indices, uint32_t count);
 	    ~IndexBuffer();
-	
+
+	    IndexBuffer(const IndexBuffer&) = delete;
+	    IndexBuffer& operator=(const IndexBuffer&) = delete;
+
 	    void Bind() const;
 	    uint32_t GetCount() const;
 		uint32_t GetID() const;

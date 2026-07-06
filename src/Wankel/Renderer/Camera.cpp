@@ -14,18 +14,35 @@ namespace Wankel {
 	}
 
 	void Camera::SetFOV(const float& fov) {
+		if (fov <= 0.0f || fov >= 180.0f) {
+			WK_CORE_WARNING("Camera::SetFOV - {0} out of range (0, 180), clamping", fov);
+			m_FOV = glm::clamp(fov, 0.01f, 179.99f);
+			return;
+		}
 		m_FOV = fov;
 	}
 
 	void Camera::SetAspect(const float& aspect) {
+		if (aspect <= 0.0f) {
+			WK_CORE_WARNING("Camera::SetAspect - {0} must be > 0, ignoring", aspect);
+			return;
+		}
 		m_Aspect = aspect;
 	}
 
 	void Camera::SetNearClip(const float& nearClip) {
+		if (nearClip <= 0.0f || nearClip >= m_Far) {
+			WK_CORE_WARNING("Camera::SetNearClip - {0} must be > 0 and < far clip ({1}), ignoring", nearClip, m_Far);
+			return;
+		}
 		m_Near = nearClip;
 	}
 
 	void Camera::SetFarClip(const float& farClip) {
+		if (farClip <= m_Near) {
+			WK_CORE_WARNING("Camera::SetFarClip - {0} must be > near clip ({1}), ignoring", farClip, m_Near);
+			return;
+		}
 		m_Far = farClip;
 	}
 

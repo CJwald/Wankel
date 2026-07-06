@@ -3,6 +3,8 @@
 #include <string>
 #include <glad/gl.h>
 
+#include <Wankel/Core/Log.h>
+
 namespace Wankel {
 
 	struct BufferElement {
@@ -25,8 +27,10 @@ namespace Wankel {
 				case GL_FLOAT: return 4;
 				case GL_UNSIGNED_INT: return 4;
 				case GL_UNSIGNED_BYTE: return 1;
+				default:
+					WK_CORE_ERROR("VertexBufferLayout::GetSizeOfType - unhandled GLenum {0}", (uint32_t)type);
+					return 0;
 			}
-			return 0;
 		}
 	};
 

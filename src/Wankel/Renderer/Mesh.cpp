@@ -37,6 +37,9 @@ namespace Wankel {
 	}
 	
 	Mesh::~Mesh() {}
+
+	Mesh::Mesh(Mesh&&) noexcept = default;
+	Mesh& Mesh::operator=(Mesh&&) noexcept = default;
 	
 	void Mesh::Bind() const {
 	    m_VertexArray->Bind();
