@@ -59,9 +59,9 @@ private:
     }
 
     int64_t Hash(const glm::ivec3& cell) {
-        return (int64_t)(cell.x * 73856093) ^
-               (int64_t)(cell.y * 19349663) ^
-               (int64_t)(cell.z * 83492791);
+        return ((int64_t)cell.x * 73856093) ^
+               ((int64_t)cell.y * 19349663) ^
+               ((int64_t)cell.z * 83492791);
     }
 };
 

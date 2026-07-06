@@ -78,6 +78,14 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // COLLISION
     auto view = registry.view<Transform, Rigidbody>();
 
+    // The broad-phase grid only contains AABBCollider entities, so a pair
+    // can be discovered from either side (both AABB) or just one side
+    // (e.g. sphere-vs-AABB, only found while iterating the sphere). Track
+    // pairs already resolved this frame by canonical (min, max) entity key
+    // so a symmetric discovery doesn't resolve the same pair twice, without
+    // assuming every pair is discovered from both directions.
+    std::unordered_set<uint64_t> resolvedPairs;
+
     for (auto a : view) {
         auto& ta = registry.get<Transform>(a);
         auto& rba = registry.get<Rigidbody>(a);
@@ -85,6 +93,13 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
 
         for (auto b : candidates) {
             if (a == b)
+                continue;
+
+            uint32_t idA = entt::to_integral(a);
+            uint32_t idB = entt::to_integral(b);
+            uint64_t pairKey = ((uint64_t)std::min(idA, idB) << 32) | std::max(idA, idB);
+
+            if (!resolvedPairs.insert(pairKey).second)
                 continue;
 
             CollisionManifold manifold;
@@ -113,10 +128,20 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 tb.LocalPosition += manifold.Normal * manifold.Penetration * 0.5f;
             }
 
-            float va = glm::dot(rba.Velocity, manifold.Normal);
+            // VELOCITY SOLVE - cancel each body's velocity component that
+            // would deepen the penetration. manifold.Normal points from a
+            // to b, so a's penetrating direction is +Normal and b's is -Normal.
+            if (!rba.IsStatic) {
+                float va = glm::dot(rba.Velocity, manifold.Normal);
+                if (va > 0.0f)
+                    rba.Velocity -= manifold.Normal * va;
+            }
 
-            if (va < 0.0f)
-                rba.Velocity -= manifold.Normal * va;
+            if (!rbb.IsStatic) {
+                float vb = glm::dot(rbb.Velocity, manifold.Normal);
+                if (vb < 0.0f)
+                    rbb.Velocity -= manifold.Normal * vb;
+            }
         }
     }
 }

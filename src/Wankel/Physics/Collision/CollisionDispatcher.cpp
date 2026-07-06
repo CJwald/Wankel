@@ -102,7 +102,10 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
         ? GetNarrowPhaseTable()[ib][ia]
         : GetNarrowPhaseTable()[ia][ib];
 
-    if (!fn) return false;
+    if (!fn) {
+        WK_CORE_WARNING("ResolveCollision: no narrow-phase dispatch for collider type pair ({0}, {1})", ia, ib);
+        return false;
+    }
 
     out = swapped ? fn(shapeB, shapeA) : fn(shapeA, shapeB);
     if (swapped) out.Normal *= -1.0f;

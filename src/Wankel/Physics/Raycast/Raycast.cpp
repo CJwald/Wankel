@@ -40,9 +40,17 @@ bool IntersectRaySphere(const Ray& ray, const Sphere& sphere, float& outDistance
 }
 
 
-bool IntersectRayAABB(const Ray& ray, const AABB& aabb, float& t) {
+bool IntersectRayAABB(const Ray& ray, const AABB& aabb, float& t, glm::vec3& outNormal) {
 	glm::vec3 dir = glm::normalize(ray.Direction);
-    glm::vec3 invDir = 1.0f / dir; // TODO: This can devide by zero. Should add epsilon handling 
+
+    // Avoid dividing by exactly zero on axis-aligned rays (which would
+    // otherwise risk a 0 * inf -> NaN slab test below).
+    constexpr float kEpsilon = 1e-6f;
+    if (std::abs(dir.x) < kEpsilon) dir.x = std::copysign(kEpsilon, dir.x);
+    if (std::abs(dir.y) < kEpsilon) dir.y = std::copysign(kEpsilon, dir.y);
+    if (std::abs(dir.z) < kEpsilon) dir.z = std::copysign(kEpsilon, dir.z);
+
+    glm::vec3 invDir = 1.0f / dir;
 
     glm::vec3 t0 = (aabb.Min - ray.Origin) * invDir;
     glm::vec3 t1 = (aabb.Max - ray.Origin) * invDir;
@@ -60,6 +68,13 @@ bool IntersectRayAABB(const Ray& ray, const AABB& aabb, float& t) {
         return false;
 
     t = nearT;
+
+    if (nearT == tmin.x)
+        outNormal = glm::vec3(dir.x < 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f);
+    else if (nearT == tmin.y)
+        outNormal = glm::vec3(0.0f, dir.y < 0.0f ? 1.0f : -1.0f, 0.0f);
+    else
+        outNormal = glm::vec3(0.0f, 0.0f, dir.z < 0.0f ? 1.0f : -1.0f);
 
     return true;
 }
@@ -80,8 +95,9 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
         AABB aabb = AABB::FromCenterHalfSize(center, c.HalfSize);
 
         float distance;
+        glm::vec3 normal;
 
-        if (!IntersectRayAABB(ray, aabb, distance))
+        if (!IntersectRayAABB(ray, aabb, distance, normal))
             continue;
 
         if (distance > closest)
@@ -92,6 +108,7 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
         outHit.HitEntity = Entity(e, &registry);
         outHit.Distance = distance;
         outHit.Point = ray.Origin + dir * distance;
+        outHit.Normal = normal;
 
         hitAnything = true;
     }
