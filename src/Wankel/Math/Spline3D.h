@@ -3,6 +3,8 @@
 #include <vector>
 #include <glm/glm.hpp>
 
+#include <Wankel/Core/Log.h>
+
 namespace Wankel {
 
 class Spline3D {
@@ -12,8 +14,10 @@ public:
 
     glm::vec3 Sample(float t) const {
 
-        if (Points.size() < 4)
+        if (Points.size() < 4) {
+            WK_CORE_WARNING("Spline3D::Sample called with fewer than 4 control points ({0}) - returning origin", Points.size());
             return glm::vec3(0);
+        }
 
         int count = (int)Points.size() - 3;
 

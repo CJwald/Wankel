@@ -4,23 +4,25 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Math.h"
+
 namespace Wankel {
 
-	static constexpr float PI = 3.14159265359f;
-	
-	
 	SecondOrderDynamics::SecondOrderDynamics(float frequency, float damping, float response, float initialValue) {
 		SetDynamics(frequency, damping, response);
-	
+
 	    m_PreviousInput = initialValue;
 	    m_Output = initialValue;
 	    m_OutputVelocity = 0.0f;
 	}
-	
-	
+
+
 	float SecondOrderDynamics::Update(float dt, float target) {
+	    if (dt <= 0.0f)
+	        return m_Output;
+
 	    float inputVelocity = (target - m_PreviousInput) / dt;
-	
+
 	    m_PreviousInput = target;
 	
 	    float stableK2 = std::max( 
@@ -49,9 +51,11 @@ namespace Wankel {
 	
 	
 	void SecondOrderDynamics::SetDynamics(float frequency, float damping, float response) {
-	    m_K1 = damping / (PI * frequency);
-	    m_K2 = 1.0f / ((2.0f * PI * frequency) * (2.0f * PI * frequency));
-	    m_K3 = response * damping / (2.0f * PI * frequency);
+	    frequency = std::max(frequency, 0.001f);
+
+	    m_K1 = damping / (Math::PI * frequency);
+	    m_K2 = 1.0f / ((2.0f * Math::PI * frequency) * (2.0f * Math::PI * frequency));
+	    m_K3 = response * damping / (2.0f * Math::PI * frequency);
 	}
 
 }
