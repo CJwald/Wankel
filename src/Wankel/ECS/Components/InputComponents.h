@@ -26,6 +26,7 @@ namespace Wankel {
 		glm::vec3 MoveInput{0.0f};
 	    
 		LookMode Mode = LookMode::FPS;
+		bool R3PressedLastFrame = false;
 
 		// FPS CAMERA STATE, TODO: make sure I need these
 		float Yaw = 0.0f;

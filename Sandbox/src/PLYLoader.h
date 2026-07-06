@@ -116,12 +116,24 @@ public:
 
             std::vector<uint32_t> idx(n);
 
+            bool valid = true;
+
             for (int i = 0; i < n; ++i) {
                 if (!(ss >> idx[i])) {
                     std::cout << "[PLY] Face parse failed: " << line << "\n";
-                    goto skip_face;
+                    valid = false;
+                    break;
+                }
+
+                if (idx[i] >= vertexCount) {
+                    std::cout << "[PLY] Face index " << idx[i] << " out of range (vertex count " << vertexCount << "): " << line << "\n";
+                    valid = false;
+                    break;
                 }
             }
+
+            if (!valid)
+                goto skip_face;
 
             // triangulate (fan method)
             for (int i = 1; i + 1 < n; ++i) {

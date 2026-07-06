@@ -25,16 +25,15 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
         auto& controller = controllerView.get<PlayerController>(entity);
 
         int pad = 0;
-        
+
 		// LOOK MODE TOGGLE (R3)
-		static bool r3PressedLastFrame = false;
 		bool r3Pressed = false;
 
         if (Input::IsKeyPressed(Key::X) || ControllerInput::IsButtonPressed(pad, GamepadButton::R3)) {
 			r3Pressed = true;
 		}
 
-		if (r3Pressed && !r3PressedLastFrame) {
+		if (r3Pressed && !controller.R3PressedLastFrame) {
 			if (controller.Mode == PlayerController::LookMode::FPS) {
 				controller.Mode = PlayerController::LookMode::Flight;
 			}
@@ -43,7 +42,7 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
 			}
 		}
 
-		r3PressedLastFrame = r3Pressed;
+		controller.R3PressedLastFrame = r3Pressed;
         glm::vec3 input(0.0f);
         float rollInput = 0.0f;
 
@@ -92,8 +91,12 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
 		lookVelocity.y += ry * StickTurnSpeed;
 
 		// Mouse (always include it, don't conditionally overwrite)
-		lookVelocity.x += Input::GetMouseDeltaX() * MouseSensitivity / dt;
-		lookVelocity.y += Input::GetMouseDeltaY() * MouseSensitivity / dt;
+		// Guard dt <= 0 (e.g. the very first frame) - dividing by it here
+		// would inject NaN into the look quaternion permanently.
+		if (dt > 0.0f) {
+			lookVelocity.x += Input::GetMouseDeltaX() * MouseSensitivity / dt;
+			lookVelocity.y += Input::GetMouseDeltaY() * MouseSensitivity / dt;
+		}
 
 		// Keyboard arrows
 		if (Input::IsKeyPressed(Key::Left))

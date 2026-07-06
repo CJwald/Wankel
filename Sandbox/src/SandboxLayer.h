@@ -34,9 +34,7 @@ private:
 	std::unique_ptr<Mesh> m_EnemyLegMeshMirrored;
 	std::unique_ptr<Mesh> m_GunMesh;
 	std::unique_ptr<Mesh> m_CubeMesh;
-	std::unique_ptr<Mesh> m_PlateMesh;
 	std::unique_ptr<Mesh> m_BoxMesh;
-	std::unique_ptr<Mesh> m_TriangleMesh;
 	std::unique_ptr<Shader> m_Shader;
 	entt::entity m_SelectedAnimEntity = entt::null;	
 
