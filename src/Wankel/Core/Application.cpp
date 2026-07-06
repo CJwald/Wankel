@@ -17,8 +17,10 @@ namespace Wankel {
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
 		Renderer::Init();
-		InputSystem::Init();
-		
+
+		if (!InputSystem::Init())
+			WK_CORE_WARNING("Gamepad input disabled: SDL failed to initialize");
+
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 	}
@@ -52,7 +54,9 @@ namespace Wankel {
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
-			
+
+			Input::ResetMouseDelta();
+
 			m_ImGuiLayer->Begin();
 
     		for (Layer* layer : m_LayerStack)

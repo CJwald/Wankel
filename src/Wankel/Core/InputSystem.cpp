@@ -8,10 +8,10 @@ namespace Wankel {
 
     static std::vector<SDL_Gamepad*> s_Gamepads;
 
-    void InputSystem::Init() {
+    bool InputSystem::Init() {
         if (SDL_Init(SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS) != 0) {
             WK_CORE_ERROR("SDL Init failed: {0}", SDL_GetError());
-            return;
+            return false;
         }
 
         WK_CORE_INFO("SDL Gamepad subsystem initialized");
@@ -30,6 +30,8 @@ namespace Wankel {
         }
 
         SDL_free(ids);
+
+        return true;
     }
 
     void InputSystem::Shutdown() {
@@ -63,14 +65,24 @@ namespace Wankel {
                 }
 
                 case SDL_EVENT_GAMEPAD_REMOVED: {
-                    WK_CORE_INFO("Controller disconnected");
-                    // TODO: remove correct pad later
+                    SDL_JoystickID removedId = e.gdevice.which;
+
+                    auto it = std::find_if(s_Gamepads.begin(), s_Gamepads.end(), [removedId](SDL_Gamepad* pad) {
+                        return pad && SDL_GetGamepadID(pad) == removedId;
+                    });
+
+                    if (it != s_Gamepads.end()) {
+                        WK_CORE_INFO("Controller disconnected: {0}", SDL_GetGamepadName(*it));
+                        SDL_CloseGamepad(*it);
+                        s_Gamepads.erase(it);
+                    }
+
                     break;
                 }
             }
         }
 
-        for (size_t i = 0; i < s_Gamepads.size(); i++) {
+        for (size_t i = 0; i < s_Gamepads.size() && i < (size_t)ControllerInput::MaxControllers; i++) {
 
             SDL_Gamepad* pad = s_Gamepads[i];
 

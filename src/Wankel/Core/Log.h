@@ -25,18 +25,18 @@ namespace Wankel {
 #define WK_CORE_INFO(...)      ::Wankel::Log::GetCoreLogger()->info(__VA_ARGS__)
 #define WK_CORE_WARNING(...)   ::Wankel::Log::GetCoreLogger()->warn(__VA_ARGS__)
 #define WK_CORE_ERROR(...)     ::Wankel::Log::GetCoreLogger()->error(__VA_ARGS__)
-#define WK_CORE_FATAL(...)     ::Wankel::Log::GetCoreLogger()->fatal(__VA_ARGS__)
+#define WK_CORE_FATAL(...)     ::Wankel::Log::GetCoreLogger()->critical(__VA_ARGS__)
 
 // Client Log Macros
 #define WK_CLIENT_TRACE(...)   ::Wankel::Log::GetClientLogger()->trace(__VA_ARGS__)
 #define WK_CLIENT_INFO(...)    ::Wankel::Log::GetClientLogger()->info(__VA_ARGS__)
 #define WK_CLIENT_WARNING(...) ::Wankel::Log::GetClientLogger()->warn(__VA_ARGS__)
 #define WK_CLIENT_ERROR(...)   ::Wankel::Log::GetClientLogger()->error(__VA_ARGS__)
-#define WK_CLIENT_FATAL(...)   ::Wankel::Log::GetClientLogger()->fatal(__VA_ARGS__)
+#define WK_CLIENT_FATAL(...)   ::Wankel::Log::GetClientLogger()->critical(__VA_ARGS__)
 
 // Server Log Macros
 #define WK_SERVER_TRACE(...)   ::Wankel::Log::GetServerLogger()->trace(__VA_ARGS__)
 #define WK_SERVER_INFO(...)    ::Wankel::Log::GetServerLogger()->info(__VA_ARGS__)
 #define WK_SERVER_WARNING(...) ::Wankel::Log::GetServerLogger()->warn(__VA_ARGS__)
 #define WK_SERVER_ERROR(...)   ::Wankel::Log::GetServerLogger()->error(__VA_ARGS__)
-#define WK_SERVER_FATAL(...)   ::Wankel::Log::GetServerLogger()->fatal(__VA_ARGS__)
+#define WK_SERVER_FATAL(...)   ::Wankel::Log::GetServerLogger()->critical(__VA_ARGS__)

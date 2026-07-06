@@ -45,6 +45,7 @@ namespace Wankel {
 		if (s_GLFWWindowCount == 0) {
 			int success = glfwInit();
 			WK_CORE_ASSERT(success, "Could not initialize GLFW!");
+			glfwSetErrorCallback(GLFWErrorCallback);
 			s_GLFWWindowCount = 1;
 		} else {
 			++s_GLFWWindowCount;
@@ -165,10 +166,6 @@ namespace Wankel {
 		glfwDestroyWindow(m_Window);
 		if (--s_GLFWWindowCount == 0)
     		glfwTerminate();
-
-		if (s_GLFWWindowCount == 0) {
-			glfwTerminate();
-		}
 	}
 
 

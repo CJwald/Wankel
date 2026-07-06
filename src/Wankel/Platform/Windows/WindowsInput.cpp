@@ -22,16 +22,12 @@ namespace Wankel {
 		return glfwGetMouseButton(window, (int)button) == GLFW_PRESS;
 	}
 
-	float Input::GetMouseDeltaX() { 
-		float dx = s_MouseDeltaX;
-	    s_MouseDeltaX = 0.0f;
-	    return dx;
+	float Input::GetMouseDeltaX() {
+	    return s_MouseDeltaX;
 	}
 
-	float Input::GetMouseDeltaY() { 
-		float dy = s_MouseDeltaY;
-	    s_MouseDeltaY = 0.0f;
-	    return dy;
+	float Input::GetMouseDeltaY() {
+	    return s_MouseDeltaY;
 	}
 
 	void Input::SetMouseDelta(float dx, float dy) {
