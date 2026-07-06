@@ -58,7 +58,11 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
 
         AABB box = AABB::FromCenterHalfSize(tb.LocalPosition + cb.Offset, cb.HalfSize);
 
+        // SpherevsAABB returns a normal pointing box->sphere (B->A here);
+        // flip so the manifold normal points A->B, matching AABBvsAABB/SpherevsSphere.
         out = SpherevsAABB(s, box);
+        out.Normal *= -1.0f;
+
         return out.Colliding;
     }
 
@@ -74,11 +78,9 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
 
         Sphere s{ tb.LocalPosition, sb.Radius };
 
-        // IMPORTANT: keep ordering consistent
+        // SpherevsAABB returns a normal pointing box->sphere, which is
+        // already A->B here (A=box, B=sphere) -- no flip needed.
         out = SpherevsAABB(s, box);
-
-        // flip to match A's perspective
-        out.Normal *= -1.0f;
 
         return out.Colliding;
     }
