@@ -14,11 +14,12 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     auto& registry = scene.Registry();
 
     // INTEGRATE
+
+    // Movement-driven velocity target-seeking (character controllers etc.)
     {
-        auto view = registry.view<Transform, Rigidbody, Movement>();
+        auto view = registry.view<Rigidbody, Movement>();
 
         for (auto e : view) {
-            auto& t = registry.get<Transform>(e);
             auto& rb = registry.get<Rigidbody>(e);
             auto& m = registry.get<Movement>(e);
 
@@ -35,14 +36,28 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
 
 			float maxDV = accel * dt;
 
-			if (deltaMag > maxDV) { 
+			if (deltaMag > maxDV) {
 				deltaVel = glm::normalize(deltaVel) * maxDV;
 			}
 
 			rb.Velocity += deltaVel;
+        }
+    }
 
-			// POSITION
-			t.LocalPosition += rb.Velocity * dt;
+    // Position integration applies to every dynamic rigidbody, whether or
+    // not it has a Movement component (e.g. thrown props, ragdolls, anything
+    // whose velocity comes purely from collision response).
+    {
+        auto view = registry.view<Transform, Rigidbody>();
+
+        for (auto e : view) {
+            auto& t = registry.get<Transform>(e);
+            auto& rb = registry.get<Rigidbody>(e);
+
+            if (rb.IsStatic)
+                continue;
+
+            t.LocalPosition += rb.Velocity * dt;
         }
     }
 
