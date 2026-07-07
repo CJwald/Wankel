@@ -621,6 +621,14 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0)) *
     	glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+    auto& camAnim = camEntity.AddComponent<MeshAnimation>();
+	auto& camStrafeRoll = camAnim.Links[ (int)MotionAxis::X ][ (int)MotionAxis::Roll ];
+	camStrafeRoll.Enabled = true;
+	camStrafeRoll.Magnitude = -1.2f;
+	camStrafeRoll.Frequency = 1.8f;
+	camStrafeRoll.Damping = 0.8f;
+	camStrafeRoll.Response = 2.0f;
+	camStrafeRoll.Clamp = 45.0f;
 
 
 	// Collider
@@ -811,7 +819,7 @@ void SandboxLayer::OnUpdate() {
 
 	glm::vec3 camPos = m_RenderCamera.GetPosition();
 	glm::vec3 camForward = m_RenderCamera.GetForward();
-    
+
 	Renderer::BeginScene(m_RenderCamera);
 	
 	// Cube click test
