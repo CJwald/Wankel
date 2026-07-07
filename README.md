@@ -98,10 +98,10 @@ cd Sandbox
 - Multi-mesh components
 - Debug Visualization system (coord. frames etc.)
 - Collision box debug rendering
+- Unified collider dispatch (table-based, keyed on collider type, extensible to new shapes)
 
 
 ## TODO:
-- Collider system redesign (AABB/Sphere/Capsule unified dispatch)
 - Capsule collision systems
 - Static triangle mesh collision
 - Lighting/Material pipeline
@@ -120,3 +120,5 @@ cd Sandbox
 
 ## BUGS:
 - Cant push an entity across the world border because the teleport doesnt work with colliders. 
+- Sphere colliders never collide with each other (broad-phase grid only indexes AABBCollider entities, so sphere-vs-sphere pairs are never found)
+- A collider entity with no Rigidbody component crashes/UB the first time a dynamic body queries near it (PhysicsSystem assumes every collider has one)
