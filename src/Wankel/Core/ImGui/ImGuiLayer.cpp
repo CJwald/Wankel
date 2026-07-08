@@ -24,15 +24,10 @@ void ImGuiLayer::OnAttach() {
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-// Docking is now usually always enabled internally,
-// but keep this if defined:
-#ifdef ImGuiConfigFlags_DockingEnable
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-#endif
-
-#ifdef ImGuiConfigFlags_ViewportsEnable
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-#endif
+    // Docking/multi-viewport require ImGui's docking branch; external/imgui
+    // is vendored at plain master, which doesn't declare
+    // ImGuiConfigFlags_DockingEnable/ViewportsEnable at all. Re-add these
+    // once (if) the submodule is switched to the docking branch.
 
     ImGui::StyleColorsDark();
 
@@ -77,19 +72,6 @@ void ImGuiLayer::End() {
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-#ifdef ImGuiConfigFlags_ViewportsEnable
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        GLFWwindow* backup = glfwGetCurrentContext();
-
-#ifdef IMGUI_HAS_VIEWPORT
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-#endif
-
-        glfwMakeContextCurrent(backup);
-    }
-#endif
 }
 
 } // namespace Wankel

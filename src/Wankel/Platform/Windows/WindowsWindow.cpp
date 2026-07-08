@@ -73,7 +73,7 @@ void WindowsWindow::Init(const WindowProps& props) {
 
     glViewport(0, 0, fbWidth, fbHeight);
 
-    glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    SetCursorMode(m_CursorMode);
     glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
     if (glfwRawMouseMotionSupported())
@@ -194,6 +194,25 @@ void WindowsWindow::SetVSync(bool enabled) {
 
 bool WindowsWindow::IsVSync() const {
     return m_Data.VSync;
+}
+
+
+void WindowsWindow::SetCursorMode(CursorMode mode) {
+    m_CursorMode = mode;
+
+    int glfwMode = GLFW_CURSOR_DISABLED;
+    switch (mode) {
+        case CursorMode::Normal: glfwMode = GLFW_CURSOR_NORMAL; break;
+        case CursorMode::Hidden: glfwMode = GLFW_CURSOR_HIDDEN; break;
+        case CursorMode::Disabled: glfwMode = GLFW_CURSOR_DISABLED; break;
+    }
+
+    glfwSetInputMode(m_Window, GLFW_CURSOR, glfwMode);
+
+    // Re-arm the cursor-pos callback's first-sample guard so re-entering
+    // Disabled mode doesn't report a huge one-frame mouse delta from the
+    // jump back to the window center.
+    m_Data.FirstMouse = true;
 }
 
 

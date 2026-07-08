@@ -7,6 +7,12 @@
 
 namespace Wankel {
 
+enum class CursorMode {
+    Normal,   // visible, free to move off-window
+    Hidden,   // hidden over the window, but not locked/re-centered
+    Disabled  // hidden and locked to the window (FPS-style look control)
+};
+
 struct WindowProps {
     std::string Title;
     uint32_t Width;
@@ -33,6 +39,9 @@ public:
     virtual void SetVSync(bool enabled) = 0;
     virtual bool IsVSync() const = 0;
     virtual void* GetNativeWindow() const = 0;
+
+    virtual void SetCursorMode(CursorMode mode) = 0;
+    virtual CursorMode GetCursorMode() const = 0;
 
     static Scope<Window> Create(const WindowProps& props = WindowProps());
 };

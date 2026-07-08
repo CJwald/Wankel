@@ -17,11 +17,20 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
     constexpr float keyTurnSpeed = 540.0f;   // deg/sec
 
     for (auto entity : controllerView) {
-        // Skip if game not focused
-        if (!gameFocused)
-            continue;
-
         auto& controller = controllerView.get<PlayerController>(entity);
+
+        // Game not focused (e.g. debug menu open) - clear any in-flight
+        // input instead of leaving it frozen at its last value, otherwise
+        // PlayerControllerSystem keeps applying stale movement/look every
+        // tick while unfocused.
+        if (!gameFocused) {
+            controller.MoveInput = glm::vec3(0.0f);
+            controller.RollInput = 0.0f;
+            controller.LookDeltaX = 0.0f;
+            controller.LookDeltaY = 0.0f;
+            controller.Boost = false;
+            continue;
+        }
 
         int pad = 0;
 

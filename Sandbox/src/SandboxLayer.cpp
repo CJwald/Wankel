@@ -751,9 +751,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
     m_Fog.Density = 0.008f;
 
     // Lock mouse initially
-    auto& window = Application::Get().GetWindow();
-    GLFWwindow* glfwWindow = static_cast<GLFWwindow*>(window.GetNativeWindow());
-    glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    Application::Get().GetWindow().SetCursorMode(CursorMode::Disabled);
 }
 
 
@@ -770,12 +768,7 @@ void SandboxLayer::OnUpdate() {
     if (escPressed && !escPressedLastFrame) {
         m_GameFocused = !m_GameFocused;
         auto& window = Application::Get().GetWindow();
-        GLFWwindow* glfwWindow = static_cast<GLFWwindow*>(window.GetNativeWindow());
-        if (m_GameFocused) {
-            glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        } else {
-            glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
+        window.SetCursorMode(m_GameFocused ? CursorMode::Disabled : CursorMode::Normal);
     }
     escPressedLastFrame = escPressed;
 

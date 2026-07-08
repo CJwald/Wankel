@@ -22,12 +22,16 @@ public:
     bool IsVSync() const override;
     void* GetNativeWindow() const override { return m_Window; }
 
+    void SetCursorMode(CursorMode mode) override;
+    CursorMode GetCursorMode() const override { return m_CursorMode; }
+
 private:
     virtual void Init(const WindowProps& props);
     virtual void Shutdown();
 
 private:
     GLFWwindow* m_Window;
+    CursorMode m_CursorMode = CursorMode::Disabled;
 
     double m_LastMouseX = 0.0; // TODO: Remove? Set in WindowData
     double m_LastMouseY = 0.0; // TODO: Remove? Set in WindowData

@@ -26,21 +26,39 @@ Also cross-reference `README.md`'s own `TODO:`/`BUGS:` sections — some items o
       standalone test: a collider-only static "wall" entity with no `Rigidbody` no longer
       crashes when a dynamic body overlaps it, and resolution behaves as if it were static
       (dynamic body pushed out, penetrating velocity cancelled, wall itself unmoved).
-- [ ] Gate `InputSystem::PollControllers()` behind the success flag from `Init()` — it's
+- [x] Gate `InputSystem::PollControllers()` behind the success flag from `Init()` — it's
       called unconditionally every frame from `Application::Run()` even when `Init()`
       failed (`Application.cpp:47`). MEDIUM
-- [ ] Remove or properly gate the dead ImGui docking/viewport code — it's guarded by
+      **Fixed:** `InputSystem` now tracks its own `s_Initialized` flag, set on successful
+      `Init()` and cleared on `Shutdown()`; `PollControllers()` (and `Shutdown()`) return
+      early when not initialized. Verified live — this sandbox's SDL init actually fails
+      every run (no gamepad backend), and Sandbox now runs stably instead of hammering an
+      uninitialized SDL subsystem every frame.
+- [x] Remove or properly gate the dead ImGui docking/viewport code — it's guarded by
       `ImGuiConfigFlags_DockingEnable`/`ViewportsEnable`, which are Dear ImGui docking-branch
       enum values, not preprocessor macros, and don't exist in the vendored plain-master
       `external/imgui`. Dead code masquerading as a working feature
       (`ImGuiLayer.cpp:30-36,86-98`). HIGH
-- [ ] Add a `Window::SetCursorMode()` API — cursor is unconditionally
+      **Fixed:** removed the dead `#ifdef`/viewport-render blocks (confirmed the vendored
+      `external/imgui` declares neither symbol at all) and left a comment explaining
+      docking/viewports need the docking-branch submodule, which wasn't swapped in as part
+      of this fix.
+- [x] Add a `Window::SetCursorMode()` API — cursor is unconditionally
       `GLFW_CURSOR_DISABLED` at window creation with no way to toggle it
       (`LinuxWindow.cpp`/`WindowsWindow.cpp` `Init()`). Blocks any non-FPS genre. MEDIUM
-- [ ] Clear `MoveInput`/`RollInput`/`LookDeltaX`/`LookDeltaY` when input focus is lost —
+      **Fixed:** added `CursorMode{Normal, Hidden, Disabled}` + `Window::SetCursorMode()`/
+      `GetCursorMode()`, implemented in both `LinuxWindow` and `WindowsWindow`. Also used it
+      to replace two spots in `SandboxLayer.cpp` that were reaching past the `Window`
+      abstraction straight into `glfwSetInputMode`/`GetNativeWindow()`.
+- [x] Clear `MoveInput`/`RollInput`/`LookDeltaX`/`LookDeltaY` when input focus is lost —
       currently frozen at last value while `!gameFocused`, and
       `PlayerControllerSystem::Update` keeps applying the stale input every tick
       (`Sandbox/src/Systems/PlayerInputSystem.cpp:19-23`). MEDIUM
+      **Fixed:** `PlayerInputSystem::Update` now zeroes `MoveInput`/`RollInput`/
+      `LookDeltaX`/`LookDeltaY`/`Boost` before the `!gameFocused` early-continue instead of
+      leaving them at their last value.
+
+Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
 
 ## Phase 2 — Actual blockers to "a game" (priority order)
 

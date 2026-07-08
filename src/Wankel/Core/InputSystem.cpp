@@ -7,12 +7,15 @@
 namespace Wankel {
 
 static std::vector<SDL_Gamepad*> s_Gamepads;
+static bool s_Initialized = false;
 
 bool InputSystem::Init() {
     if (SDL_Init(SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS) != 0) {
         WK_CORE_ERROR("SDL Init failed: {0}", SDL_GetError());
         return false;
     }
+
+    s_Initialized = true;
 
     WK_CORE_INFO("SDL Gamepad subsystem initialized");
 
@@ -35,6 +38,9 @@ bool InputSystem::Init() {
 }
 
 void InputSystem::Shutdown() {
+    if (!s_Initialized)
+        return;
+
     for (auto* pad : s_Gamepads) {
         if (pad)
             SDL_CloseGamepad(pad);
@@ -43,9 +49,13 @@ void InputSystem::Shutdown() {
     s_Gamepads.clear();
 
     SDL_Quit();
+    s_Initialized = false;
 }
 
 void InputSystem::PollControllers() {
+    if (!s_Initialized)
+        return;
+
     SDL_UpdateGamepads();
 
     SDL_Event e;
