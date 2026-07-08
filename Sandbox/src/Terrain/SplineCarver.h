@@ -7,16 +7,8 @@ namespace Wankel {
 
 class SplineCarver {
 public:
-
-    static void Carve(
-        VoxelDensityField& field,
-        const Spline3D& spline,
-        float radius,
-        int samples = 128
-    )
-    {
+    static void Carve(VoxelDensityField& field, const Spline3D& spline, float radius, int samples = 128) {
         for (int i = 0; i < samples; i++) {
-
             float t = (float)i / (samples - 1);
 
             glm::vec3 center = spline.Sample(t);
@@ -26,39 +18,32 @@ public:
     }
 
 private:
-
-    static void CarveSphere(
-        VoxelDensityField& field,
-        glm::vec3 center,
-        float radius
-    )
-    {
+    static void CarveSphere(VoxelDensityField& field, glm::vec3 center, float radius) {
         int r = (int)(radius / field.VoxelSize) + 2;
 
         glm::ivec3 gc = center / field.VoxelSize;
 
         for (int z = -r; z <= r; z++) {
-        for (int y = -r; y <= r; y++) {
-        for (int x = -r; x <= r; x++) {
+            for (int y = -r; y <= r; y++) {
+                for (int x = -r; x <= r; x++) {
+                    int gx = gc.x + x;
+                    int gy = gc.y + y;
+                    int gz = gc.z + z;
 
-            int gx = gc.x + x;
-            int gy = gc.y + y;
-            int gz = gc.z + z;
+                    if (!field.InBounds(gx, gy, gz))
+                        continue;
 
-            if (!field.InBounds(gx,gy,gz))
-                continue;
+                    glm::vec3 wp = field.GridToWorld(gx, gy, gz);
 
-            glm::vec3 wp = field.GridToWorld(gx,gy,gz);
+                    float d = glm::distance(wp, center);
 
-            float d = glm::distance(wp, center);
+                    float sdf = radius - d;
 
-            float sdf = radius - d;
-
-            field.At(gx,gy,gz) =
-                glm::min(field.At(gx,gy,gz), -sdf);
-
-        }}}
+                    field.At(gx, gy, gz) = glm::min(field.At(gx, gy, gz), -sdf);
+                }
+            }
+        }
     }
 };
 
-}
+} // namespace Wankel

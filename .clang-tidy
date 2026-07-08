@@ -1,0 +1,35 @@
+---
+# "Balanced" check set: real-bug-catching checks (bugprone, performance,
+# portability, the clang static analyzer) plus a small, high-signal slice
+# of modernize-*. Deliberately leaves out cppcoreguidelines-*/readability-*
+# for now - this codebase uses raw owning pointers and C-style arrays in
+# places (GL handles, GamepadCodes fixed arrays) and turning those on today
+# would bury real findings under hundreds of style opinions. Revisit once
+# the engine is closer to the ownership/RAII conventions in the readme's
+# game-readiness roadmap.
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  portability-*,
+  clang-analyzer-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  modernize-use-default-member-init,
+  modernize-use-emplace,
+  modernize-loop-convert,
+  modernize-redundant-void-arg,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -portability-avoid-pragma-once
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '^.*/(src/Wankel|Sandbox/src)/.*'
+FormatStyle: file
+UseColor: true
+
+CheckOptions:
+  - key: bugprone-argument-comment.StrictMode
+    value: 'false'

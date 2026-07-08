@@ -5,28 +5,27 @@
 
 namespace Wankel {
 
-	class Input {
-	public:
+class Input {
+public:
+    // Keyboard
+    static bool IsKeyPressed(KeyCode key);
 
-		// Keyboard
-		static bool IsKeyPressed(KeyCode key);
+    // Mouse buttons
+    static bool IsMouseButtonPressed(MouseCode button);
 
-		// Mouse buttons
-		static bool IsMouseButtonPressed(MouseCode button);
+    // Mouse movement (DELTA ONLY)
+    static float GetMouseDeltaX();
+    static float GetMouseDeltaY();
 
-		// Mouse movement (DELTA ONLY)
-		static float GetMouseDeltaX();
-		static float GetMouseDeltaY();
+    // Called by platform layer
+    static void SetMouseDelta(float dx, float dy);
 
-		// Called by platform layer
-		static void SetMouseDelta(float dx, float dy);
+    // Reset delta at the end of the frame (prevents sticking)
+    static void ResetMouseDelta();
 
-		// Reset delta at the end of the frame (prevents sticking)
-		static void ResetMouseDelta();
+private:
+    static float s_MouseDeltaX;
+    static float s_MouseDeltaY;
+};
 
-	private:
-		static float s_MouseDeltaX;
-		static float s_MouseDeltaY;
-	};
-
-}
+} // namespace Wankel

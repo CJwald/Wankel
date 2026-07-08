@@ -11,37 +11,35 @@
 
 namespace Wankel {
 
-    class Scene {
-    public:
-        Entity CreateEntity() {
-            return Entity(m_Registry.create(), &m_Registry);
+class Scene {
+public:
+    Entity CreateEntity() { return Entity(m_Registry.create(), &m_Registry); }
+
+    void DestroyEntity(Entity entity) {
+        auto handle = entity.GetHandle();
+
+        auto view = m_Registry.view<Parent>();
+        for (auto e : view) {
+            if (view.get<Parent>(e).Parent.GetHandle() == handle)
+                m_Registry.remove<Parent>(e);
         }
 
-        void DestroyEntity(Entity entity) {
-            auto handle = entity.GetHandle();
+        m_Registry.destroy(handle);
+    }
 
-            auto view = m_Registry.view<Parent>();
-            for (auto e : view) {
-                if (view.get<Parent>(e).Parent.GetHandle() == handle)
-                    m_Registry.remove<Parent>(e);
-            }
+    void OnUpdate(float dt, Camera& camera);
 
-            m_Registry.destroy(handle);
-        }
+    entt::registry& Registry() { return m_Registry; }
 
-		void OnUpdate(float dt, Camera& camera);
+private:
+    PlayerControllerSystem m_PlayerControllerSystem;
+    TransformSystem m_TransformSystem;
+    KinematicsSystem m_KinematicsSystem;
+    ProceduralAnimationSystem m_ProceduralAnimationSystem;
+    CameraSystem m_CameraSystem;
 
-        entt::registry& Registry() { return m_Registry; }
+    entt::registry m_Registry;
+    PhysicsSystem m_PhysicsSystem;
+};
 
-    private:
-		PlayerControllerSystem m_PlayerControllerSystem;
-		TransformSystem m_TransformSystem;
-		KinematicsSystem m_KinematicsSystem;
-		ProceduralAnimationSystem m_ProceduralAnimationSystem;
-		CameraSystem m_CameraSystem;
-
-        entt::registry m_Registry;
-		PhysicsSystem m_PhysicsSystem;
-    };
-
-}
+} // namespace Wankel

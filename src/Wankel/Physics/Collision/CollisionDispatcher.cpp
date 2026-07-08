@@ -48,10 +48,10 @@ AABB ToAABB(const ColliderShape& s) {
 }
 
 Sphere ToSphere(const ColliderShape& s) {
-    return Sphere{ s.Center, s.Radius };
+    return Sphere {s.Center, s.Radius};
 }
 
-using NarrowPhaseFn = CollisionManifold(*)(const ColliderShape&, const ColliderShape&);
+using NarrowPhaseFn = CollisionManifold (*)(const ColliderShape&, const ColliderShape&);
 using NarrowPhaseTable = std::array<std::array<NarrowPhaseFn, kColliderTypeCount>, kColliderTypeCount>;
 
 // table[lo][hi], lo <= hi by ColliderType value, holds the narrow-phase
@@ -59,22 +59,20 @@ using NarrowPhaseTable = std::array<std::array<NarrowPhaseFn, kColliderTypeCount
 // the lo-type shape to the hi-type shape; ResolveCollision flips the
 // normal when the caller's (a, b) order is the reverse of (lo, hi).
 NarrowPhaseTable BuildNarrowPhaseTable() {
-    NarrowPhaseTable table{};
+    NarrowPhaseTable table {};
 
-    table[Idx(ColliderType::AABB)][Idx(ColliderType::AABB)] =
-        [](const ColliderShape& a, const ColliderShape& b) {
-            return AABBvsAABB(ToAABB(a), ToAABB(b));
-        };
+    table[Idx(ColliderType::AABB)][Idx(ColliderType::AABB)] = [](const ColliderShape& a, const ColliderShape& b) {
+        return AABBvsAABB(ToAABB(a), ToAABB(b));
+    };
 
-    table[Idx(ColliderType::Sphere)][Idx(ColliderType::Sphere)] =
-        [](const ColliderShape& a, const ColliderShape& b) {
-            return SpherevsSphere(ToSphere(a), ToSphere(b));
-        };
+    table[Idx(ColliderType::Sphere)][Idx(ColliderType::Sphere)] = [](const ColliderShape& a, const ColliderShape& b) {
+        return SpherevsSphere(ToSphere(a), ToSphere(b));
+    };
 
-    table[Idx(ColliderType::AABB)][Idx(ColliderType::Sphere)] =
-        [](const ColliderShape& box, const ColliderShape& sphere) {
-            return SpherevsAABB(ToSphere(sphere), ToAABB(box));
-        };
+    table[Idx(ColliderType::AABB)][Idx(ColliderType::Sphere)] = [](const ColliderShape& box,
+                                                                   const ColliderShape& sphere) {
+        return SpherevsAABB(ToSphere(sphere), ToAABB(box));
+    };
 
     return table;
 }
@@ -91,16 +89,16 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
 
     ColliderShape shapeA, shapeB;
 
-    if (!ExtractShape(reg, a, shapeA)) return false;
-    if (!ExtractShape(reg, b, shapeB)) return false;
+    if (!ExtractShape(reg, a, shapeA))
+        return false;
+    if (!ExtractShape(reg, b, shapeB))
+        return false;
 
     size_t ia = Idx(shapeA.Type);
     size_t ib = Idx(shapeB.Type);
     bool swapped = ia > ib;
 
-    NarrowPhaseFn fn = swapped
-        ? GetNarrowPhaseTable()[ib][ia]
-        : GetNarrowPhaseTable()[ia][ib];
+    NarrowPhaseFn fn = swapped ? GetNarrowPhaseTable()[ib][ia] : GetNarrowPhaseTable()[ia][ib];
 
     if (!fn) {
         WK_CORE_WARNING("ResolveCollision: no narrow-phase dispatch for collider type pair ({0}, {1})", ia, ib);
@@ -108,9 +106,10 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
     }
 
     out = swapped ? fn(shapeB, shapeA) : fn(shapeA, shapeB);
-    if (swapped) out.Normal *= -1.0f;
+    if (swapped)
+        out.Normal *= -1.0f;
 
     return out.Colliding;
 }
 
-}
+} // namespace Wankel

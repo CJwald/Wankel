@@ -18,11 +18,7 @@ struct MCMeshData {
 
 class MarchingCubes {
 public:
-
-    static MCMeshData Generate(
-        const VoxelDensityField& field,
-        float isoLevel = 0.0f
-    );
+    static MCMeshData Generate(const VoxelDensityField& field, float isoLevel = 0.0f);
 };
 
-}
+} // namespace Wankel

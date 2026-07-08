@@ -5,8 +5,8 @@
 namespace Wankel {
 
 struct Sphere {
-    glm::vec3 Center{0.0f};
+    glm::vec3 Center {0.0f};
     float Radius = 0.5f;
 };
 
-}
+} // namespace Wankel

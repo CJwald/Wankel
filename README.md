@@ -52,6 +52,25 @@ cd Sandbox
 ```
 
 
+## DEV TOOLING:
+Requires `clang-format` and `clang-tidy` (LLVM 18+ recommended) on PATH.
+
+```bash
+./scripts/format.sh          # reformat all first-party source in place
+./scripts/format-check.sh    # check formatting, non-zero exit if anything's off
+./scripts/lint.sh            # clang-tidy against an existing build (run build.sh first)
+./scripts/lint.sh -fix       # same, applying auto-fixes where clang-tidy can
+```
+
+Sanitizers are wired into the CMake build (both `scripts/build.sh` and
+`Sandbox/build.sh`) via a `SANITIZE` env var - use a separate `BUILD_DIR` since
+the flags differ from a normal build:
+```bash
+BUILD_DIR=build-asan SANITIZE=address,undefined ./scripts/build.sh
+```
+UndefinedBehaviorSanitizer isn't supported on MSVC; `SANITIZE=address` works there.
+
+
 ## Sandbox App Controls:
 ### MNK:
 - W - Forward

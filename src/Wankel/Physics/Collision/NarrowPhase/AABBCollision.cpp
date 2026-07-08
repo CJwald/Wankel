@@ -10,11 +10,10 @@ CollisionManifold AABBvsAABB(const AABB& a, const AABB& b) {
 
     glm::vec3 delta = bCenter - aCenter;
 
-    glm::vec3 overlap = glm::vec3(
-        (a.Max.x - b.Min.x) < (b.Max.x - a.Min.x) ? (a.Max.x - b.Min.x) : (b.Max.x - a.Min.x),
-        (a.Max.y - b.Min.y) < (b.Max.y - a.Min.y) ? (a.Max.y - b.Min.y) : (b.Max.y - a.Min.y),
-        (a.Max.z - b.Min.z) < (b.Max.z - a.Min.z) ? (a.Max.z - b.Min.z) : (b.Max.z - a.Min.z)
-    );
+    glm::vec3 overlap =
+        glm::vec3((a.Max.x - b.Min.x) < (b.Max.x - a.Min.x) ? (a.Max.x - b.Min.x) : (b.Max.x - a.Min.x),
+                  (a.Max.y - b.Min.y) < (b.Max.y - a.Min.y) ? (a.Max.y - b.Min.y) : (b.Max.y - a.Min.y),
+                  (a.Max.z - b.Min.z) < (b.Max.z - a.Min.z) ? (a.Max.z - b.Min.z) : (b.Max.z - a.Min.z));
 
     if (overlap.x <= 0 || overlap.y <= 0 || overlap.z <= 0)
         return m;
@@ -25,12 +24,10 @@ CollisionManifold AABBvsAABB(const AABB& a, const AABB& b) {
     if (overlap.x < overlap.y && overlap.x < overlap.z) {
         m.Penetration = overlap.x;
         m.Normal = glm::vec3((delta.x < 0) ? -1 : 1, 0, 0);
-    }
-    else if (overlap.y < overlap.z) {
+    } else if (overlap.y < overlap.z) {
         m.Penetration = overlap.y;
         m.Normal = glm::vec3(0, (delta.y < 0) ? -1 : 1, 0);
-    }
-    else {
+    } else {
         m.Penetration = overlap.z;
         m.Normal = glm::vec3(0, 0, (delta.z < 0) ? -1 : 1);
     }
@@ -38,4 +35,4 @@ CollisionManifold AABBvsAABB(const AABB& a, const AABB& b) {
     return m;
 }
 
-}
+} // namespace Wankel

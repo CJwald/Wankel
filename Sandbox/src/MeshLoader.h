@@ -5,11 +5,11 @@
 
 namespace Wankel {
 
-	class Mesh;
+class Mesh;
 
-	class MeshLoader {
-	public:
-		static std::unique_ptr<Mesh> Load(const std::string& filepath);
-	};
+class MeshLoader {
+public:
+    static std::unique_ptr<Mesh> Load(const std::string& filepath);
+};
 
-}
+} // namespace Wankel

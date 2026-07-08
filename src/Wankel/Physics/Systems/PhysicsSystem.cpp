@@ -10,7 +10,6 @@
 namespace Wankel {
 
 void PhysicsSystem::Update(Scene& scene, float dt) {
-
     auto& registry = scene.Registry();
 
     // INTEGRATE
@@ -24,23 +23,23 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             auto& m = registry.get<Movement>(e);
 
             if (rb.IsStatic)
-            	continue; // if body is static, no integration (go next)
+                continue; // if body is static, no integration (go next)
 
-			// ACCELERATION
-			float accel = glm::length(m.MoveIntent) > 0.001f ? m.Acceleration : m.Deceleration;
+            // ACCELERATION
+            float accel = glm::length(m.MoveIntent) > 0.001f ? m.Acceleration : m.Deceleration;
 
-			// VELOCITY
-			glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed;
-			glm::vec3 deltaVel = targetVel - rb.Velocity;
-			float deltaMag = glm::length(deltaVel);
+            // VELOCITY
+            glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed;
+            glm::vec3 deltaVel = targetVel - rb.Velocity;
+            float deltaMag = glm::length(deltaVel);
 
-			float maxDV = accel * dt;
+            float maxDV = accel * dt;
 
-			if (deltaMag > maxDV) {
-				deltaVel = glm::normalize(deltaVel) * maxDV;
-			}
+            if (deltaMag > maxDV) {
+                deltaVel = glm::normalize(deltaVel) * maxDV;
+            }
 
-			rb.Velocity += deltaVel;
+            rb.Velocity += deltaVel;
         }
     }
 
@@ -119,11 +118,9 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
 
             if (rba.IsStatic) {
                 tb.LocalPosition += manifold.Normal * manifold.Penetration;
-            }
-            else if (rbb.IsStatic) {
+            } else if (rbb.IsStatic) {
                 ta.LocalPosition -= manifold.Normal * manifold.Penetration;
-            }
-            else {
+            } else {
                 ta.LocalPosition -= manifold.Normal * manifold.Penetration * 0.5f;
                 tb.LocalPosition += manifold.Normal * manifold.Penetration * 0.5f;
             }
@@ -146,4 +143,4 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     }
 }
 
-}
+} // namespace Wankel

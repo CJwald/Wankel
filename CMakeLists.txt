@@ -24,6 +24,38 @@ foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
         ${CMAKE_BINARY_DIR}/bin)
 endforeach()
 
+# ---- Sanitizers ----
+# Usage: cmake -DWANKEL_ENABLE_ASAN=ON -DWANKEL_ENABLE_UBSAN=ON ...
+# (or via scripts/build.sh: SANITIZE=address,undefined ./scripts/build.sh)
+# Applied globally (before add_subdirectory(external)) so the sanitizer
+# runtime is linked consistently across the whole build, including the
+# vendored dependencies.
+option(WANKEL_ENABLE_ASAN "Build with AddressSanitizer" OFF)
+option(WANKEL_ENABLE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
+
+if(WANKEL_ENABLE_ASAN OR WANKEL_ENABLE_UBSAN)
+    if(MSVC)
+        if(WANKEL_ENABLE_UBSAN)
+            message(WARNING "UndefinedBehaviorSanitizer is not supported by MSVC - ignoring WANKEL_ENABLE_UBSAN")
+        endif()
+        if(WANKEL_ENABLE_ASAN)
+            add_compile_options(/fsanitize=address)
+        endif()
+    else()
+        set(WANKEL_SANITIZE_LIST "")
+        if(WANKEL_ENABLE_ASAN)
+            list(APPEND WANKEL_SANITIZE_LIST "address")
+        endif()
+        if(WANKEL_ENABLE_UBSAN)
+            list(APPEND WANKEL_SANITIZE_LIST "undefined")
+        endif()
+        list(JOIN WANKEL_SANITIZE_LIST "," WANKEL_SANITIZE_FLAGS)
+
+        add_compile_options(-fsanitize=${WANKEL_SANITIZE_FLAGS} -fno-omit-frame-pointer -g)
+        add_link_options(-fsanitize=${WANKEL_SANITIZE_FLAGS})
+    endif()
+endif()
+
 # Add external dependencies first
 add_subdirectory(external)
 include(cmake/imgui.cmake)

@@ -1,52 +1,51 @@
 #pragma once
 
 #include "Wankel/Core/Window.h"
-#include <glad/gl.h>     // Make sure this is included BEFORE GLFW
+#include <glad/gl.h> // Make sure this is included BEFORE GLFW
 #include <GLFW/glfw3.h>
 
 namespace Wankel {
 
-	class WindowsWindow : public Window {
-	public:
-		WindowsWindow(const WindowProps& props);
-		virtual ~WindowsWindow();
+class WindowsWindow : public Window {
+public:
+    WindowsWindow(const WindowProps& props);
+    virtual ~WindowsWindow();
 
-		void OnUpdate() override;
+    void OnUpdate() override;
 
-		unsigned int GetWidth() const override { return m_Data.Width; }
-		unsigned int GetHeight() const override { return m_Data.Height; }
+    unsigned int GetWidth() const override { return m_Data.Width; }
+    unsigned int GetHeight() const override { return m_Data.Height; }
 
-		// Window attributes
-		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
-		void SetVSync(bool enabled) override;
-		bool IsVSync() const override;
-		void* GetNativeWindow() const override { return m_Window; }
+    // Window attributes
+    void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
+    void SetVSync(bool enabled) override;
+    bool IsVSync() const override;
+    void* GetNativeWindow() const override { return m_Window; }
 
-	private:
-		virtual void Init(const WindowProps& props);
-		virtual void Shutdown();
+private:
+    virtual void Init(const WindowProps& props);
+    virtual void Shutdown();
 
-	private:
-		GLFWwindow* m_Window;
+private:
+    GLFWwindow* m_Window;
 
-		double m_LastMouseX = 0.0; // TODO: Remove? Set in WindowData
-    	double m_LastMouseY = 0.0; // TODO: Remove? Set in WindowData
-		bool m_FirstMouse = true;  // TODO: Remove? Set in WindowData
+    double m_LastMouseX = 0.0; // TODO: Remove? Set in WindowData
+    double m_LastMouseY = 0.0; // TODO: Remove? Set in WindowData
+    bool m_FirstMouse = true;  // TODO: Remove? Set in WindowData
 
-		struct WindowData {
-			std::string Title;
-			unsigned int Width, Height;
-			bool VSync;
+    struct WindowData {
+        std::string Title;
+        unsigned int Width, Height;
+        bool VSync;
 
-			EventCallbackFn EventCallback;
+        EventCallbackFn EventCallback;
 
-			double LastMouseX = 400.0;   // reasonable starting point
-    		double LastMouseY = 300.0;
-    		bool FirstMouse = true;
-		};
+        double LastMouseX = 400.0; // reasonable starting point
+        double LastMouseY = 300.0;
+        bool FirstMouse = true;
+    };
 
-		WindowData m_Data;
-	};
+    WindowData m_Data;
+};
 
-}
-
+} // namespace Wankel

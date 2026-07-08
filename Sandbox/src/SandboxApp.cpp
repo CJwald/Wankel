@@ -5,12 +5,9 @@
 
 class SandboxApp : public Wankel::Application {
 public:
-	SandboxApp() {
-		PushLayer(new Wankel::SandboxLayer());
-	}
+    SandboxApp() { PushLayer(new Wankel::SandboxLayer()); }
 };
 
 Wankel::Application* Wankel::CreateApplication() {
-	return new SandboxApp();
+    return new SandboxApp();
 }
-

@@ -4,10 +4,10 @@
 
 namespace Wankel {
 
-	struct DebugLine {
-	    glm::vec3 P0;
-	    glm::vec3 P1;
-	    glm::vec3 Color;
-	};
+struct DebugLine {
+    glm::vec3 P0;
+    glm::vec3 P1;
+    glm::vec3 Color;
+};
 
-}
+} // namespace Wankel

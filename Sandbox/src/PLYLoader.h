@@ -8,7 +8,7 @@
 
 
 struct PLYMeshData {
-    std::vector<float> Vertices;   // x y z r g b a
+    std::vector<float> Vertices; // x y z r g b a
     std::vector<uint32_t> Indices;
 };
 
@@ -41,14 +41,12 @@ public:
                 std::string tmp;
                 ss >> tmp >> tmp >> vertexCount;
                 std::cout << "[PLY] Vertex count: " << vertexCount << "\n";
-            }
-            else if (line.find("element face") != std::string::npos) {
+            } else if (line.find("element face") != std::string::npos) {
                 std::stringstream ss(line);
                 std::string tmp;
                 ss >> tmp >> tmp >> faceCount;
                 std::cout << "[PLY] Face count: " << faceCount << "\n";
-            }
-            else if (line == "end_header") {
+            } else if (line == "end_header") {
                 std::cout << "[PLY] End header found\n";
                 break;
             }
@@ -61,35 +59,35 @@ public:
         for (uint32_t i = 0; i < vertexCount; ++i) {
             std::getline(file, line);
             std::stringstream ss(line);
-			float x, y, z;
-			int r, g, b, a;
-			
-			// read position
-			ss >> x >> y >> z;
-			
-			// Blender -> Engine conversion
-			float ex = -y;
-			float ey = z;
-			float ez = -x;
-			
-			// read color (IMPORTANT: uchar = int)
-			ss >> r >> g >> b >> a;
-			
-			// normalize
-			float rf = r / 255.0f;
-			float gf = g / 255.0f;
-			float bf = b / 255.0f;
-			float af = a / 255.0f;
-			
-			// push vertex
-			data.Vertices.push_back(ex);
-			data.Vertices.push_back(ey);
-			data.Vertices.push_back(ez);
-			
-			data.Vertices.push_back(rf);
-			data.Vertices.push_back(gf);
-			data.Vertices.push_back(bf);
-			data.Vertices.push_back(af);
+            float x, y, z;
+            int r, g, b, a;
+
+            // read position
+            ss >> x >> y >> z;
+
+            // Blender -> Engine conversion
+            float ex = -y;
+            float ey = z;
+            float ez = -x;
+
+            // read color (IMPORTANT: uchar = int)
+            ss >> r >> g >> b >> a;
+
+            // normalize
+            float rf = r / 255.0f;
+            float gf = g / 255.0f;
+            float bf = b / 255.0f;
+            float af = a / 255.0f;
+
+            // push vertex
+            data.Vertices.push_back(ex);
+            data.Vertices.push_back(ey);
+            data.Vertices.push_back(ez);
+
+            data.Vertices.push_back(rf);
+            data.Vertices.push_back(gf);
+            data.Vertices.push_back(bf);
+            data.Vertices.push_back(af);
         }
 
         std::cout << "[PLY] Vertices loaded: " << data.Vertices.size() / 7 << "\n";
@@ -126,7 +124,8 @@ public:
                 }
 
                 if (idx[i] >= vertexCount) {
-                    std::cout << "[PLY] Face index " << idx[i] << " out of range (vertex count " << vertexCount << "): " << line << "\n";
+                    std::cout << "[PLY] Face index " << idx[i] << " out of range (vertex count " << vertexCount
+                              << "): " << line << "\n";
                     valid = false;
                     break;
                 }

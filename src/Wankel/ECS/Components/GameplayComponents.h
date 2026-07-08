@@ -2,8 +2,8 @@
 
 namespace Wankel {
 
-	struct Tag {
-	    std::string Name;
-	}; 
+struct Tag {
+    std::string Name;
+};
 
-}
+} // namespace Wankel

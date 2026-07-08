@@ -27,18 +27,9 @@ void DebugOverlay::DrawFPSPanel() {
         values[i] = s_FrameTimes[index] * 1000.0f;
     }
 
-    ImGui::PlotLines(
-        "Frame Time (ms)",
-        values,
-        s_HistorySize,
-        0,
-        nullptr,
-        0.0f,
-        60.0f,
-        ImVec2(0, 80)
-    );
+    ImGui::PlotLines("Frame Time (ms)", values, s_HistorySize, 0, nullptr, 0.0f, 60.0f, ImVec2(0, 80));
 
     ImGui::End();
 }
 
-}
+} // namespace Wankel

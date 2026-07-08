@@ -20,11 +20,11 @@ enum class ColliderType {
 struct ColliderShape {
     ColliderType Type = ColliderType::None;
 
-    glm::vec3 Center{0.0f};
+    glm::vec3 Center {0.0f};
 
-    glm::vec3 HalfSize{0.0f};  // AABB
+    glm::vec3 HalfSize {0.0f}; // AABB
     float Radius = 0.0f;       // Sphere / Capsule
     float HalfHeight = 0.0f;   // Capsule
 };
 
-}
+} // namespace Wankel

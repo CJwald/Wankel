@@ -12,7 +12,7 @@ namespace Wankel {
 
 bool IntersectRaySphere(const Ray& ray, const Sphere& sphere, float& outDistance) {
     glm::vec3 oc = ray.Origin - sphere.Center;
-	glm::vec3 dir = glm::normalize(ray.Direction);
+    glm::vec3 dir = glm::normalize(ray.Direction);
 
     float a = glm::dot(dir, dir);
     float b = 2.0f * glm::dot(oc, dir);
@@ -41,14 +41,17 @@ bool IntersectRaySphere(const Ray& ray, const Sphere& sphere, float& outDistance
 
 
 bool IntersectRayAABB(const Ray& ray, const AABB& aabb, float& t, glm::vec3& outNormal) {
-	glm::vec3 dir = glm::normalize(ray.Direction);
+    glm::vec3 dir = glm::normalize(ray.Direction);
 
     // Avoid dividing by exactly zero on axis-aligned rays (which would
     // otherwise risk a 0 * inf -> NaN slab test below).
     constexpr float kEpsilon = 1e-6f;
-    if (std::abs(dir.x) < kEpsilon) dir.x = std::copysign(kEpsilon, dir.x);
-    if (std::abs(dir.y) < kEpsilon) dir.y = std::copysign(kEpsilon, dir.y);
-    if (std::abs(dir.z) < kEpsilon) dir.z = std::copysign(kEpsilon, dir.z);
+    if (std::abs(dir.x) < kEpsilon)
+        dir.x = std::copysign(kEpsilon, dir.x);
+    if (std::abs(dir.y) < kEpsilon)
+        dir.y = std::copysign(kEpsilon, dir.y);
+    if (std::abs(dir.z) < kEpsilon)
+        dir.z = std::copysign(kEpsilon, dir.z);
 
     glm::vec3 invDir = 1.0f / dir;
 
@@ -59,7 +62,7 @@ bool IntersectRayAABB(const Ray& ray, const AABB& aabb, float& t, glm::vec3& out
     glm::vec3 tmax = glm::max(t0, t1);
 
     float nearT = glm::max(glm::max(tmin.x, tmin.y), tmin.z);
-    float farT  = glm::min(glm::min(tmax.x, tmax.y), tmax.z);
+    float farT = glm::min(glm::min(tmax.x, tmax.y), tmax.z);
 
     if (nearT > farT)
         return false;
@@ -85,13 +88,13 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
 
     bool hitAnything = false;
     float closest = maxDistance;
-	glm::vec3 dir = glm::normalize(ray.Direction);
+    glm::vec3 dir = glm::normalize(ray.Direction);
 
     for (auto e : view) {
         auto& t = view.get<Transform>(e);
         auto& c = view.get<AABBCollider>(e);
 
-		glm::vec3 center = t.LocalPosition + c.Offset;
+        glm::vec3 center = t.LocalPosition + c.Offset;
         AABB aabb = AABB::FromCenterHalfSize(center, c.HalfSize);
 
         float distance;
@@ -116,4 +119,4 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
     return hitAnything;
 }
 
-}
+} // namespace Wankel

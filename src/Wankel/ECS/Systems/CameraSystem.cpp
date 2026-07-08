@@ -10,29 +10,28 @@
 
 
 namespace Wankel {
-	
-	void CameraSystem::Update(Scene& scene, Camera& camera) {
 
-		auto view = scene.Registry().view<Transform, CameraComponent>();
-		for (auto entity : view) { 
-			auto& transform = view.get<Transform>(entity);
-			auto& cam = view.get<CameraComponent>(entity);
-			if (!cam.Primary) 
-				continue;
+void CameraSystem::Update(Scene& scene, Camera& camera) {
+    auto view = scene.Registry().view<Transform, CameraComponent>();
+    for (auto entity : view) {
+        auto& transform = view.get<Transform>(entity);
+        auto& cam = view.get<CameraComponent>(entity);
+        if (!cam.Primary)
+            continue;
 
-			// POSITION
-			glm::vec3 position = glm::vec3(transform.WorldTransform[3]);
-			camera.SetPosition(position); 
+        // POSITION
+        glm::vec3 position = glm::vec3(transform.WorldTransform[3]);
+        camera.SetPosition(position);
 
-			// ROTATION
-			glm::quat rotation = glm::quat_cast(transform.WorldTransform);
-			camera.SetOrientation(rotation); 
-			
-			camera.SetFOV(cam.FOV); 
-			camera.SetNearClip(cam.Near); 
-			camera.SetFarClip(cam.Far); 
+        // ROTATION
+        glm::quat rotation = glm::quat_cast(transform.WorldTransform);
+        camera.SetOrientation(rotation);
 
-			break;
-		}
-	}
+        camera.SetFOV(cam.FOV);
+        camera.SetNearClip(cam.Near);
+        camera.SetFarClip(cam.Far);
+
+        break;
+    }
 }
+} // namespace Wankel

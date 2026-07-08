@@ -4,9 +4,9 @@ namespace Wankel {
 
 class Scene;
 
-	class PlayerControllerSystem {
-	public:
-		void Update(Scene& scene, float dt);
-	};
+class PlayerControllerSystem {
+public:
+    void Update(Scene& scene, float dt);
+};
 
-}
+} // namespace Wankel

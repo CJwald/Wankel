@@ -7,38 +7,37 @@
 #include <Wankel/Core/Events/ApplicationEvent.h>
 
 namespace Wankel {
-	class ImGuiLayer;
-	
-	class Application {
+class ImGuiLayer;
 
-	public:
-		Application();
-		virtual ~Application();
-	
-		void Run();
+class Application {
+public:
+    Application();
+    virtual ~Application();
 
-		void OnEvent(Event& e);
+    void Run();
 
-		void PushLayer(Layer* layer);
-		void PushOverlay(Layer* layer);
+    void OnEvent(Event& e);
 
-		static Application& Get() { return *s_Instance; }
-		Window& GetWindow() { return *m_Window; }
+    void PushLayer(Layer* layer);
+    void PushOverlay(Layer* layer);
 
-	private:
-		bool OnWindowClose(WindowCloseEvent& e);
-		bool OnWindowResize(WindowResizeEvent& e);
+    static Application& Get() { return *s_Instance; }
+    Window& GetWindow() { return *m_Window; }
 
-		std::unique_ptr<Window> m_Window;
-		bool m_Running = true;
-		LayerStack m_LayerStack;
-		
-		ImGuiLayer* m_ImGuiLayer = nullptr;
-		static Application* s_Instance;
-	};
+private:
+    bool OnWindowClose(WindowCloseEvent& e);
+    bool OnWindowResize(WindowResizeEvent& e);
+
+    std::unique_ptr<Window> m_Window;
+    bool m_Running = true;
+    LayerStack m_LayerStack;
+
+    ImGuiLayer* m_ImGuiLayer = nullptr;
+    static Application* s_Instance;
+};
 
 
-	// To be defined in client
-	Application* CreateApplication();
+// To be defined in client
+Application* CreateApplication();
 
-}
+} // namespace Wankel

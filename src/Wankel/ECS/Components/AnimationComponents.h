@@ -7,15 +7,15 @@
 
 namespace Wankel {
 
-	struct MeshAnimation {
-		static constexpr int AxisCount = (int)MotionAxis::Count;
+struct MeshAnimation {
+    static constexpr int AxisCount = (int)MotionAxis::Count;
 
-    	MotionLink Links[AxisCount][AxisCount];
+    MotionLink Links[AxisCount][AxisCount];
 
-    	glm::vec3 PositionOffset{0.0f};
-    	glm::vec3 RotationOffset{0.0f};
+    glm::vec3 PositionOffset {0.0f};
+    glm::vec3 RotationOffset {0.0f};
 
-    	bool Initialized = false;
-	};
+    bool Initialized = false;
+};
 
-}
+} // namespace Wankel

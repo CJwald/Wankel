@@ -14,12 +14,24 @@ REM =========================================================
 
 if "%BUILD_DIR%"=="" set "BUILD_DIR=%PROJECT_ROOT%\build"
 if "%BUILD_TYPE%"=="" set "BUILD_TYPE=Debug"
+REM Comma list of sanitizers, e.g. set SANITIZE=address ^&^& build.bat
+REM MSVC only supports AddressSanitizer (no UndefinedBehaviorSanitizer).
+if "%SANITIZE%"=="" set "SANITIZE="
 
 echo.
 echo Sandbox root : %PROJECT_ROOT%
 echo Build dir    : %BUILD_DIR%
 echo Build type   : %BUILD_TYPE%
+if not "%SANITIZE%"=="" echo Sanitizers   : %SANITIZE%
 echo.
+
+REM =========================================================
+REM Translate SANITIZE into CMake options
+REM =========================================================
+
+set "SANITIZE_ARGS="
+echo %SANITIZE% | findstr /C:"address" >nul && set "SANITIZE_ARGS=-DWANKEL_ENABLE_ASAN=ON"
+echo %SANITIZE% | findstr /C:"undefined" >nul && echo NOTE: UndefinedBehaviorSanitizer is not supported by MSVC, ignoring.
 
 REM =========================================================
 REM Create / enter build dir
@@ -33,7 +45,7 @@ REM =========================================================
 REM Configure
 REM =========================================================
 
-cmake -G Ninja -DCMAKE_BUILD_TYPE=%BUILD_TYPE% "%PROJECT_ROOT%"
+cmake -G Ninja -DCMAKE_BUILD_TYPE=%BUILD_TYPE% %SANITIZE_ARGS% "%PROJECT_ROOT%"
 
 if errorlevel 1 exit /b 1
 

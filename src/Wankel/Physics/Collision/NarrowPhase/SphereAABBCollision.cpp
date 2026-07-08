@@ -34,8 +34,7 @@ CollisionManifold SpherevsAABB(const Sphere& sphere, const AABB& aabb) {
     if (dist > 0.00001f) {
         result.Normal = delta / dist;
         result.Penetration = sphere.Radius - dist;
-    }
-    else {
+    } else {
         // sphere center is inside AABB or exactly on edge
         result.Normal = glm::vec3(0, 1, 0);
         result.Penetration = sphere.Radius;
@@ -44,4 +43,4 @@ CollisionManifold SpherevsAABB(const Sphere& sphere, const AABB& aabb) {
     return result;
 }
 
-}
+} // namespace Wankel

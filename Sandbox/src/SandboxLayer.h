@@ -14,42 +14,41 @@ namespace Wankel {
 class VertexArray;
 class VertexBuffer;
 class Mesh;
-	
+
 class SandboxLayer : public Layer {
 public:
-	SandboxLayer();
-	virtual void OnUpdate() override;
-	virtual void OnEvent(Event& e) override;
-	virtual void OnImGuiRender() override;
+    SandboxLayer();
+    virtual void OnUpdate() override;
+    virtual void OnEvent(Event& e) override;
+    virtual void OnImGuiRender() override;
 
 private:
+    std::unique_ptr<Mesh> m_ShipMesh;
+    std::unique_ptr<Mesh> m_ShipMeshMirrored;
+    std::unique_ptr<Mesh> m_PlayerHeadMesh;
+    std::unique_ptr<Mesh> m_PlayerLegMesh;
+    std::unique_ptr<Mesh> m_PlayerLegMeshMirrored;
+    std::unique_ptr<Mesh> m_EnemyBodyMesh;
+    std::unique_ptr<Mesh> m_EnemyLegMesh;
+    std::unique_ptr<Mesh> m_EnemyLegMeshMirrored;
+    std::unique_ptr<Mesh> m_GunMesh;
+    std::unique_ptr<Mesh> m_CubeMesh;
+    std::unique_ptr<Mesh> m_BoxMesh;
+    std::unique_ptr<Shader> m_Shader;
+    entt::entity m_SelectedAnimEntity = entt::null;
 
-	std::unique_ptr<Mesh> m_ShipMesh;
-	std::unique_ptr<Mesh> m_ShipMeshMirrored;
-	std::unique_ptr<Mesh> m_PlayerHeadMesh;
-	std::unique_ptr<Mesh> m_PlayerLegMesh;
-	std::unique_ptr<Mesh> m_PlayerLegMeshMirrored;
-	std::unique_ptr<Mesh> m_EnemyBodyMesh;
-	std::unique_ptr<Mesh> m_EnemyLegMesh;
-	std::unique_ptr<Mesh> m_EnemyLegMeshMirrored;
-	std::unique_ptr<Mesh> m_GunMesh;
-	std::unique_ptr<Mesh> m_CubeMesh;
-	std::unique_ptr<Mesh> m_BoxMesh;
-	std::unique_ptr<Shader> m_Shader;
-	entt::entity m_SelectedAnimEntity = entt::null;	
+    float m_ChunkSize = 200.0f; // ±100m cutoff
+    int m_RepeatN = 1;          // 1 = 3x3 grid
 
-	float m_ChunkSize = 200.0f; // ±100m cutoff
-	int m_RepeatN = 1;          // 1 = 3x3 grid
+    Camera m_RenderCamera;
+    Scene m_Scene;
+    PlayerInputSystem m_PlayerInputSystem;
 
-	Camera m_RenderCamera;
-	Scene m_Scene;
-	PlayerInputSystem m_PlayerInputSystem;
+    float m_LastFrame = 0.0f;
 
-	float m_LastFrame = 0.0f;
-
-	// IMGUI / DEBUG
-	FogSettings m_Fog;
-	bool m_GameFocused = true;
+    // IMGUI / DEBUG
+    FogSettings m_Fog;
+    bool m_GameFocused = true;
 };
 
-}
+} // namespace Wankel

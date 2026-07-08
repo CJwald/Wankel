@@ -20,13 +20,12 @@ CollisionManifold SpherevsSphere(const Sphere& a, const Sphere& b) {
     if (dist > 0.0001f) {
         result.Normal = delta / dist;
         result.Penetration = radiusSum - dist;
-    }
-    else {
-        result.Normal = glm::vec3(0,1,0);
+    } else {
+        result.Normal = glm::vec3(0, 1, 0);
         result.Penetration = radiusSum;
     }
 
     return result;
 }
 
-}
+} // namespace Wankel
