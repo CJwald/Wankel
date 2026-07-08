@@ -139,5 +139,3 @@ UndefinedBehaviorSanitizer isn't supported on MSVC; `SANITIZE=address` works the
 
 ## BUGS:
 - Cant push an entity across the world border because the teleport doesnt work with colliders. 
-- Sphere colliders never collide with each other (broad-phase grid only indexes AABBCollider entities, so sphere-vs-sphere pairs are never found)
-- A collider entity with no Rigidbody component crashes/UB the first time a dynamic body queries near it (PhysicsSystem assumes every collider has one)

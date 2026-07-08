@@ -63,11 +63,25 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // BUILD SPATIAL GRID
     m_Grid.Clear();
 
-    auto buildView = registry.view<Transform, AABBCollider>();
+    auto buildAABBView = registry.view<Transform, AABBCollider>();
 
-    for (auto e : buildView) {
+    for (auto e : buildAABBView) {
         auto& t = registry.get<Transform>(e);
         auto& c = registry.get<AABBCollider>(e);
+
+        glm::vec3 center = t.LocalPosition + c.Offset;
+
+        m_Grid.Insert(e, center);
+    }
+
+    // Sphere colliders must also be indexed, otherwise a sphere-vs-sphere
+    // pair can never be discovered from either side (both spheres are
+    // absent from the grid) even though sphere-vs-AABB and AABB-vs-AABB work.
+    auto buildSphereView = registry.view<Transform, SphereCollider>();
+
+    for (auto e : buildSphereView) {
+        auto& t = registry.get<Transform>(e);
+        auto& c = registry.get<SphereCollider>(e);
 
         glm::vec3 center = t.LocalPosition + c.Offset;
 
@@ -77,12 +91,12 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // COLLISION
     auto view = registry.view<Transform, Rigidbody>();
 
-    // The broad-phase grid only contains AABBCollider entities, so a pair
-    // can be discovered from either side (both AABB) or just one side
-    // (e.g. sphere-vs-AABB, only found while iterating the sphere). Track
-    // pairs already resolved this frame by canonical (min, max) entity key
-    // so a symmetric discovery doesn't resolve the same pair twice, without
-    // assuming every pair is discovered from both directions.
+    // The broad-phase grid only contains entities with a collider
+    // (AABBCollider or SphereCollider), so an entity with neither (only
+    // Transform + Rigidbody) can discover a pair but never be discovered as
+    // one. Track pairs already resolved this frame by canonical (min, max)
+    // entity key so a symmetric discovery doesn't resolve the same pair
+    // twice, without assuming every pair is discovered from both directions.
     std::unordered_set<uint64_t> resolvedPairs;
 
     for (auto a : view) {
@@ -110,15 +124,21 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 continue;
 
             auto& tb = registry.get<Transform>(b);
-            auto& rbb = registry.get<Rigidbody>(b);
+
+            // The broad-phase grid only requires Transform + a collider, so
+            // b may be static level geometry with no Rigidbody at all (e.g.
+            // a collider-only wall). Treat that as implicitly static rather
+            // than asserting/UB on an unconditional get<Rigidbody>(b).
+            auto* rbbPtr = registry.try_get<Rigidbody>(b);
+            bool bIsStatic = !rbbPtr || rbbPtr->IsStatic;
 
             // POSITION SOLVE
-            if (rba.IsStatic && rbb.IsStatic)
+            if (rba.IsStatic && bIsStatic)
                 continue;
 
             if (rba.IsStatic) {
                 tb.LocalPosition += manifold.Normal * manifold.Penetration;
-            } else if (rbb.IsStatic) {
+            } else if (bIsStatic) {
                 ta.LocalPosition -= manifold.Normal * manifold.Penetration;
             } else {
                 ta.LocalPosition -= manifold.Normal * manifold.Penetration * 0.5f;
@@ -134,10 +154,10 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                     rba.Velocity -= manifold.Normal * va;
             }
 
-            if (!rbb.IsStatic) {
-                float vb = glm::dot(rbb.Velocity, manifold.Normal);
+            if (!bIsStatic) {
+                float vb = glm::dot(rbbPtr->Velocity, manifold.Normal);
                 if (vb < 0.0f)
-                    rbb.Velocity -= manifold.Normal * vb;
+                    rbbPtr->Velocity -= manifold.Normal * vb;
             }
         }
     }

@@ -10,13 +10,22 @@ Also cross-reference `README.md`'s own `TODO:`/`BUGS:` sections — some items o
 
 ## Phase 1 — Correctness fixes (do before building anything on top)
 
-- [ ] Insert `SphereCollider` entities into the broad-phase grid (or build a second grid
+- [x] Insert `SphereCollider` entities into the broad-phase grid (or build a second grid
       keyed on `SphereCollider`) — sphere-vs-sphere never collides today because the grid
       is only built from `Transform, AABBCollider` (`PhysicsSystem.cpp:67`). HIGH
-- [ ] Guard `PhysicsSystem`'s pair resolution against colliders with no `Rigidbody`
+      **Fixed:** `PhysicsSystem::Update` now also builds the grid from
+      `Transform, SphereCollider` (`PhysicsSystem.cpp` build-grid section). Verified with a
+      standalone test exercising `PhysicsSystem::Update` directly — two overlapping
+      sphere-only dynamic entities are now pushed apart.
+- [x] Guard `PhysicsSystem`'s pair resolution against colliders with no `Rigidbody`
       (treat as implicitly static) instead of the unconditional `registry.get<Rigidbody>(b)`
       that crashes/UB the first time a dynamic body queries a static collider-only entity
       (`PhysicsSystem.cpp:114`). HIGH
+      **Fixed:** now uses `registry.try_get<Rigidbody>(b)` and treats a missing `Rigidbody`
+      as implicitly static (no position movement, no velocity to cancel). Verified with a
+      standalone test: a collider-only static "wall" entity with no `Rigidbody` no longer
+      crashes when a dynamic body overlaps it, and resolution behaves as if it were static
+      (dynamic body pushed out, penetrating velocity cancelled, wall itself unmoved).
 - [ ] Gate `InputSystem::PollControllers()` behind the success flag from `Init()` — it's
       called unconditionally every frame from `Application::Run()` even when `Init()`
       failed (`Application.cpp:47`). MEDIUM
