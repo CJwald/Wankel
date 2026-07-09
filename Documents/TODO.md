@@ -70,10 +70,32 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       hand-rolled ASCII PLY parser), add `stb_image` for textures, introduce a minimal asset
       registry so meshes/textures/shaders are referenced by handle/ID instead of hardcoded
       relative path strings in `SandboxLayer`'s constructor.
-- [ ] **Scene serialization.** Even a simple JSON dump of entities/components (e.g.
-      nlohmann/json + hand-written per-component serializers) turns the ~700-line
-      `AddComponent`-call constructor into data — prerequisite for any real level-design
-      workflow.
+- [ ] **Data persistence (layered, engine/game split).** A full "dump the whole scene"
+      system is the wrong shape here — the world is procedurally generated, so there's no
+      static level to serialize wholesale. Split into:
+      - **Engine** (`src/Wankel/ECS/`): generic per-component JSON (de)serialize primitives
+        — `to_json`/`from_json` per component type, dispatched through a registry (same
+        spirit as `CollisionDispatcher`'s table-based dispatch for collider types), plus
+        `Scene::SerializeEntity`/`DeserializeEntity`. Pure mechanism, reusable by any future
+        game project regardless of whether it's procedural or hand-authored. Use
+        nlohmann/json, not YAML — save data and generation params are machine-written/read,
+        so YAML's human-editing ergonomics (comments, less punctuation) buy nothing, while
+        its parser is heavier and has implicit-typing footguns (the "Norway problem"), and
+        there's no clean single-header C++ YAML library the way there is for JSON.
+      - **Game** (`Sandbox/src/`): world seed + generation config (tiny, one-time — the seed
+        itself never "updates" as the world grows; per-tile content is derived via
+        `hash(worldSeed, tileX, tileY, tileZ)`, the same approach Minecraft/No Man's Sky use,
+        so save-file size doesn't grow with explored area), player state (position as tile
+        coordinate + local offset, orientation, health/inventory once those components
+        exist), and eventually a sparse `chunkCoord -> [edits]` delta map for persistent
+        terrain mutation plus "already resolved" entity state (e.g. don't respawn a killed
+        enemy on chunk reload). Builds on the existing "infinite-world chunk-wrap illusion"
+        hack in `SandboxLayer.cpp` and `AsteroidGenerator`/`SplineCarver`.
+      **Sequencing:** build the engine-level per-component serializer plus a minimal
+      seed+player-state save file whenever a "continue" feature is wanted — cheap, can
+      happen anytime. Defer the chunk-delta/mutation-state format; it's blocked on the
+      Terrain/MarchingCubes pathway actually being implemented (see Phase 3) — designing
+      that format now would be guessing at requirements that don't exist yet.
 - [ ] **Mass-aware physics.** Wire `Rigidbody::Mass`/`Force` (declared but never read,
       `PhysicsComponents.h:13`, `PhysicsSystem.cpp:127-128`) into position/velocity
       resolution (mass-weighted split) before adding Capsule/Mesh narrow-phase — current
@@ -169,7 +191,7 @@ Math, Terrain & Sandbox:
 |---|---|---|
 | Lighting/materials | Absent | No normals, no `Texture` class, no lighting terms in any shader |
 | Asset pipeline | Partial | PLY only, hand-rolled parser, no glTF/OBJ/FBX/assimp, no texture loader |
-| Scene persistence | Absent | No save/load/serialization — scene is ~700 lines of `AddComponent` calls |
+| Scene persistence | Absent | No save/load. Not a full-scene-dump problem here (world is procedural) — needed as a narrow seed + player-state save; see Phase 2 data-persistence breakdown |
 | Audio | Absent | No OpenAL/miniaudio/SDL_mixer/FMOD/Wwise; SDL3 only used for gamepad |
 | UI/HUD | Absent beyond debug | Only Dear ImGui debug panels, no text rendering or shippable UI |
 | Testing/CI | Absent | No Catch2/gtest/doctest, no `.github/workflows` |
