@@ -105,6 +105,25 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       the node world-transform) so glTF assets target the same established convention as the
       20+ existing PLY assets, rather than changing `PLYLoader`'s formula or rotating source
       meshes in Blender (either of which would've had a much larger, riskier blast radius).
+      **Two bugs found by `/code-review` and fixed:**
+      - Every mesh-loader call threw `std::runtime_error` on failure (missing file, bad
+        format, empty mesh) with no `try`/`catch` anywhere in the startup chain, so any
+        missing/renamed asset crashed the whole app via an uncaught exception instead of the
+        old graceful "log + render nothing" degrade. Fixed by wrapping `CreateApplication()`/
+        `Run()` in `EntryPoint.h`'s `main()` in a top-level try/catch that logs via
+        `WK_CORE_FATAL` and exits with a clean non-zero code. Verified live by temporarily
+        renaming a build-output asset copy and confirming a clean exit (code 1) instead of a
+        crash, then restoring it.
+      - `GltfLoader`'s missing-normal fallback was scoped to the whole file via one shared
+        `anyMissingNormals` flag — a single primitive lacking NORMAL data triggered
+        `ComputeSmoothNormals` over the *entire* combined vertex buffer, silently overwriting
+        correctly-authored normals from other primitives in the same file. Fixed by building
+        each primitive into a local vertex/index buffer first, running the fallback (if
+        needed) scoped to just that primitive, and only then appending it to the shared
+        output — removing the cross-file flag entirely. Verified with a hand-built
+        multi-primitive test `.gltf` (one primitive with an authored normal deliberately
+        opposite its own geometric winding, one without) confirming the authored primitive's
+        normal survives untouched while the other correctly falls back to a computed one.
 - [ ] **Data persistence (layered, engine/game split).** A full "dump the whole scene"
       system is the wrong shape here — the world is procedurally generated, so there's no
       static level to serialize wholesale. Split into:

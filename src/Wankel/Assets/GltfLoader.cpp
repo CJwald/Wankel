@@ -26,8 +26,7 @@ glm::vec3 ToEngineSpace(const glm::vec3& gltf) {
     return {gltf.z, gltf.y, -gltf.x};
 }
 
-void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std::vector<uint32_t>& outIndices,
-                   bool& anyMissingNormals) {
+void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std::vector<uint32_t>& outIndices) {
     if (node->mesh) {
         float worldMatArr[16];
         cgltf_node_transform_world(node, worldMatArr);
@@ -73,8 +72,17 @@ void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std:
                 fallbackColor = glm::vec4(c[0], c[1], c[2], c[3]);
             }
 
-            uint32_t baseVertex = (uint32_t)outVertices.size();
+            // Built up per-primitive (0-based indices) rather than appended
+            // straight into outVertices/outIndices, so a missing NORMAL
+            // accessor only triggers a smooth-normal recompute scoped to
+            // this primitive - not the whole file, which would otherwise
+            // clobber correctly-authored normals from other primitives.
+            std::vector<Vertex> primVertices;
+            std::vector<uint32_t> primIndices;
+            bool primMissingNormals = false;
+
             size_t vertexCount = posAccessor->count;
+            primVertices.reserve(vertexCount);
 
             for (size_t i = 0; i < vertexCount; i++) {
                 Vertex v;
@@ -90,7 +98,7 @@ void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std:
                     glm::vec3 worldNormal = normalMat * glm::vec3(nrm[0], nrm[1], nrm[2]);
                     v.Normal = glm::normalize(ToEngineSpace(worldNormal));
                 } else {
-                    anyMissingNormals = true;
+                    primMissingNormals = true;
                 }
 
                 if (colorAccessor) {
@@ -102,23 +110,33 @@ void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std:
                     v.Color = fallbackColor;
                 }
 
-                outVertices.push_back(v);
+                primVertices.push_back(v);
             }
 
             if (prim.indices) {
                 size_t indexCount = prim.indices->count;
+                primIndices.reserve(indexCount);
                 for (size_t i = 0; i < indexCount; i++)
-                    outIndices.push_back(baseVertex + (uint32_t)cgltf_accessor_read_index(prim.indices, i));
+                    primIndices.push_back((uint32_t)cgltf_accessor_read_index(prim.indices, i));
             } else {
                 // Non-indexed primitive - emit sequential indices.
+                primIndices.reserve(vertexCount);
                 for (size_t i = 0; i < vertexCount; i++)
-                    outIndices.push_back(baseVertex + (uint32_t)i);
+                    primIndices.push_back((uint32_t)i);
             }
+
+            if (primMissingNormals)
+                ComputeSmoothNormals(primVertices, primIndices);
+
+            uint32_t baseVertex = (uint32_t)outVertices.size();
+            outVertices.insert(outVertices.end(), primVertices.begin(), primVertices.end());
+            for (uint32_t idx : primIndices)
+                outIndices.push_back(baseVertex + idx);
         }
     }
 
     for (cgltf_size c = 0; c < node->children_count; c++)
-        ReadNodeMesh(node->children[c], outVertices, outIndices, anyMissingNormals);
+        ReadNodeMesh(node->children[c], outVertices, outIndices);
 }
 
 } // namespace
@@ -141,19 +159,17 @@ void GltfLoader::Load(const std::string& path, std::vector<Vertex>& outVertices,
     outVertices.clear();
     outIndices.clear();
 
-    bool anyMissingNormals = false;
-
     if (data->scenes_count > 0) {
         const cgltf_scene* scene = data->scene ? data->scene : &data->scenes[0];
         for (cgltf_size i = 0; i < scene->nodes_count; i++)
-            ReadNodeMesh(scene->nodes[i], outVertices, outIndices, anyMissingNormals);
+            ReadNodeMesh(scene->nodes[i], outVertices, outIndices);
     } else {
         // No scene defined - fall back to every root node (ReadNodeMesh
         // already recurses into children, so only start from roots here or
         // child nodes would be visited twice).
         for (cgltf_size i = 0; i < data->nodes_count; i++) {
             if (!data->nodes[i].parent)
-                ReadNodeMesh(&data->nodes[i], outVertices, outIndices, anyMissingNormals);
+                ReadNodeMesh(&data->nodes[i], outVertices, outIndices);
         }
     }
 
@@ -161,9 +177,6 @@ void GltfLoader::Load(const std::string& path, std::vector<Vertex>& outVertices,
 
     if (outVertices.empty())
         throw std::runtime_error("GltfLoader: '" + path + "' contained no triangle mesh data");
-
-    if (anyMissingNormals)
-        ComputeSmoothNormals(outVertices, outIndices);
 
     WK_CORE_INFO("GltfLoader: loaded '{0}' ({1} vertices, {2} indices)", path, outVertices.size(), outIndices.size());
 }
