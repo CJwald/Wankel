@@ -62,14 +62,49 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
 
 ## Phase 2 — Actual blockers to "a game" (priority order)
 
-- [ ] **Vertex format + lighting.** Add normals + UVs to `Vertex` (`Mesh.h:13-16` is
-      currently just `{Position, Color}`), add a basic Blinn-Phong/simple-PBR shader path,
-      add a `Texture` class + material abstraction. Nothing downstream (real look, actual
-      art) is possible without this — biggest single structural gap in the renderer.
-- [ ] **Real asset pipeline.** Add glTF import (cgltf or tinygltf — much less work than the
-      hand-rolled ASCII PLY parser), add `stb_image` for textures, introduce a minimal asset
-      registry so meshes/textures/shaders are referenced by handle/ID instead of hardcoded
-      relative path strings in `SandboxLayer`'s constructor.
+- [x] **Vertex format + lighting (normals done; UVs/textures/materials still open).**
+      Added `Normal` to `Vertex` (appended after `Color`, not inserted, so the existing
+      2-element aggregate-init call sites like `Geometry::CubeVertices` keep compiling via
+      its default member initializer) and a basic Blinn-Phong directional-light shader path.
+      **Still open:** UVs, a `Texture` class, and material abstraction — none of that exists
+      yet, so nothing can be textured. `cube.h`'s hardcoded background box also wasn't
+      touched (still 8 shared vertices with no real per-face normals, so it lights as flat
+      "up-facing" under the new shader) since it's out of scope for this pass.
+      Engine changes: `Mesh.h`/`.cpp` (layout + `CreateMirrored` now also flips `Normal`),
+      `Shader::SetMat3` added, `Renderer::LightSettings`/`SetLight()` (mirrors the existing
+      `FogSettings`/`SetFog()` pattern) with the normal matrix computed once per `Submit()`
+      call (CPU-side, not recomputed per-vertex in the shader). `Sandbox/src/shaders/cube.vert`/
+      `cube.frag` updated for the new attribute + lighting math; `SandboxLayer` got a mirrored
+      "Lighting" ImGui panel next to the existing "Fog" one. Verified with a standalone test
+      confirming computed/authored normals are unit-length for both loaders below, plus a
+      live Sandbox run with no shader link errors.
+- [x] **Real asset pipeline — glTF import done; textures/asset registry still open.** Added
+      glTF/.glb import via `cgltf` (vendored as `external/cgltf`, a single-header library with
+      no CMakeLists of its own — just added to Wankel's include path). Meshes that don't
+      supply a NORMAL attribute (and all PLY meshes, which never carry one) fall back to a
+      shared `ComputeSmoothNormals()` utility (area-weighted, averaged per-vertex normals from
+      triangle winding). Per the game-readiness review's "how a real engine would work" ask,
+      **`MeshLoader`/`PLYLoader` were moved from `Sandbox/src/` into the engine**
+      (`src/Wankel/Assets/`) alongside the new `GltfLoader`, since asset import is generic
+      engine infrastructure, not a Sandbox-specific concern — mirrors the existing
+      Renderer/Mesh/Shader split (GL wrapping) vs. this new Assets split (file parsing).
+      `PLYLoader` was also hardened while being moved: it now validates the PLY `format`
+      header line and throws instead of silently returning empty data on any failure (missing
+      file, non-ASCII format). `SandboxLayer`'s player head/leg now load the new
+      `PlayerHead01.glb`/`PlayerLeg01.glb` for testing; ship/gun/box/enemy body/legs stay on
+      `.ply` to prove both loaders coexist correctly in the same running scene. **Still
+      open:** `stb_image` for textures and a minimal asset registry (handle/ID instead of
+      hardcoded relative path strings in `SandboxLayer`'s constructor) — those need the
+      Texture/material work above to actually be useful.
+      **Axis-convention bug found & fixed post-merge:** the first version loaded glTF meshes
+      90° yawed relative to PLY meshes. Blender's glTF exporter does the textbook Z-up→Y-up
+      conversion (`gltf = (x, z, -y)`), but that's a *different* rotation than the one
+      `PLYLoader` has always used (`engine = (-y, z, -x)`) — a fixed 90° discrepancy between
+      the two conventions, not an asset-specific export mistake. Fixed by adding a
+      `ToEngineSpace()` remap in `GltfLoader.cpp` (applied to both position and normal, after
+      the node world-transform) so glTF assets target the same established convention as the
+      20+ existing PLY assets, rather than changing `PLYLoader`'s formula or rotating source
+      meshes in Blender (either of which would've had a much larger, riskier blast radius).
 - [ ] **Data persistence (layered, engine/game split).** A full "dump the whole scene"
       system is the wrong shape here — the world is procedurally generated, so there's no
       static level to serialize wholesale. Split into:

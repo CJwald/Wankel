@@ -24,6 +24,17 @@ struct FogSettings {
     float WindSpeed = 0.2f;
 };
 
+struct LightSettings {
+    // Direction the light travels (points FROM the light TOWARD the scene),
+    // e.g. a sun low in the sky to the -X/-Z side.
+    glm::vec3 Direction = glm::normalize(glm::vec3(-0.4f, -1.0f, -0.3f));
+    glm::vec3 Color = {1.0f, 0.98f, 0.92f};
+
+    float Ambient = 0.25f;
+    float Specular = 0.35f;
+    float Shininess = 32.0f;
+};
+
 class Renderer {
 public:
     static void Init();
@@ -45,6 +56,7 @@ public:
     static void Clear();
     static void OnWindowResize(uint32_t width, uint32_t height);
     static void SetFog(const FogSettings& fog);
+    static void SetLight(const LightSettings& light);
 
     static bool DebugEnabled; // Global toggle
 };

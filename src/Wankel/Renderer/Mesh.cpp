@@ -20,6 +20,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     VertexBufferLayout layout;
     layout.PushFloat(3, "a_Position");
     layout.PushFloat(4, "a_Color");
+    layout.PushFloat(3, "a_Normal");
 
     m_VertexBuffer->SetLayout(layout);
 
@@ -47,12 +48,18 @@ std::unique_ptr<Mesh> Mesh::CreateMirrored(bool mirrorX, bool mirrorY, bool mirr
     auto indices = m_Indices;
 
     for (auto& v : vertices) {
-        if (mirrorX)
+        if (mirrorX) {
             v.Position.x *= -1.0f;
-        if (mirrorY)
+            v.Normal.x *= -1.0f;
+        }
+        if (mirrorY) {
             v.Position.y *= -1.0f;
-        if (mirrorZ)
+            v.Normal.y *= -1.0f;
+        }
+        if (mirrorZ) {
             v.Position.z *= -1.0f;
+            v.Normal.z *= -1.0f;
+        }
     }
 
     // Count number of mirrored axes

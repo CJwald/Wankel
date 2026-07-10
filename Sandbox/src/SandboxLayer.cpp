@@ -2,11 +2,10 @@
 #include "cube.h"
 #include "plate.h"
 #include "triangle.h"
-#include "PLYLoader.h"
 #include "Debug/DebugOverlay.h"
 #include "Debug/SecondOrderPreview.h"
-#include "MeshLoader.h"
 
+#include <Wankel/Assets/MeshLoader.h>
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
 #include <Wankel/Core/Events/Event.h>
@@ -81,8 +80,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
     //m_BoxMesh = MeshLoader::Load("Assets/Mesh/Flat200m.ply");
     m_BoxMesh = MeshLoader::Load("Assets/Mesh/Rolling200m.ply");
     //m_BoxMesh = MeshLoader::Load("Assets/Mesh/Rolling1000m.ply");
-    m_PlayerHeadMesh = MeshLoader::Load("Assets/Mesh/PlayerHead01.ply");
-    m_PlayerLegMesh = MeshLoader::Load("Assets/Mesh/PlayerLeg01.ply");
+    m_PlayerHeadMesh = MeshLoader::Load("Assets/Mesh/PlayerHead01.glb");
+    m_PlayerLegMesh = MeshLoader::Load("Assets/Mesh/PlayerLeg01.glb");
     m_EnemyBodyMesh = MeshLoader::Load("Assets/Mesh/StalkerBody01.ply");
     m_EnemyLegMesh = MeshLoader::Load("Assets/Mesh/StalkerLeg01.ply");
     m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices);
@@ -789,6 +788,7 @@ void SandboxLayer::OnUpdate() {
 
 
     Renderer::SetFog(m_Fog);
+    Renderer::SetLight(m_Light);
 
     glm::vec3 camPos = m_RenderCamera.GetPosition();
     glm::vec3 camForward = m_RenderCamera.GetForward();
@@ -1045,6 +1045,19 @@ void SandboxLayer::OnImGuiRender() {
             // normalize direction to avoid weird scaling
             if (glm::length(m_Fog.WindDir) > 0.0001f)
                 m_Fog.WindDir = glm::normalize(m_Fog.WindDir);
+        }
+
+        // LIGHTING
+        if (ImGui::CollapsingHeader("Lighting")) {
+            ImGui::DragFloat3("Light Direction", &m_Light.Direction[0], 0.01f);
+
+            if (glm::length(m_Light.Direction) > 0.0001f)
+                m_Light.Direction = glm::normalize(m_Light.Direction);
+
+            ImGui::ColorEdit3("Light Color", &m_Light.Color[0], ImGuiColorEditFlags_Float);
+            ImGui::SliderFloat("Ambient", &m_Light.Ambient, 0.0f, 1.0f);
+            ImGui::SliderFloat("Specular", &m_Light.Specular, 0.0f, 1.0f);
+            ImGui::SliderFloat("Shininess", &m_Light.Shininess, 1.0f, 256.0f, "%.0f", ImGuiSliderFlags_Logarithmic);
         }
 
         // CAMERA (GLOBAL)
