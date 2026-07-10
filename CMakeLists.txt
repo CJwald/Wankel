@@ -110,9 +110,15 @@ target_link_libraries(Wankel
 target_compile_definitions(Wankel PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
 # Make glad headers available to Wankel (and thus to Sandbox)
-target_include_directories(Wankel PUBLIC #PRIVATE # TODO: I WOULD LIKE THIS PRIVATE OR GONE? 
+target_include_directories(Wankel PUBLIC #PRIVATE # TODO: I WOULD LIKE THIS PRIVATE OR GONE?
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
 	"${CMAKE_CURRENT_SOURCE_DIR}/external/entt/src"
+)
+
+# cgltf is a single-header library with no CMakeLists of its own, so just
+# add its directory to the include path rather than add_subdirectory-ing it.
+target_include_directories(Wankel PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/cgltf"
 )
 
 

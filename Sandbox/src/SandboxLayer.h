@@ -48,6 +48,7 @@ private:
 
     // IMGUI / DEBUG
     FogSettings m_Fog;
+    LightSettings m_Light;
     bool m_GameFocused = true;
 };
 

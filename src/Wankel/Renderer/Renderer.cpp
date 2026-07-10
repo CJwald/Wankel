@@ -9,6 +9,7 @@
 #include "Wankel/Core/Time.h"
 
 #include <glad/gl.h>
+#include <glm/gtc/matrix_inverse.hpp>
 
 namespace Wankel {
 
@@ -28,6 +29,7 @@ struct RendererData {
     glm::vec3 CameraPos;
 
     FogSettings Fog;
+    LightSettings Light;
 
     std::vector<DebugVertex> DebugVertices;
     uint32_t DebugVAO = 0;
@@ -110,7 +112,15 @@ void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shad
     shader->SetMat4("view", s_Data.View);
     shader->SetMat4("projection", s_Data.Projection);
     shader->SetMat4("model", transform);
+    shader->SetMat3("u_NormalMatrix", glm::inverseTranspose(glm::mat3(transform)));
     shader->SetVec3("u_CameraPos", s_Data.CameraPos);
+
+    shader->SetVec3("u_LightDir", s_Data.Light.Direction);
+    shader->SetVec3("u_LightColor", s_Data.Light.Color);
+    shader->SetFloat("u_AmbientStrength", s_Data.Light.Ambient);
+    shader->SetFloat("u_SpecularStrength", s_Data.Light.Specular);
+    shader->SetFloat("u_Shininess", s_Data.Light.Shininess);
+
     shader->SetVec3("u_FogColor", s_Data.Fog.Color);
     shader->SetFloat("u_FogDensity", s_Data.Fog.Density);
     shader->SetFloat("u_Time", Time::GetTime());
@@ -159,6 +169,10 @@ void Renderer::OnWindowResize(uint32_t width, uint32_t height) {
 
 void Renderer::SetFog(const FogSettings& fog) {
     s_Data.Fog = fog;
+}
+
+void Renderer::SetLight(const LightSettings& light) {
+    s_Data.Light = light;
 }
 
 } // namespace Wankel

@@ -11,8 +11,12 @@ class VertexBuffer;
 class IndexBuffer;
 
 struct Vertex {
-    glm::vec3 Position;
-    glm::vec4 Color;
+    glm::vec3 Position {0.0f};
+    glm::vec4 Color {1.0f};
+    // Appended (not inserted between Position/Color) so existing 2-element
+    // aggregate-init call sites (e.g. Geometry::CubeVertices) keep compiling
+    // unchanged and just pick up this default via C++ aggregate-init rules.
+    glm::vec3 Normal {0.0f, 1.0f, 0.0f};
 };
 
 class Mesh {
