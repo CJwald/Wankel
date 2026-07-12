@@ -187,8 +187,39 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       given the impulse formula already supports it — not added now since it wasn't asked
       for and the existing behavior (0 restitution) matches what the engine has always felt
       like.
-- [ ] **Audio.** miniaudio is a strong pick (single header, permissive license, no dependency
-      sprawl) — SDL3 is already linked but only its gamepad subsystem is used.
+- [x] **Audio — basic playback done via miniaudio.** Added `src/Wankel/Audio/`:
+      `AudioClip` (owns a short in-memory mono PCM float buffer; `CreateTone()` procedurally
+      generates a sine wave with a ~10ms fade-out envelope to avoid an audible click at the
+      end) and `AudioSystem` (`Init`/`Shutdown`/`Play()` — a fixed 8-voice pool cycled
+      round-robin with "voice stealing" when all voices are busy, the standard simple
+      approach for non-spatialized one-shot SFX; each voice uses `ma_audio_buffer_ref` so
+      concurrent/overlapping plays of the same clip don't fight over a shared read cursor,
+      and each voice keeps its own `Ref<AudioClip>` alive for the duration of playback so a
+      short-lived caller-side clip reference can't be freed out from under it mid-playback).
+      Vendored `miniaudio` as `external/miniaudio` (single header, public domain/MIT-0,
+      matches the `cgltf`/`stb` vendoring convention) — needs `-ldl -lpthread -lm` linked on
+      Linux (added to `CMakeLists.txt`, backends themselves are loaded via `dlopen` at
+      runtime so no other link-time dependency). `AudioSystem::Init()`/`Shutdown()` wired
+      into `Application`'s constructor/destructor alongside `Renderer`/`InputSystem`.
+      **Test wiring**: `SandboxLayer`'s existing left-click raycast (previously only
+      teleported "Cube" entities on hit) now also plays a low tone (220Hz) on any click, or
+      a higher tone (880Hz) instead when the click hits a block.
+      Verified precisely (frequency, not just "doesn't crash"): a standalone test measures
+      zero-crossings in the generated PCM data (52 crossings for the 220Hz/120ms clip vs.
+      an expected ~52.8, 211 vs. ~211.2 for the 880Hz clip), confirms amplitude stays within
+      the requested bound, confirms the fade-out actually reaches ~0 at the clip's end
+      (avoiding a click/pop), and exercises `AudioSystem::Init`/`Play` (including forcing
+      voice-stealing with 20 plays against 8 voices) /`Shutdown` without crashing. Also
+      confirmed live in Sandbox — `AudioSystem: initialized (8 voices)` logs cleanly, no
+      errors, stable run. Actually hearing the two distinct beeps on click/hit is still a
+      manual check only you can do (no audio-capture tooling available here, same
+      constraint as the screenshot situation for visuals).
+      **Still open:** no spatialization/3D positioning (deliberately disabled for these
+      one-shot UI-style beeps via `MA_SOUND_FLAG_NO_SPATIALIZATION`, but a future
+      `AudioSource` component for positioned SFX would need it), no streaming/music/looping
+      layer, no real sound-file loading yet (`AudioClip` only generates procedural tones —
+      loading actual audio assets via miniaudio's own decoders is a natural, small follow-on
+      once there's a real sound file to load, mirroring how `MeshLoader` dispatches by format).
 - [x] **Minimal UI/text rendering — basic bitmap-font renderer done.** Added `Texture`
       (`src/Wankel/Renderer/Texture.{h,cpp}` — minimal single-channel/R8 GL wrapper, the
       engine's first texture support of any kind) and `Font` (`Font.{h,cpp}` — loads a .ttf,
@@ -310,7 +341,7 @@ Math, Terrain & Sandbox:
 | Lighting/materials | Partial | Normals + basic Blinn-Phong directional light done; still no UVs, `Texture`/material system, or actual texturing |
 | Asset pipeline | Partial | PLY + glTF/.glb (via `cgltf`) both work; still no OBJ/FBX/assimp, no `stb_image`/texture loader, no asset registry (paths still hardcoded) |
 | Scene persistence | Absent | No save/load. Not a full-scene-dump problem here (world is procedural) — needed as a narrow seed + player-state save; see Phase 2 data-persistence breakdown |
-| Audio | Absent | No OpenAL/miniaudio/SDL_mixer/FMOD/Wwise; SDL3 only used for gamepad |
+| Audio | Basic | `miniaudio`-backed one-shot SFX playback (`AudioSystem::Play`, 8-voice pool) done; still no spatialization, streaming, music/looping, or real sound-file loading (procedural tones only) |
 | UI/HUD | Partial | Basic bitmap-font text rendering done (`Font`/`Renderer::SubmitText`); still no general widgets/panels/layout, still relies on Dear ImGui for all debug panels |
 | Testing/CI | Absent | No Catch2/gtest/doctest, no `.github/workflows` |
 | Build/packaging | Dev-build only | No `install()`/CPack target; asset paths relative to `bin/` cwd |

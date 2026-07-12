@@ -15,6 +15,7 @@ class VertexArray;
 class VertexBuffer;
 class Mesh;
 class Font;
+class AudioClip;
 
 class SandboxLayer : public Layer {
 public:
@@ -37,6 +38,8 @@ private:
     std::unique_ptr<Mesh> m_BoxMesh;
     std::unique_ptr<Shader> m_Shader;
     Ref<Font> m_TitleFont;
+    Ref<AudioClip> m_ClickMissBeep;
+    Ref<AudioClip> m_ClickHitBeep;
     entt::entity m_SelectedAnimEntity = entt::null;
 
     float m_ChunkSize = 200.0f; // ±100m cutoff

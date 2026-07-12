@@ -109,18 +109,25 @@ target_link_libraries(Wankel
 
 target_compile_definitions(Wankel PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
+# miniaudio's Linux backends (ALSA/PulseAudio/etc.) are loaded via dlopen at
+# runtime, but it still needs these three linked at build time.
+if(UNIX AND NOT APPLE)
+    target_link_libraries(Wankel PRIVATE dl pthread m)
+endif()
+
 # Make glad headers available to Wankel (and thus to Sandbox)
 target_include_directories(Wankel PUBLIC #PRIVATE # TODO: I WOULD LIKE THIS PRIVATE OR GONE?
     "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
 	"${CMAKE_CURRENT_SOURCE_DIR}/external/entt/src"
 )
 
-# cgltf and stb (stb_truetype) are single-header libraries with no
-# CMakeLists of their own, so just add their directories to the include
+# cgltf, stb (stb_truetype), and miniaudio are single-header libraries with
+# no CMakeLists of their own, so just add their directories to the include
 # path rather than add_subdirectory-ing them.
 target_include_directories(Wankel PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/cgltf"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/stb"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/miniaudio"
 )
 
 
