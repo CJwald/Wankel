@@ -4,6 +4,7 @@
 #include "Wankel/Core/Input.h"
 #include "Wankel/Renderer/Renderer.h"
 #include "Wankel/Core/InputSystem.h"
+#include "Wankel/Audio/AudioSystem.h"
 
 
 namespace Wankel {
@@ -21,12 +22,15 @@ Application::Application() {
     if (!InputSystem::Init())
         WK_CORE_WARNING("Gamepad input disabled: SDL failed to initialize");
 
+    AudioSystem::Init();
+
     m_ImGuiLayer = new ImGuiLayer();
     PushOverlay(m_ImGuiLayer);
 }
 
 
 Application::~Application() {
+    AudioSystem::Shutdown();
     InputSystem::Shutdown();
 }
 

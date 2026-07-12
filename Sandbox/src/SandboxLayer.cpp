@@ -17,6 +17,8 @@
 #include <Wankel/Renderer/Shader.h>
 #include <Wankel/Renderer/Mesh.h>
 #include <Wankel/Renderer/Font.h>
+#include <Wankel/Audio/AudioClip.h>
+#include <Wankel/Audio/AudioSystem.h>
 #include <Wankel/Core/Window.h>
 #include <Wankel/Renderer/DebugDraw.h>
 #include <Wankel/Physics/Raycast/Ray.h>
@@ -92,6 +94,10 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
 
     // HUD title text
     m_TitleFont = Font::Load("Assets/Fonts/Orbitron-VariableFont_wght.ttf", 32.0f);
+
+    // Click-test beeps: low tone on a miss, higher tone on a block hit.
+    m_ClickMissBeep = AudioClip::CreateTone(220.0f, 0.12f);
+    m_ClickHitBeep = AudioClip::CreateTone(880.0f, 0.12f);
 
     // PLAYER ENTITY
     auto player = m_Scene.CreateEntity();
@@ -820,6 +826,7 @@ void SandboxLayer::OnUpdate() {
 
         RaycastHit hit;
         float maxDist = 1000.0f;
+        bool hitBlock = false;
 
         if (RaycastAABB(m_Scene, ray, hit, maxDist)) {
             Entity e = hit.HitEntity;
@@ -833,12 +840,15 @@ void SandboxLayer::OnUpdate() {
 
                 // ONLY teleport cubes
                 if (tag.Name == "Cube") {
+                    hitBlock = true;
                     float range = 10.0f;
                     glm::vec3 newPos(RandomFloat() * range, 20.f + RandomFloat() * range, RandomFloat() * range);
                     registry.get<Transform>(e.GetHandle()).LocalPosition = newPos;
                 }
             }
         }
+
+        AudioSystem::Play(hitBlock ? m_ClickHitBeep : m_ClickMissBeep);
     }
 
     lastClick = click;
