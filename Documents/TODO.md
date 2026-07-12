@@ -150,10 +150,43 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       happen anytime. Defer the chunk-delta/mutation-state format; it's blocked on the
       Terrain/MarchingCubes pathway actually being implemented (see Phase 3) — designing
       that format now would be guessing at requirements that don't exist yet.
-- [ ] **Mass-aware physics.** Wire `Rigidbody::Mass`/`Force` (declared but never read,
-      `PhysicsComponents.h:13`, `PhysicsSystem.cpp:127-128`) into position/velocity
-      resolution (mass-weighted split) before adding Capsule/Mesh narrow-phase — current
-      flat 50/50 split will look wrong the moment two differently-sized dynamic objects touch.
+- [x] **Mass-aware physics — `Rigidbody::Mass` wired in; `Force` deliberately left alone.**
+      `PhysicsSystem.cpp`'s collision resolution now uses inverse-mass weighting throughout:
+      - **Position solve**: penetration correction now splits proportional to each body's
+        inverse mass (`invMassA/(invMassA+invMassB)` etc.) instead of a flat 50/50 — a
+        strict generalization that reduces to the old "static side doesn't move, dynamic
+        side takes it all" when one side has infinite mass (`invMass = 0`), and to the old
+        flat 50/50 when both dynamic sides happen to have equal mass. Only differently-massed
+        dynamic pairs actually change behavior.
+      - **Velocity solve**: replaced the old "independently zero each body's own penetrating
+        velocity component" scheme with the standard 2-body single-contact normal impulse
+        formula (no friction, restitution hardcoded to 0 — fully inelastic, matching the
+        engine's existing "objects stop dead on contact" feel). The old scheme wasn't
+        actually momentum-conserving even for equal masses (both bodies fully stopped,
+        losing momentum); the new one is exact — colliding bodies now end up moving
+        *together* at the shared mass-weighted velocity, which is the physically correct
+        outcome for restitution 0. Exact match to old behavior whenever one side is static.
+      - `Mass` is also clamped away from `<=0` (`kMinMass = 0.0001f`) before inverting, so a
+        misconfigured `Rigidbody::Mass` can't divide-by-zero and inject NaN into position or
+        velocity — the same failure mode flagged (but not currently triggered) for the
+        renderer's normal-matrix computation earlier.
+      - **`Force` deliberately NOT wired up.** Nothing in the codebase ever sets
+        `Rigidbody::Force` (still `PhysicsComponents.h:13`, "Not used, I think I want it
+        eventually") — wiring a force-accumulator integration step for a field no caller
+        ever writes would be unverifiable dead scaffolding. Revisit once something (gravity,
+        thrust, explosions) actually needs to apply a force.
+      Verified with a standalone test covering all four resolution shapes: equal-mass
+      collision conserves momentum and ends with both bodies moving together (not both
+      instantly stopped, which the old code did); a 100:1 mass collision conserves momentum
+      and produces the correct inelastic shared velocity (500/101 ≈ 4.95, not the light body
+      launching off faster - that only happens with restitution > 0); position correction
+      split matches the inverse-mass ratio exactly (3:1 masses → 1:3 movement ratio); and a
+      collider-only static wall (no `Rigidbody`) is still correctly treated as infinite mass.
+      Also confirmed live in Sandbox — stable, no regressions.
+      A per-body `Restitution` field (for bounciness) would be a natural, easy follow-on
+      given the impulse formula already supports it — not added now since it wasn't asked
+      for and the existing behavior (0 restitution) matches what the engine has always felt
+      like.
 - [ ] **Audio.** miniaudio is a strong pick (single header, permissive license, no dependency
       sprawl) — SDL3 is already linked but only its gamepad subsystem is used.
 - [x] **Minimal UI/text rendering — basic bitmap-font renderer done.** Added `Texture`
@@ -189,6 +222,12 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       no Unicode/dynamic glyph ranges (fixed ASCII atlas baked once at load), no batching
       across multiple `SubmitText` calls (one draw call each, fine at HUD-label scale, would
       need revisiting for large volumes of text).
+      **Follow-on:** added a second HUD label, bottom-right, showing `Mode: FPS`/`Mode: FLIGHT`
+      (light grey, reuses the same Orbitron font) — reads `PlayerController::Mode` directly
+      each frame, so it switches on its own whenever `PlayerInputSystem` toggles look mode, no
+      extra state tracking needed. Verified with an offscreen pixel-readback test confirming
+      both mode strings render visible, right-aligned, and measure to distinctly different
+      widths (i.e. actually different text, not a stale/cached value).
 
 ## Phase 3 — Scale & polish (once a game is actually in production)
 
@@ -215,9 +254,6 @@ Core & Platform:
 - [ ] GLFW framebuffer-size/close/mouse-button/scroll callbacks call `data.EventCallback(event)`
       with no null check (only the mouse-pos callback guards it) — an event firing before
       `Application::SetEventCallback` runs is an unhandled `std::bad_function_call`.
-- [ ] `EntryPoint.h` has no try/catch around `CreateApplication()`/`Run()`, yet
-      `Window::Init` throws `std::runtime_error` on GLFW/GLAD failure — unhandled crash
-      with a raw exception message instead of a clean shutdown.
 - [ ] `gladLoadGL` called twice back-to-back during `Init()` (`LinuxWindow.cpp:65,84` +
       Windows counterpart) — harmless but confusing/dead code.
 - [ ] Dead shadowed mouse-tracking members duplicate the real `WindowData` fields in
@@ -266,23 +302,20 @@ Math, Terrain & Sandbox:
       ImGui preview can diverge from actual runtime animation behavior.
 - [ ] `Sandbox/src/plate.h`, `triangle.h` — included by `SandboxLayer.cpp` but their
       vertex/index arrays are never referenced again — dead geometry headers.
-- [ ] `Sandbox/src/PLYLoader.h` still assumes ASCII PLY with a fixed `x y z r g b a`
-      property layout and never checks the `format` header line — a binary PLY or
-      reordered-property file silently parses into garbage rather than erroring.
 
 ## Game-readiness gap checklist (context, not action items)
 
 | Dimension | Status | Notes |
 |---|---|---|
-| Lighting/materials | Absent | No normals, no `Texture` class, no lighting terms in any shader |
-| Asset pipeline | Partial | PLY only, hand-rolled parser, no glTF/OBJ/FBX/assimp, no texture loader |
+| Lighting/materials | Partial | Normals + basic Blinn-Phong directional light done; still no UVs, `Texture`/material system, or actual texturing |
+| Asset pipeline | Partial | PLY + glTF/.glb (via `cgltf`) both work; still no OBJ/FBX/assimp, no `stb_image`/texture loader, no asset registry (paths still hardcoded) |
 | Scene persistence | Absent | No save/load. Not a full-scene-dump problem here (world is procedural) — needed as a narrow seed + player-state save; see Phase 2 data-persistence breakdown |
 | Audio | Absent | No OpenAL/miniaudio/SDL_mixer/FMOD/Wwise; SDL3 only used for gamepad |
-| UI/HUD | Absent beyond debug | Only Dear ImGui debug panels, no text rendering or shippable UI |
+| UI/HUD | Partial | Basic bitmap-font text rendering done (`Font`/`Renderer::SubmitText`); still no general widgets/panels/layout, still relies on Dear ImGui for all debug panels |
 | Testing/CI | Absent | No Catch2/gtest/doctest, no `.github/workflows` |
 | Build/packaging | Dev-build only | No `install()`/CPack target; asset paths relative to `bin/` cwd |
 | Threading | Absent | Fully single-threaded, no job system |
-| Physics fidelity | Basic | Overlap-resolution only, no mass/inertia/restitution/friction |
+| Physics fidelity | Basic | Mass-weighted position/velocity resolution (proper momentum conservation) now done; still no inertia/rotation, no restitution/friction (hardcoded inelastic), no Force integration |
 | Platform abstraction | Cosmetic | Linux/Windows backends are byte-identical GLFW code today |
 | External foundation | Solid | EnTT, GLFW, glm, spdlog, Dear ImGui, SDL3 — sensible dependency set |
 

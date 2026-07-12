@@ -1012,20 +1012,34 @@ void SandboxLayer::OnUpdate() {
 
     Renderer::EndScene();
 
-    // HUD title, top-right - re-measured every frame so it stays anchored
-    // to the corner across window resizes.
+    // HUD text - re-measured every frame so both labels stay anchored to
+    // their corners across window resizes.
     if (m_TitleFont) {
         auto& window = Application::Get().GetWindow();
         uint32_t screenWidth = window.GetWidth();
         uint32_t screenHeight = window.GetHeight();
-
-        const std::string title = "Wankel";
         const float padding = 20.0f;
 
-        float textWidth = m_TitleFont->MeasureWidth(title);
-        glm::vec2 pos = {(float)screenWidth - padding - textWidth, padding + 24.0f};
+        // Title, top-center.
+        const std::string title = "Wankel";
+        float titleWidth = m_TitleFont->MeasureWidth(title);
+        glm::vec2 titlePos = {((float)screenWidth - titleWidth) * 0.5f, padding + 24.0f};
+        Renderer::SubmitText(title, m_TitleFont, titlePos, screenWidth, screenHeight, {1.0f, 1.0f, 1.0f});
 
-        Renderer::SubmitText(title, m_TitleFont, pos, screenWidth, screenHeight, {0.2f, 0.9f, 1.0f});
+        // Mode indicator, bottom-right - reflects the player's current
+        // look-mode directly from the component, so it switches on its own
+        // whenever PlayerInputSystem toggles PlayerController::Mode.
+        for (auto entity : playerView) {
+            auto& controller = playerView.get<PlayerController>(entity);
+
+            const std::string modeText =
+                std::string("Mode: ") + (controller.Mode == PlayerController::LookMode::FPS ? "FPS" : "FLIGHT");
+            float modeWidth = m_TitleFont->MeasureWidth(modeText);
+            glm::vec2 modePos = {(float)screenWidth - padding - modeWidth, (float)screenHeight - padding};
+
+            Renderer::SubmitText(modeText, m_TitleFont, modePos, screenWidth, screenHeight, {0.85f, 0.85f, 0.85f});
+            break; // single local player
+        }
     }
 }
 

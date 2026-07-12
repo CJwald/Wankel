@@ -132,32 +132,51 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             auto* rbbPtr = registry.try_get<Rigidbody>(b);
             bool bIsStatic = !rbbPtr || rbbPtr->IsStatic;
 
-            // POSITION SOLVE
             if (rba.IsStatic && bIsStatic)
                 continue;
 
-            if (rba.IsStatic) {
-                tb.LocalPosition += manifold.Normal * manifold.Penetration;
-            } else if (bIsStatic) {
-                ta.LocalPosition -= manifold.Normal * manifold.Penetration;
-            } else {
-                ta.LocalPosition -= manifold.Normal * manifold.Penetration * 0.5f;
-                tb.LocalPosition += manifold.Normal * manifold.Penetration * 0.5f;
-            }
+            // Inverse mass: 0 for a static/collider-only body (infinite
+            // mass - it never moves or absorbs velocity from a collision),
+            // otherwise 1/Mass. Clamp Mass away from <=0 so a misconfigured
+            // Rigidbody can't divide-by-zero and inject NaN into position
+            // or velocity (the same failure mode the normal-matrix fix
+            // upstream guards against).
+            constexpr float kMinMass = 0.0001f;
+            float invMassA = rba.IsStatic ? 0.0f : 1.0f / glm::max(rba.Mass, kMinMass);
+            float invMassB = bIsStatic ? 0.0f : 1.0f / glm::max(rbbPtr->Mass, kMinMass);
+            float invMassSum = invMassA + invMassB;
 
-            // VELOCITY SOLVE - cancel each body's velocity component that
-            // would deepen the penetration. manifold.Normal points from a
-            // to b, so a's penetrating direction is +Normal and b's is -Normal.
-            if (!rba.IsStatic) {
-                float va = glm::dot(rba.Velocity, manifold.Normal);
-                if (va > 0.0f)
-                    rba.Velocity -= manifold.Normal * va;
-            }
+            // POSITION SOLVE - split penetration correction proportional to
+            // each body's inverse mass (heavier moves less). This is a
+            // strict generalization of the old fixed-share split: it
+            // reduces to "static side doesn't move, dynamic side takes the
+            // full correction" when one side has infinite mass, and to the
+            // old flat 50/50 split when both dynamic sides have equal mass
+            // - only differently-massed dynamic pairs actually change
+            // behavior, matching what this item set out to fix.
+            ta.LocalPosition -= manifold.Normal * manifold.Penetration * (invMassA / invMassSum);
+            tb.LocalPosition += manifold.Normal * manifold.Penetration * (invMassB / invMassSum);
 
-            if (!bIsStatic) {
-                float vb = glm::dot(rbbPtr->Velocity, manifold.Normal);
-                if (vb < 0.0f)
-                    rbbPtr->Velocity -= manifold.Normal * vb;
+            // VELOCITY SOLVE - single-contact normal impulse (no friction,
+            // restitution 0 i.e. fully inelastic along the normal, matching
+            // the previous "objects stop dead on contact" feel) distributed
+            // by mass, instead of independently zeroing each body's own
+            // penetrating velocity component regardless of what it hit.
+            // The old approach wasn't actually momentum-conserving even for
+            // equal masses (both bodies fully stopped rather than ending up
+            // moving together); this is the standard textbook 2-body
+            // impulse formula and is exact when one side is static.
+            glm::vec3 velB = bIsStatic ? glm::vec3(0.0f) : rbbPtr->Velocity;
+            glm::vec3 relativeVelocity = velB - rba.Velocity;
+            float velAlongNormal = glm::dot(relativeVelocity, manifold.Normal);
+
+            if (velAlongNormal < 0.0f) { // still closing; separating pairs need no resolution
+                glm::vec3 impulse = manifold.Normal * (-velAlongNormal / invMassSum);
+
+                if (!rba.IsStatic)
+                    rba.Velocity -= impulse * invMassA;
+                if (!bIsStatic)
+                    rbbPtr->Velocity += impulse * invMassB;
             }
         }
     }
