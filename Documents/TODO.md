@@ -156,8 +156,39 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       flat 50/50 split will look wrong the moment two differently-sized dynamic objects touch.
 - [ ] **Audio.** miniaudio is a strong pick (single header, permissive license, no dependency
       sprawl) — SDL3 is already linked but only its gamepad subsystem is used.
-- [ ] **Minimal UI/text rendering.** A bitmap-font text renderer + basic screen-space quad UI
-      is enough for a first HUD — doesn't need to compete with UGUI/UMG to be useful.
+- [x] **Minimal UI/text rendering — basic bitmap-font renderer done.** Added `Texture`
+      (`src/Wankel/Renderer/Texture.{h,cpp}` — minimal single-channel/R8 GL wrapper, the
+      engine's first texture support of any kind) and `Font` (`Font.{h,cpp}` — loads a .ttf,
+      bakes ASCII 32-127 into a 512x512 atlas via `stb_truetype` at load time, vendored as
+      `external/stb`). `Renderer::SubmitText()` mirrors the existing `SubmitDebugLines`
+      pattern (its own dedicated VAO/VBO/shader, `text.vert`/`text.frag` under
+      `src/Wankel/Renderer/shaders/`) — a screen-space orthographic overlay pass, depth-test
+      disabled, drawn after `EndScene()`. `SandboxLayer` loads Orbitron (a sci-fi/futuristic
+      display font, OFL-licensed, vendored at `Sandbox/src/Assets/Fonts/`) and renders
+      "Wankel" top-right, re-measuring the text width every frame so it stays anchored to the
+      corner across window resizes. Verified with a standalone test (headless GL context +
+      `Font::Load`/`MeasureWidth`/`BuildQuads`) confirming width scales correctly with string
+      length, quad/UV data is well-formed, and pen-advance math is internally consistent; also
+      confirmed live in Sandbox (atlas bakes, no shader errors, stable run).
+      **Bug found after initial "it builds and doesn't crash" pass — text was invisible.**
+      The first version rendered nothing on screen despite loading/baking correctly. Root
+      cause: the orthographic projection's Y-flip (screen Y-down -> NDC Y-up, needed so
+      screen-space pixel coordinates map correctly) makes the text quads' triangle winding
+      come out clockwise in the final rasterized image, so they were silently back-face
+      culled under the engine's default `GL_CULL_FACE`/`GL_BACK` (enabled globally in
+      `Renderer::Init()`) — `SubmitText` never disabled culling for its own draw call, unlike
+      `SubmitDebugLines` which does (debug lines don't need it since `GL_LINES` isn't
+      culled, but `SubmitText` uses `GL_TRIANGLES`, which is). Fixed by disabling
+      `GL_CULL_FACE` around the text draw call. Verified by adding an offscreen-framebuffer
+      pixel-readback test (headless GL context + FBO + `glReadPixels`) that reproduced the
+      exact symptom with the fix reverted (0 non-black pixels) and confirmed the fix
+      resolves it (866 visible pixels, glyph-shaped coverage) — a stronger check than "it
+      builds and doesn't crash," which is what let this ship broken the first time.
+      **Still open:** no general on-screen UI widgets (buttons/panels/layout) — this is text
+      rendering only, not the "basic screen-space quad UI" half of this item. No word-wrap,
+      no Unicode/dynamic glyph ranges (fixed ASCII atlas baked once at load), no batching
+      across multiple `SubmitText` calls (one draw call each, fine at HUD-label scale, would
+      need revisiting for large volumes of text).
 
 ## Phase 3 — Scale & polish (once a game is actually in production)
 

@@ -5,11 +5,14 @@
 #include "Camera.h"
 #include "Mesh.h"
 #include "Buffer.h"
+#include "Font.h"
+#include "Texture.h"
 
 #include "Wankel/Core/Time.h"
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Wankel {
 
@@ -17,6 +20,12 @@ namespace Wankel {
 struct DebugVertex {
     glm::vec3 Position;
     glm::vec3 Color;
+};
+
+
+struct TextVertex {
+    glm::vec2 Position;
+    glm::vec2 UV;
 };
 
 
@@ -35,11 +44,16 @@ struct RendererData {
     uint32_t DebugVAO = 0;
     uint32_t DebugVBO = 0;
     Shader* DebugShader = nullptr;
+
+    uint32_t TextVAO = 0;
+    uint32_t TextVBO = 0;
+    Shader* TextShader = nullptr;
 };
 
 
 static RendererData s_Data;
 static constexpr size_t kMaxDebugVertices = 65536;
+static constexpr size_t kMaxTextVertices = 256 * 6; // 256 glyphs/quads per SubmitText call
 
 
 void Renderer::Init() {
@@ -62,6 +76,18 @@ void Renderer::Init() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(DebugVertex), (void*)offsetof(DebugVertex, Color));
     s_Data.DebugShader = new Shader("WankelShaders/debug.vert", "WankelShaders/debug.frag");
+
+    // TEXT PASS GPU OBJECTS
+    glGenVertexArrays(1, &s_Data.TextVAO);
+    glGenBuffers(1, &s_Data.TextVBO);
+    glBindVertexArray(s_Data.TextVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.TextVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(TextVertex) * kMaxTextVertices, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(TextVertex), (void*)offsetof(TextVertex, Position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(TextVertex), (void*)offsetof(TextVertex, UV));
+    s_Data.TextShader = new Shader("WankelShaders/text.vert", "WankelShaders/text.frag");
 }
 
 
@@ -71,6 +97,12 @@ void Renderer::Shutdown() {
 
     glDeleteBuffers(1, &s_Data.DebugVBO);
     glDeleteVertexArrays(1, &s_Data.DebugVAO);
+
+    delete s_Data.TextShader;
+    s_Data.TextShader = nullptr;
+
+    glDeleteBuffers(1, &s_Data.TextVBO);
+    glDeleteVertexArrays(1, &s_Data.TextVAO);
 }
 
 
@@ -146,6 +178,68 @@ void Renderer::SubmitDebugLines(const std::vector<DebugLine>& lines) {
         s_Data.DebugVertices.push_back({line.P0, line.Color});
         s_Data.DebugVertices.push_back({line.P1, line.Color});
     }
+}
+
+
+void Renderer::SubmitText(const std::string& text, const Ref<Font>& font, const glm::vec2& screenPos,
+                           uint32_t screenWidth, uint32_t screenHeight, const glm::vec3& color) {
+    if (!font || text.empty())
+        return;
+
+    std::vector<GlyphQuad> quads;
+    font->BuildQuads(text, screenPos, quads);
+
+    if (quads.empty())
+        return;
+
+    std::vector<TextVertex> vertices;
+    vertices.reserve(quads.size() * 6);
+
+    for (const auto& q : quads) {
+        TextVertex v0 {{q.Min.x, q.Min.y}, {q.UVMin.x, q.UVMin.y}};
+        TextVertex v1 {{q.Max.x, q.Min.y}, {q.UVMax.x, q.UVMin.y}};
+        TextVertex v2 {{q.Max.x, q.Max.y}, {q.UVMax.x, q.UVMax.y}};
+        TextVertex v3 {{q.Min.x, q.Max.y}, {q.UVMin.x, q.UVMax.y}};
+
+        vertices.push_back(v0);
+        vertices.push_back(v1);
+        vertices.push_back(v2);
+
+        vertices.push_back(v0);
+        vertices.push_back(v2);
+        vertices.push_back(v3);
+    }
+
+    size_t vertexCount = vertices.size();
+    if (vertexCount > kMaxTextVertices) {
+        WK_CORE_WARNING("Renderer::SubmitText - {0} vertices submitted, truncating to capacity ({1})", vertexCount,
+                         kMaxTextVertices);
+        vertexCount = kMaxTextVertices;
+    }
+
+    glm::mat4 projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
+
+    s_Data.TextShader->Bind();
+    s_Data.TextShader->SetMat4("u_Projection", projection);
+    s_Data.TextShader->SetVec3("u_Color", color);
+    font->GetAtlasTexture()->Bind(0);
+    s_Data.TextShader->SetInt("u_FontAtlas", 0);
+
+    glBindVertexArray(s_Data.TextVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.TextVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(TextVertex), vertices.data());
+
+    // Screen-space overlay - not part of the depth-tested 3D scene, and the
+    // ortho projection's Y-flip (screen Y-down -> NDC Y-up) makes the quad
+    // winding come out clockwise in the final rasterized image, so it's
+    // back-face culled under the engine's default GL_CULL_FACE/GL_BACK -
+    // disable culling for this pass, there's no "back side" of 2D text
+    // that should ever be culled anyway.
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertexCount);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 }
 
 

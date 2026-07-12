@@ -16,6 +16,7 @@
 #include <Wankel/Renderer/Renderer.h>
 #include <Wankel/Renderer/Shader.h>
 #include <Wankel/Renderer/Mesh.h>
+#include <Wankel/Renderer/Font.h>
 #include <Wankel/Core/Window.h>
 #include <Wankel/Renderer/DebugDraw.h>
 #include <Wankel/Physics/Raycast/Ray.h>
@@ -88,6 +89,9 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
 
     // Shader
     m_Shader = std::make_unique<Shader>("shaders/cube.vert", "shaders/cube.frag");
+
+    // HUD title text
+    m_TitleFont = Font::Load("Assets/Fonts/Orbitron-VariableFont_wght.ttf", 32.0f);
 
     // PLAYER ENTITY
     auto player = m_Scene.CreateEntity();
@@ -1007,6 +1011,22 @@ void SandboxLayer::OnUpdate() {
     } // X
 
     Renderer::EndScene();
+
+    // HUD title, top-right - re-measured every frame so it stays anchored
+    // to the corner across window resizes.
+    if (m_TitleFont) {
+        auto& window = Application::Get().GetWindow();
+        uint32_t screenWidth = window.GetWidth();
+        uint32_t screenHeight = window.GetHeight();
+
+        const std::string title = "Wankel";
+        const float padding = 20.0f;
+
+        float textWidth = m_TitleFont->MeasureWidth(title);
+        glm::vec2 pos = {(float)screenWidth - padding - textWidth, padding + 24.0f};
+
+        Renderer::SubmitText(title, m_TitleFont, pos, screenWidth, screenHeight, {0.2f, 0.9f, 1.0f});
+    }
 }
 
 
