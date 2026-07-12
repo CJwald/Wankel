@@ -115,10 +115,12 @@ target_include_directories(Wankel PUBLIC #PRIVATE # TODO: I WOULD LIKE THIS PRIV
 	"${CMAKE_CURRENT_SOURCE_DIR}/external/entt/src"
 )
 
-# cgltf is a single-header library with no CMakeLists of its own, so just
-# add its directory to the include path rather than add_subdirectory-ing it.
+# cgltf and stb (stb_truetype) are single-header libraries with no
+# CMakeLists of their own, so just add their directories to the include
+# path rather than add_subdirectory-ing them.
 target_include_directories(Wankel PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/external/cgltf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/stb"
 )
 
 

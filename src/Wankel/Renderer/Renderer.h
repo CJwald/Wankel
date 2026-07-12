@@ -1,14 +1,17 @@
 #pragma once
 
 #include "DebugDraw.h"
+#include "Wankel/Core/Base.h"
 
 #include <glm/glm.hpp>
+#include <string>
 
 namespace Wankel {
 
 class Camera;
 class Shader;
 class Mesh;
+class Font;
 
 struct FogSettings {
     glm::vec3 Color = {0.12f, 0.1f, 0.2f};
@@ -48,6 +51,13 @@ public:
 
     // Debug Pass
     static void SubmitDebugLines(const std::vector<DebugLine>& lines);
+
+    // Screen-space text overlay (pixels, Y-down, origin top-left) - draws
+    // immediately, independent of BeginScene/EndScene's 3D camera. Call
+    // after EndScene(), same spot the ImGui pass runs.
+    static void SubmitText(const std::string& text, const Ref<Font>& font, const glm::vec2& screenPos,
+                           uint32_t screenWidth, uint32_t screenHeight,
+                           const glm::vec3& color = {1.0f, 1.0f, 1.0f});
 
     // Transparent Mesh Pass Eventually?
     // static void SubmitTransparent()...
