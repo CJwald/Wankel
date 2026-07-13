@@ -9,6 +9,17 @@ namespace Wankel {
 Ref<AudioClip> AudioClip::CreateTone(float frequencyHz, float durationSeconds, float amplitude) {
     auto clip = CreateRef<AudioClip>();
 
+    // Casting a negative or NaN duration straight to uint32_t below is
+    // undefined behavior and can wrap to a huge frame count, turning the
+    // resize() a few lines down into a multi-gigabyte allocation attempt.
+    // `!(durationSeconds > 0.0f)` also catches NaN, since any comparison
+    // against NaN is false. AudioSystem::Play() already no-ops on an empty
+    // clip, so returning one here degrades gracefully instead of crashing.
+    if (!(durationSeconds > 0.0f)) {
+        WK_CORE_WARNING("AudioClip::CreateTone: invalid duration {0}, returning an empty clip", durationSeconds);
+        return clip;
+    }
+
     uint32_t sampleRate = clip->m_SampleRate;
     uint32_t frameCount = (uint32_t)(durationSeconds * (float)sampleRate);
 

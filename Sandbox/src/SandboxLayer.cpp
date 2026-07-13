@@ -28,6 +28,8 @@
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 
+#include <exception>
+
 // To-be removed eventually
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -92,8 +94,15 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
     // Shader
     m_Shader = std::make_unique<Shader>("shaders/cube.vert", "shaders/cube.frag");
 
-    // HUD title text
-    m_TitleFont = Font::Load("Assets/Fonts/Orbitron-VariableFont_wght.ttf", 32.0f);
+    // HUD title text - purely cosmetic, so degrade gracefully (leave
+    // m_TitleFont null, which the HUD-render `if (m_TitleFont)` guards
+    // already expect) on a load failure instead of taking the whole app
+    // down the way a missing gameplay-critical mesh asset does.
+    try {
+        m_TitleFont = Font::Load("Assets/Fonts/Orbitron-VariableFont_wght.ttf", 32.0f);
+    } catch (const std::exception& e) {
+        WK_CORE_ERROR("SandboxLayer: failed to load HUD font, HUD text disabled: {0}", e.what());
+    }
 
     // Click-test beeps: low tone on a miss, higher tone on a block hit.
     m_ClickMissBeep = AudioClip::CreateTone(220.0f, 0.12f);

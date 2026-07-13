@@ -187,6 +187,21 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       given the impulse formula already supports it — not added now since it wasn't asked
       for and the existing behavior (0 restitution) matches what the engine has always felt
       like.
+      **`/code-review` pass (2026-07-12, `Documents/report.md`/`report.pdf`) found two latent
+      (currently-inert, not live) issues**, both worth an eventual small fix: `Mass == 0`
+      clamps to `invMass ≈ 10000` and would cause violent ejection on collision (nothing sets
+      `Mass` to 0 today, so this is dormant); and the new relative-velocity computation
+      zeroes a *static* body `b`'s velocity contribution but not `a`'s equivalent, an
+      asymmetry that's harmless only because a static body's `Velocity` is always `{0,0,0}`
+      by construction today (nothing toggles `IsStatic` at runtime). The review also
+      flagged — then *disproved with a worked numerical example* — a suspected regression in
+      the new single relative-velocity closing-check: it turned out the new code is more
+      correct than the old per-body check, not less. Separately noted (design, not a bug):
+      the `Movement` block (player/AI-driven acceleration) still doesn't read `Rigidbody::Mass`
+      at all, so a heavy entity only "feels" heavy in collisions, not under direct control.
+      **Still open** — the 2026-07-12 fix-up round only addressed the HIGH/MEDIUM findings
+      from this review pass (see the text-rendering and audio entries below); both LOW items
+      here and the `Movement`/Mass design note are deliberately left for later.
 - [x] **Audio — basic playback done via miniaudio.** Added `src/Wankel/Audio/`:
       `AudioClip` (owns a short in-memory mono PCM float buffer; `CreateTone()` procedurally
       generates a sine wave with a ~10ms fade-out envelope to avoid an audible click at the
@@ -220,6 +235,22 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       layer, no real sound-file loading yet (`AudioClip` only generates procedural tones —
       loading actual audio assets via miniaudio's own decoders is a natural, small follow-on
       once there's a real sound file to load, mirroring how `MeshLoader` dispatches by format).
+      **`/code-review` pass (2026-07-12, `Documents/report.md`/`report.pdf`) found one real
+      bug (fixed) and confirmed a design gap (still open):** `AudioClip::CreateTone` cast
+      `durationSeconds` to `uint32_t` with no validation — a negative/NaN duration was
+      undefined behavior and would likely have attempted a multi-gigabyte `std::vector`
+      allocation. **Fixed:** `CreateTone` now rejects `!(durationSeconds > 0.0f)` (catches
+      negative, zero, and NaN — NaN comparisons are always false) and returns an empty clip
+      instead, which `AudioSystem::Play` already no-ops on safely. Verified with a
+      standalone test confirming negative/NaN/zero durations produce empty (not huge) clips
+      while a valid duration still produces the expected sample count, and that
+      `AudioSystem::Play` on an empty clip doesn't crash.
+      Separately, the review confirmed the fixed 8-voice round-robin pool and
+      void-returning `Play()` won't extend cleanly to the "streaming/music/looping" item
+      above — no priority/protected-voice concept and no handle to stop/fade a sound later,
+      so that work will need real rework (a return handle, a non-stealable voice flag,
+      threading `Channels` through `AudioClip`) rather than an additive change. **Still open**
+      — this is forward design work, not a bug fix, and wasn't part of this round.
 - [x] **Minimal UI/text rendering — basic bitmap-font renderer done.** Added `Texture`
       (`src/Wankel/Renderer/Texture.{h,cpp}` — minimal single-channel/R8 GL wrapper, the
       engine's first texture support of any kind) and `Font` (`Font.{h,cpp}` — loads a .ttf,
@@ -259,6 +290,32 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       extra state tracking needed. Verified with an offscreen pixel-readback test confirming
       both mode strings render visible, right-aligned, and measure to distinctly different
       widths (i.e. actually different text, not a stale/cached value).
+      **`/code-review` pass (2026-07-12, `Documents/report.md`/`report.pdf`) found three real
+      bugs, all now fixed:**
+      - `Font::Load` threw on any failure (missing/corrupt font file) but never returned
+        null, while `SandboxLayer` treated it as nullable (`if (m_TitleFont)`) with no
+        `try`/`catch` around the `Load()` call — a missing font asset hard-exited the whole
+        app before `Application::Run()` ever started, not the graceful "skip the HUD text"
+        the `if` guard implied. **Fixed:** `SandboxLayer`'s font load is now wrapped in a
+        `try`/`catch` that logs via `WK_CORE_ERROR` and leaves `m_TitleFont` null — matching
+        what the existing guard already assumed. Deliberately scoped to just the (cosmetic)
+        font, not asset loading in general — a missing gameplay-critical mesh should still
+        fail loudly, per the earlier `EntryPoint.h` fix.
+      - `Renderer::SubmitText`'s `glm::ortho` projection had no guard against a 0-sized
+        window (GLFW commonly reports 0x0 framebuffer when minimized, and nothing in the
+        render loop skips a minimized frame), which would inject `Inf`/`NaN` into the
+        projection matrix. **Fixed:** `SubmitText` now early-returns when
+        `screenWidth == 0 || screenHeight == 0`.
+      - `Texture`'s constructor set `GL_UNPACK_ALIGNMENT` to 1 and never restored it —
+        harmless today only because Dear ImGui's own backend happens to leave the same
+        global GL state at 1 too (compatible by luck, not by design). **Fixed:** saves the
+        previous alignment via `glGetIntegerv` and restores it after the upload.
+      Verified with a standalone test: a bad font path throws and is caught cleanly (font
+      stays null, matching the new `SandboxLayer` pattern); `SubmitText` with 0 width/height/
+      both returns safely with no GL errors, and a normal-sized call afterward still works
+      (no corrupted state); `Texture` construction leaves `GL_UNPACK_ALIGNMENT` exactly as it
+      found it. Also confirmed live in Sandbox — stable, font still loads normally on the
+      happy path.
 
 ## Phase 3 — Scale & polish (once a game is actually in production)
 

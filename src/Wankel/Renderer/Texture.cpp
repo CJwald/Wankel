@@ -17,8 +17,16 @@ Texture::Texture(const uint8_t* pixels, uint32_t width, uint32_t height) : m_Wid
     // Atlas bitmaps (e.g. stb_truetype's baked font atlas) are single-channel
     // (coverage/alpha only) - GL_RED keeps this a 1-byte-per-pixel upload
     // instead of wasting 4x the memory on an RGBA texture.
+    //
+    // GL_UNPACK_ALIGNMENT is global context state, not scoped to this
+    // texture/bind, so it has to be saved and restored - left at 1, it
+    // would silently affect every glTexImage2D/glTexSubImage2D call made
+    // anywhere else in the process afterward.
+    GLint previousAlignment = 4;
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (GLsizei)width, (GLsizei)height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment);
 }
 
 Texture::~Texture() {

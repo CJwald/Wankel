@@ -186,6 +186,13 @@ void Renderer::SubmitText(const std::string& text, const Ref<Font>& font, const 
     if (!font || text.empty())
         return;
 
+    // A 0-sized viewport (e.g. a minimized/iconified window - GLFW commonly
+    // reports a 0x0 framebuffer in that state) would make glm::ortho divide
+    // by (right-left)/(top-bottom) == 0, injecting Inf/NaN into the
+    // projection matrix uploaded below.
+    if (screenWidth == 0 || screenHeight == 0)
+        return;
+
     std::vector<GlyphQuad> quads;
     font->BuildQuads(text, screenPos, quads);
 
