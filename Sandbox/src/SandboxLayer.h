@@ -25,18 +25,18 @@ public:
     virtual void OnImGuiRender() override;
 
 private:
-    std::unique_ptr<Mesh> m_ShipMesh;
-    std::unique_ptr<Mesh> m_ShipMeshMirrored;
-    std::unique_ptr<Mesh> m_PlayerHeadMesh;
-    std::unique_ptr<Mesh> m_PlayerLegMesh;
-    std::unique_ptr<Mesh> m_PlayerLegMeshMirrored;
-    std::unique_ptr<Mesh> m_EnemyBodyMesh;
-    std::unique_ptr<Mesh> m_EnemyLegMesh;
-    std::unique_ptr<Mesh> m_EnemyLegMeshMirrored;
-    std::unique_ptr<Mesh> m_GunMesh;
-    std::unique_ptr<Mesh> m_CubeMesh;
-    std::unique_ptr<Mesh> m_BoxMesh;
-    std::unique_ptr<Shader> m_Shader;
+    Ref<Mesh> m_ShipMesh;
+    Ref<Mesh> m_ShipMeshMirrored;
+    Ref<Mesh> m_PlayerHeadMesh;
+    Ref<Mesh> m_PlayerLegMesh;
+    Ref<Mesh> m_PlayerLegMeshMirrored;
+    Ref<Mesh> m_EnemyBodyMesh;
+    Ref<Mesh> m_EnemyLegMesh;
+    Ref<Mesh> m_EnemyLegMeshMirrored;
+    Ref<Mesh> m_GunMesh;
+    Ref<Mesh> m_CubeMesh;
+    Ref<Mesh> m_BoxMesh;
+    Ref<Shader> m_Shader;
     Ref<Font> m_TitleFont;
     Ref<AudioClip> m_ClickMissBeep;
     Ref<AudioClip> m_ClickHitBeep;

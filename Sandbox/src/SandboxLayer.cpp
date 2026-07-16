@@ -5,7 +5,7 @@
 #include "Debug/DebugOverlay.h"
 #include "Debug/SecondOrderPreview.h"
 
-#include <Wankel/Assets/MeshLoader.h>
+#include <Wankel/Assets/AssetManager.h>
 #include <Wankel/Core/Application.h>
 #include <Wankel/Core/Time.h>
 #include <Wankel/Core/Events/Event.h>
@@ -77,32 +77,30 @@ static const char* MotionAxisLabels[] = {"X", "Y", "Z", "Pitch", "Yaw", "Roll"};
 
 //SandboxLayer::SandboxLayer() : Layer("Cube"), m_RenderCamera(66.0f, 1280.0f / 720.0f, 0.01f, 1000.0f) {
 SandboxLayer::SandboxLayer() : Layer("Cube") {
-    // Mesh setup
-    //m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP04.ply");
-    m_ShipMesh = MeshLoader::Load("Assets/Mesh/SHIP05.ply");
-    m_GunMesh = MeshLoader::Load("Assets/Mesh/AK74_IRONS.ply");
-    //m_BoxMesh = MeshLoader::Load("Assets/Mesh/Karachi.ply");
-    //m_BoxMesh = MeshLoader::Load("Assets/Mesh/Flat200m.ply");
-    m_BoxMesh = MeshLoader::Load("Assets/Mesh/Rolling200m.ply");
-    //m_BoxMesh = MeshLoader::Load("Assets/Mesh/Rolling1000m.ply");
-    m_PlayerHeadMesh = MeshLoader::Load("Assets/Mesh/PlayerHead01.glb");
-    m_PlayerLegMesh = MeshLoader::Load("Assets/Mesh/PlayerLeg01.glb");
-    m_EnemyBodyMesh = MeshLoader::Load("Assets/Mesh/StalkerBody01.ply");
-    m_EnemyLegMesh = MeshLoader::Load("Assets/Mesh/StalkerLeg01.ply");
-    m_CubeMesh = std::make_unique<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices);
+    // Mesh setup - AssetManager owns the load/cache/error-handling so this
+    // constructor doesn't have to repeat it per asset (see Documents/TODO.md).
+    //m_ShipMesh = AssetManager::GetMesh("Assets/Mesh/SHIP04.ply");
+    m_ShipMesh = AssetManager::GetMesh("Assets/Mesh/SHIP05.ply");
+    m_GunMesh = AssetManager::GetMesh("Assets/Mesh/AK74_IRONS.ply");
+    //m_BoxMesh = AssetManager::GetMesh("Assets/Mesh/Karachi.ply");
+    //m_BoxMesh = AssetManager::GetMesh("Assets/Mesh/Flat200m.ply");
+    m_BoxMesh = AssetManager::GetMesh("Assets/Mesh/Rolling200m.ply");
+    //m_BoxMesh = AssetManager::GetMesh("Assets/Mesh/Rolling1000m.ply");
+    m_PlayerHeadMesh = AssetManager::GetMesh("Assets/Mesh/PlayerHead01.glb");
+    m_PlayerLegMesh = AssetManager::GetMesh("Assets/Mesh/PlayerLeg01.glb");
+    m_EnemyBodyMesh = AssetManager::GetMesh("Assets/Mesh/StalkerBody01.ply");
+    m_EnemyLegMesh = AssetManager::GetMesh("Assets/Mesh/StalkerLeg01.ply");
+    m_CubeMesh = CreateRef<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices);
 
     // Shader
-    m_Shader = std::make_unique<Shader>("shaders/cube.vert", "shaders/cube.frag");
+    m_Shader = AssetManager::GetShader("shaders/cube.vert", "shaders/cube.frag");
 
-    // HUD title text - purely cosmetic, so degrade gracefully (leave
-    // m_TitleFont null, which the HUD-render `if (m_TitleFont)` guards
-    // already expect) on a load failure instead of taking the whole app
-    // down the way a missing gameplay-critical mesh asset does.
-    try {
-        m_TitleFont = Font::Load("Assets/Fonts/Orbitron-VariableFont_wght.ttf", 32.0f);
-    } catch (const std::exception& e) {
-        WK_CORE_ERROR("SandboxLayer: failed to load HUD font, HUD text disabled: {0}", e.what());
-    }
+    // HUD title text - purely cosmetic. AssetManager::GetFont degrades
+    // gracefully on a load failure (logs + returns nullptr, which the
+    // HUD-render `if (m_TitleFont)` guards already expect) instead of
+    // taking the whole app down the way a missing gameplay-critical mesh
+    // asset does.
+    m_TitleFont = AssetManager::GetFont("Assets/Fonts/Orbitron-VariableFont_wght.ttf", 32.0f);
 
     // Click-test beeps: low tone on a miss, higher tone on a block hit.
     m_ClickMissBeep = AudioClip::CreateTone(220.0f, 0.12f);
@@ -373,7 +371,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
         pLeg2YP.Clamp = 45.0f;
     }
     // Leg3
-    m_PlayerLegMeshMirrored = m_PlayerLegMesh->CreateMirrored(true, false, false);
+    m_PlayerLegMeshMirrored = Ref<Mesh>(m_PlayerLegMesh->CreateMirrored(true, false, false).release());
     {
         auto pLeg3 = m_Scene.CreateEntity();
         pLeg3.AddComponent<Tag>().Name = "Player Leg FL";
@@ -694,7 +692,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
         eLeg2.AddComponent<MeshRenderer>().MeshPtr = m_EnemyLegMesh.get();
     }
     // Leg3
-    m_EnemyLegMeshMirrored = m_EnemyLegMesh->CreateMirrored(true, false, false);
+    m_EnemyLegMeshMirrored = Ref<Mesh>(m_EnemyLegMesh->CreateMirrored(true, false, false).release());
     {
         auto eLeg3 = m_Scene.CreateEntity();
         eLeg3.AddComponent<Tag>().Name = "Enemy Leg FR";
