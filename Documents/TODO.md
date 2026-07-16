@@ -93,7 +93,7 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       "Lighting" ImGui panel next to the existing "Fog" one. Verified with a standalone test
       confirming computed/authored normals are unit-length for both loaders below, plus a
       live Sandbox run with no shader link errors.
-- [x] **Real asset pipeline — glTF import done; textures/asset registry still open.** Added
+- [x] **Real asset pipeline — glTF import + asset registry done; textures still open.** Added
       glTF/.glb import via `cgltf` (vendored as `external/cgltf`, a single-header library with
       no CMakeLists of its own — just added to Wankel's include path). Meshes that don't
       supply a NORMAL attribute (and all PLY meshes, which never carry one) fall back to a
@@ -107,10 +107,29 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       header line and throws instead of silently returning empty data on any failure (missing
       file, non-ASCII format). `SandboxLayer`'s player head/leg now load the new
       `PlayerHead01.glb`/`PlayerLeg01.glb` for testing; ship/gun/box/enemy body/legs stay on
-      `.ply` to prove both loaders coexist correctly in the same running scene. **Still
-      open:** `stb_image` for textures and a minimal asset registry (handle/ID instead of
-      hardcoded relative path strings in `SandboxLayer`'s constructor) — those need the
-      Texture/material work above to actually be useful.
+      `.ply` to prove both loaders coexist correctly in the same running scene.
+      **Follow-up:** added `AssetManager` (`src/Wankel/Assets/AssetManager.h`/`.cpp`) — a
+      path-keyed cache in front of `MeshLoader`/`Shader`/`Font`, so each distinct asset loads
+      exactly once and every caller after that gets a shared `Ref<>` instead of every call
+      site doing its own raw load + hardcoded path + ad hoc (or missing) error handling.
+      `GetMesh`/`GetShader` let load failures propagate (matches prior behavior — no
+      fallback/placeholder asset exists, so a missing file is genuinely startup-fatal);
+      `GetFont` catches/logs/returns `nullptr` (matches the one ad hoc try/catch that used to
+      live in `SandboxLayer`'s constructor, since a missing font degrades gracefully — HUD
+      text just doesn't render). `AssetManager::Clear()` is called from
+      `Application::~Application()` (alongside `AudioSystem::Shutdown()`/
+      `InputSystem::Shutdown()`) so cached GPU resources are freed before the GL context goes
+      away. `SandboxLayer`'s mesh/shader members changed from `unique_ptr`/`Scope` to `Ref<>`
+      to support this (meshes/shaders are already non-copyable RAII types, so sharing via
+      `Ref<>` — rather than each owner needing its own copy — costs nothing and is a strict
+      generalization of what a `unique_ptr` member already did). **Noticed in passing, not
+      fixed (out of scope for this item):** `Renderer::Shutdown()` is declared and
+      implemented but never actually called anywhere in the codebase — the debug/text pass's
+      GPU resources currently only get freed by process exit, not by any explicit shutdown
+      path. **Still open:** `stb_image` for textures — needs the Texture/material work above
+      to actually be useful; asset paths are still raw strings (no handle/ID indirection) but
+      that's a separate, larger concern (hot-reloading, serialized references) than the
+      caching/centralization this item addresses.
       **Axis-convention bug found & fixed post-merge:** the first version loaded glTF meshes
       90° yawed relative to PLY meshes. Blender's glTF exporter does the textbook Z-up→Y-up
       conversion (`gltf = (x, z, -y)`), but that's a *different* rotation than the one
@@ -436,7 +455,7 @@ Math, Terrain & Sandbox:
 | Dimension | Status | Notes |
 |---|---|---|
 | Lighting/materials | Partial | Normals + scalar PBR (Cook-Torrance/GGX, Roughness/Metallic/Emissive via `Material`) done; still no UVs, `Texture` class, or texture-mapped materials |
-| Asset pipeline | Partial | PLY + glTF/.glb (via `cgltf`) both work; still no OBJ/FBX/assimp, no `stb_image`/texture loader, no asset registry (paths still hardcoded) |
+| Asset pipeline | Partial | PLY + glTF/.glb (via `cgltf`) both work; `AssetManager` caches meshes/shaders/fonts by path; still no OBJ/FBX/assimp, no `stb_image`/texture loader |
 | Scene persistence | Absent | No save/load. Not a full-scene-dump problem here (world is procedural) — needed as a narrow seed + player-state save; see Phase 2 data-persistence breakdown |
 | Audio | Basic | `miniaudio`-backed one-shot SFX playback (`AudioSystem::Play`, 8-voice pool) done; still no spatialization, streaming, music/looping, or real sound-file loading (procedural tones only) |
 | UI/HUD | Partial | Basic bitmap-font text rendering done (`Font`/`Renderer::SubmitText`); still no general widgets/panels/layout, still relies on Dear ImGui for all debug panels |

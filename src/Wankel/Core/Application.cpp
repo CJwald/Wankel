@@ -5,6 +5,7 @@
 #include "Wankel/Renderer/Renderer.h"
 #include "Wankel/Core/InputSystem.h"
 #include "Wankel/Audio/AudioSystem.h"
+#include "Wankel/Assets/AssetManager.h"
 
 
 namespace Wankel {
@@ -30,6 +31,7 @@ Application::Application() {
 
 
 Application::~Application() {
+    AssetManager::Clear();
     AudioSystem::Shutdown();
     InputSystem::Shutdown();
 }
