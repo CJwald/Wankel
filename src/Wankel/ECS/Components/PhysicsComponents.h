@@ -26,4 +26,15 @@ struct SphereCollider {
     glm::vec3 Offset {0.0f};
 };
 
+
+// Upright capsule (segment along world Y, swept by Radius) - see
+// Physics/Collision/NarrowPhase/Capsule.h for the narrow-phase shape.
+// HalfHeight is half the length of the *segment*, not the overall capsule
+// height (overall height = 2*HalfHeight + 2*Radius).
+struct CapsuleCollider {
+    float Radius = 0.5f;
+    float HalfHeight = 0.5f;
+    glm::vec3 Offset {0.0f};
+};
+
 } // namespace Wankel

@@ -12,6 +12,10 @@
 #include "NarrowPhase/AABBCollision.h"
 #include "NarrowPhase/SphereCollision.h"
 #include "NarrowPhase/SphereAABBCollision.h"
+#include "NarrowPhase/Capsule.h"
+#include "NarrowPhase/CapsuleCollision.h"
+#include "NarrowPhase/SphereCapsuleCollision.h"
+#include "NarrowPhase/CapsuleAABBCollision.h"
 
 namespace Wankel {
 
@@ -40,6 +44,14 @@ bool ExtractShape(entt::registry& reg, entt::entity e, ColliderShape& out) {
         return true;
     }
 
+    if (auto* c = reg.try_get<CapsuleCollider>(e)) {
+        out.Type = ColliderType::Capsule;
+        out.Center = transform.LocalPosition + c->Offset;
+        out.Radius = c->Radius;
+        out.HalfHeight = c->HalfHeight;
+        return true;
+    }
+
     return false;
 }
 
@@ -49,6 +61,10 @@ AABB ToAABB(const ColliderShape& s) {
 
 Sphere ToSphere(const ColliderShape& s) {
     return Sphere {s.Center, s.Radius};
+}
+
+Capsule ToCapsule(const ColliderShape& s) {
+    return Capsule {s.Center, s.Radius, s.HalfHeight};
 }
 
 using NarrowPhaseFn = CollisionManifold (*)(const ColliderShape&, const ColliderShape&);
@@ -72,6 +88,21 @@ NarrowPhaseTable BuildNarrowPhaseTable() {
     table[Idx(ColliderType::AABB)][Idx(ColliderType::Sphere)] = [](const ColliderShape& box,
                                                                    const ColliderShape& sphere) {
         return SpherevsAABB(ToSphere(sphere), ToAABB(box));
+    };
+
+    table[Idx(ColliderType::Capsule)][Idx(ColliderType::Capsule)] = [](const ColliderShape& a,
+                                                                        const ColliderShape& b) {
+        return CapsulevsCapsule(ToCapsule(a), ToCapsule(b));
+    };
+
+    table[Idx(ColliderType::Sphere)][Idx(ColliderType::Capsule)] = [](const ColliderShape& sphere,
+                                                                       const ColliderShape& capsule) {
+        return SpherevsCapsule(ToSphere(sphere), ToCapsule(capsule));
+    };
+
+    table[Idx(ColliderType::AABB)][Idx(ColliderType::Capsule)] = [](const ColliderShape& box,
+                                                                     const ColliderShape& capsule) {
+        return CapsulevsAABB(ToCapsule(capsule), ToAABB(box));
     };
 
     return table;

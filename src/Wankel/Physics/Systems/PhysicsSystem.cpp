@@ -88,13 +88,27 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
         m_Grid.Insert(e, center);
     }
 
+    // Same reasoning as sphere colliders above - capsules must be indexed
+    // too, otherwise pairs involving a capsule are never discovered.
+    auto buildCapsuleView = registry.view<Transform, CapsuleCollider>();
+
+    for (auto e : buildCapsuleView) {
+        auto& t = registry.get<Transform>(e);
+        auto& c = registry.get<CapsuleCollider>(e);
+
+        glm::vec3 center = t.LocalPosition + c.Offset;
+
+        m_Grid.Insert(e, center);
+    }
+
     // COLLISION
     auto view = registry.view<Transform, Rigidbody>();
 
     // The broad-phase grid only contains entities with a collider
-    // (AABBCollider or SphereCollider), so an entity with neither (only
-    // Transform + Rigidbody) can discover a pair but never be discovered as
-    // one. Track pairs already resolved this frame by canonical (min, max)
+    // (AABBCollider, SphereCollider, or CapsuleCollider), so an entity with
+    // none of those (only Transform + Rigidbody) can discover a pair but
+    // never be discovered as one. Track pairs already resolved this frame
+    // by canonical (min, max)
     // entity key so a symmetric discovery doesn't resolve the same pair
     // twice, without assuming every pair is discovered from both directions.
     std::unordered_set<uint64_t> resolvedPairs;
