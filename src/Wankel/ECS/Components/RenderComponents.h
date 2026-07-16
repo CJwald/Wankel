@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include "Wankel/Renderer/Mesh.h"
+#include "Wankel/Renderer/Renderer.h" // pulls in Wankel::Material, reused as-is as an ECS component
 #include "Wankel/ECS/Entity.h"
 
 
