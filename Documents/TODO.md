@@ -62,12 +62,27 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
 
 ## Phase 2 — Actual blockers to "a game" (priority order)
 
-- [x] **Vertex format + lighting (normals done; UVs/textures/materials still open).**
+- [x] **Vertex format + lighting (normals + scalar PBR materials done; UVs/textures still open).**
       Added `Normal` to `Vertex` (appended after `Color`, not inserted, so the existing
       2-element aggregate-init call sites like `Geometry::CubeVertices` keep compiling via
       its default member initializer) and a basic Blinn-Phong directional-light shader path.
-      **Still open:** UVs, a `Texture` class, and material abstraction — none of that exists
-      yet, so nothing can be textured. `cube.h`'s hardcoded background box also wasn't
+      **Follow-up (this pass):** added a solid-color (no textures/UVs) PBR material system —
+      `Material{Albedo, Roughness, Metallic, Emissive}` (`Renderer.h`, reused directly as an
+      EnTT component via `RenderComponents.h` including `Renderer.h`), threaded through as a
+      new `Renderer::Submit(transform, mesh, shader, material)` parameter, and `cube.frag`'s
+      lighting rewritten from ad-hoc Blinn-Phong to Cook-Torrance (GGX distribution, Smith
+      geometry term, Schlick Fresnel), metallic-roughness workflow. `LightSettings::Shininess`/
+      `u_Shininess` removed (superseded by `Roughness`, no GGX equivalent) along with its ImGui
+      slider. `u_SpecularStrength` now scales total direct light (diffuse+specular), not just
+      specular, since PBR ties the two together — noted in a shader comment since it's a
+      meaning-change of an existing uniform, not just a rename. 3 Sandbox entities got explicit
+      non-default materials to demonstrate the range (world cubes: shiny chrome; terrain box:
+      matte + faint emissive; gun: matte plastic); everything else falls back to a neutral
+      default `Material{}` via `try_get`. Verified with a temporary offscreen FBO
+      pixel-readback test (shiny-vs-rough materials produce measurably different rendered
+      pixels; a pure-emissive material lights a face independent of scene lighting) plus a
+      live Sandbox run. **Still open:** UVs, a `Texture` class, and texture-mapped materials —
+      see the new deferred item below. `cube.h`'s hardcoded background box also wasn't
       touched (still 8 shared vertices with no real per-face normals, so it lights as flat
       "up-facing" under the new shader) since it's out of scope for this pass.
       Engine changes: `Mesh.h`/`.cpp` (layout + `CreateMirrored` now also flips `Normal`),
@@ -369,8 +384,21 @@ Renderer:
       `char info[512]` buffer — long GLSL error logs get silently truncated.
 - [ ] `Renderer::Submit` (`Renderer.cpp:110-129`) unconditionally pushes ~10 fog/time/camera
       uniforms into every shader regardless of whether that shader declares them — hard-couples
-      "generic" mesh submission to one specific fog effect rather than a real
-      material/uniform-buffer abstraction.
+      "generic" mesh submission to one specific fog effect. Note: material parameters are now a
+      real first-class `Submit` argument (see the scalar-PBR entry in Phase 2 above) — this
+      item is specifically about the remaining fog/time coupling, which is unchanged.
+- [ ] **Textured materials (deferred).** The scalar PBR material system (Albedo/Roughness/
+      Metallic/Emissive as uniform floats/vec3s, see the Phase 2 entry above) is a first step
+      only. Needed for texture-mapped materials: UV coordinates on `Vertex` (`Mesh.h`, appended
+      after `Normal` per the established append-only convention so existing brace-init call
+      sites keep compiling), `stb_image` integration (vendored but unused), a generalized
+      `Texture` class (current `Texture.h` is a single-channel R8 font-atlas-only wrapper —
+      needs RGB/RGBA support), `Material` extended with optional texture handles
+      (albedo/metallic-roughness/normal/emissive maps, glTF-style), glTF texture wiring
+      (`GltfLoader.cpp` already parses `base_color_factor` but discards `base_color_texture`/
+      `metallic_roughness_texture`/`normal_texture`/etc.), and a real IBL/environment-map
+      ambient term (current PBR ambient is a flat, non-image-based approximation — see the
+      comment in `cube.frag`'s `main()`).
 
 Physics:
 - [ ] `SpatialHashGrid` cell size is a single hardcoded constant (1.0f,
@@ -407,7 +435,7 @@ Math, Terrain & Sandbox:
 
 | Dimension | Status | Notes |
 |---|---|---|
-| Lighting/materials | Partial | Normals + basic Blinn-Phong directional light done; still no UVs, `Texture`/material system, or actual texturing |
+| Lighting/materials | Partial | Normals + scalar PBR (Cook-Torrance/GGX, Roughness/Metallic/Emissive via `Material`) done; still no UVs, `Texture` class, or texture-mapped materials |
 | Asset pipeline | Partial | PLY + glTF/.glb (via `cgltf`) both work; still no OBJ/FBX/assimp, no `stb_image`/texture loader, no asset registry (paths still hardcoded) |
 | Scene persistence | Absent | No save/load. Not a full-scene-dump problem here (world is procedural) — needed as a narrow seed + player-state save; see Phase 2 data-persistence breakdown |
 | Audio | Basic | `miniaudio`-backed one-shot SFX playback (`AudioSystem::Play`, 8-voice pool) done; still no spatialization, streaming, music/looping, or real sound-file loading (procedural tones only) |

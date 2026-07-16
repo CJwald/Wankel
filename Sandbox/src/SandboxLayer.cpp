@@ -125,6 +125,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
         tc.LocalPosition = {0.0f, 0.0f, 0.0f};
         phead.AddComponent<Parent>().Parent = player;
         phead.AddComponent<MeshRenderer>().MeshPtr = m_PlayerHeadMesh.get();
+        phead.AddComponent<Material>(Material {{0.75f, 0.76f, 0.78f}, 0.4f, 0.6f, {0.0f, 0.0f, 0.0f}});
         auto& pheadAnim = phead.AddComponent<MeshAnimation>();
         // Strafe -> x
         auto& pheadXX = pheadAnim.Links[(int)MotionAxis::X][(int)MotionAxis::X];
@@ -177,6 +178,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
         tc.LocalPosition = {0.6f, 0.0f, -0.6f};
         pLeg1.AddComponent<Parent>().Parent = player;
         pLeg1.AddComponent<MeshRenderer>().MeshPtr = m_PlayerLegMesh.get();
+        pLeg1.AddComponent<Material>(Material {{0.75f, 0.76f, 0.78f}, 0.4f, 0.6f, {0.0f, 0.0f, 0.0f}});
         auto& pLegAnim1 = pLeg1.AddComponent<MeshAnimation>();
         // Strafe -> x
         auto& pLeg1XX = pLegAnim1.Links[(int)MotionAxis::X][(int)MotionAxis::X];
@@ -279,6 +281,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
                               glm::angleAxis(glm::radians(0.0f), glm::vec3(0, 0, 1));
         pLeg2.AddComponent<Parent>().Parent = player;
         pLeg2.AddComponent<MeshRenderer>().MeshPtr = m_PlayerLegMesh.get();
+        pLeg2.AddComponent<Material>(Material {{0.75f, 0.76f, 0.78f}, 0.4f, 0.6f, {0.0f, 0.0f, 0.0f}});
         auto& pLegAnim2 = pLeg2.AddComponent<MeshAnimation>();
         // Strafe -> x
         auto& pLeg2XX = pLegAnim2.Links[(int)MotionAxis::X][(int)MotionAxis::X];
@@ -380,6 +383,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
         pLeg3.AddComponent<Parent>().Parent = player;
         auto& pmeshComp1 = pLeg3.AddComponent<MeshRenderer>();
         pmeshComp1.MeshPtr = m_PlayerLegMeshMirrored.get();
+        pLeg3.AddComponent<Material>(Material {{0.75f, 0.76f, 0.78f}, 0.4f, 0.6f, {0.0f, 0.0f, 0.0f}});
         auto& pLegAnim3 = pLeg3.AddComponent<MeshAnimation>();
         // Strafe -> x
         auto& pLeg3XX = pLegAnim3.Links[(int)MotionAxis::X][(int)MotionAxis::X];
@@ -483,6 +487,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
         pLeg4.AddComponent<Parent>().Parent = player;
         auto& pmeshComp2 = pLeg4.AddComponent<MeshRenderer>();
         pmeshComp2.MeshPtr = m_PlayerLegMeshMirrored.get();
+        pLeg4.AddComponent<Material>(Material {{0.75f, 0.76f, 0.78f}, 0.4f, 0.6f, {0.0f, 0.0f, 0.0f}});
         auto& pLegAnim4 = pLeg4.AddComponent<MeshAnimation>();
         // Strafe -> x
         auto& pLeg4XX = pLegAnim4.Links[(int)MotionAxis::X][(int)MotionAxis::X];
@@ -582,6 +587,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
     auto& king1 = gun1.AddComponent<Kinematics>();
     gt1.LocalPosition = {0.06f, -0.06f, -0.8f};
     gun1.AddComponent<MeshRenderer>().MeshPtr = m_GunMesh.get();
+    gun1.AddComponent<Material>(Material {{0.4f, 0.4f, 0.4f}, 0.75f, 0.0f, {0.0f, 0.0f, 0.0f}});
     gun1.AddComponent<Parent>().Parent = player;
     auto& gunAnim1 = gun1.AddComponent<MeshAnimation>();
     // Forward velocity -> pitch
@@ -740,6 +746,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
                              glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(0, 1, 0)) *
                              glm::angleAxis(glm::radians(RandomFloat() * 180.f), glm::vec3(0, 0, 1));
         e.AddComponent<MeshRenderer>().MeshPtr = m_CubeMesh.get();
+        e.AddComponent<Material>(Material {{0.9f, 0.9f, 0.92f}, 0.15f, 1.0f, {0.0f, 0.0f, 0.0f}});
 
         auto& rb = e.AddComponent<Rigidbody>();
         rb.IsStatic = true;
@@ -758,6 +765,7 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
                           glm::angleAxis(glm::radians(0.0f), glm::vec3(0, 1, 0)) *
                           glm::angleAxis(glm::radians(0.0f), glm::vec3(0, 0, 1));
     b.AddComponent<MeshRenderer>().MeshPtr = m_BoxMesh.get();
+    b.AddComponent<Material>(Material {{0.6f, 0.55f, 0.5f}, 0.85f, 0.0f, {0.02f, 0.015f, 0.0f}});
     auto& rb_box = b.AddComponent<Rigidbody>();
     rb_box.IsStatic = true;
     //auto& worldcollider = b.AddComponent<AABBCollider>();
@@ -897,7 +905,8 @@ void SandboxLayer::OnUpdate() {
                     glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform *
                                       mesh.GetLocalTransform();
 
-                    Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get());
+                    const Material* material = m_Scene.Registry().try_get<Material>(entity);
+                    Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get(), material ? *material : Material{});
                 }
 
                 // DEBUG AXES
@@ -1110,7 +1119,6 @@ void SandboxLayer::OnImGuiRender() {
             ImGui::ColorEdit3("Light Color", &m_Light.Color[0], ImGuiColorEditFlags_Float);
             ImGui::SliderFloat("Ambient", &m_Light.Ambient, 0.0f, 1.0f);
             ImGui::SliderFloat("Specular", &m_Light.Specular, 0.0f, 1.0f);
-            ImGui::SliderFloat("Shininess", &m_Light.Shininess, 1.0f, 256.0f, "%.0f", ImGuiSliderFlags_Logarithmic);
         }
 
         // CAMERA (GLOBAL)

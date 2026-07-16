@@ -139,7 +139,7 @@ void Renderer::EndScene() {
 }
 
 
-void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader) {
+void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material) {
     shader->Bind();
     shader->SetMat4("view", s_Data.View);
     shader->SetMat4("projection", s_Data.Projection);
@@ -151,7 +151,11 @@ void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shad
     shader->SetVec3("u_LightColor", s_Data.Light.Color);
     shader->SetFloat("u_AmbientStrength", s_Data.Light.Ambient);
     shader->SetFloat("u_SpecularStrength", s_Data.Light.Specular);
-    shader->SetFloat("u_Shininess", s_Data.Light.Shininess);
+
+    shader->SetVec3("u_Albedo", material.Albedo);
+    shader->SetFloat("u_Roughness", material.Roughness);
+    shader->SetFloat("u_Metallic", material.Metallic);
+    shader->SetVec3("u_Emissive", material.Emissive);
 
     shader->SetVec3("u_FogColor", s_Data.Fog.Color);
     shader->SetFloat("u_FogDensity", s_Data.Fog.Density);

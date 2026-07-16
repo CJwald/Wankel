@@ -35,7 +35,16 @@ struct LightSettings {
 
     float Ambient = 0.25f;
     float Specular = 0.35f;
-    float Shininess = 32.0f;
+};
+
+// Solid-color, non-textured PBR material (metallic-roughness workflow).
+// No UVs/textures in this pass - see Documents/TODO.md for the deferred
+// texture-mapped-materials follow-up.
+struct Material {
+    glm::vec3 Albedo {0.8f, 0.8f, 0.8f}; // base color; also the F0 basis for metals
+    float Roughness = 0.5f;              // 0 = mirror-smooth, 1 = fully rough
+    float Metallic = 0.0f;               // 0 = dielectric, 1 = metal
+    glm::vec3 Emissive {0.0f, 0.0f, 0.0f}; // added post-lighting; default off, costs nothing unused
 };
 
 class Renderer {
@@ -47,7 +56,7 @@ public:
     static void EndScene();
 
     // Opaque Mesh Pass
-    static void Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader);
+    static void Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material);
 
     // Debug Pass
     static void SubmitDebugLines(const std::vector<DebugLine>& lines);
