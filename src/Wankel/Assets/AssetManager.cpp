@@ -54,6 +54,25 @@ Ref<Font> AssetManager::GetFont(const std::string& ttfPath, float pixelHeight) {
     }
 }
 
+Ref<Mesh> AssetManager::GetOrCreateMesh(const std::string& key, const std::function<Ref<Mesh>()>& factory) {
+    auto it = s_Meshes.find(key);
+    if (it != s_Meshes.end())
+        return it->second;
+
+    Ref<Mesh> mesh = factory();
+    s_Meshes[key] = mesh;
+    return mesh;
+}
+
+Ref<Mesh> AssetManager::GetMirroredMesh(const std::string& sourcePath, bool mirrorX, bool mirrorY, bool mirrorZ) {
+    std::string key = sourcePath + "|mirror:" + (mirrorX ? "1" : "0") + (mirrorY ? "1" : "0") + (mirrorZ ? "1" : "0");
+
+    return GetOrCreateMesh(key, [&]() {
+        Ref<Mesh> source = GetMesh(sourcePath);
+        return Ref<Mesh>(source->CreateMirrored(mirrorX, mirrorY, mirrorZ).release());
+    });
+}
+
 void AssetManager::Clear() {
     s_Meshes.clear();
     s_Shaders.clear();

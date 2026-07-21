@@ -351,6 +351,47 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       found it. Also confirmed live in Sandbox — stable, font still loads normally on the
       happy path.
 
+- [x] **Sandbox App refactor — `SandboxLayer` split into focused files, plus 3 small
+      engine helpers.** `SandboxLayer.cpp` had grown to 1315 lines doing entity
+      construction (player/enemy/world), the entire per-frame update (input, world-wrap,
+      raycast/click-test, tiled-world rendering with embedded debug-wireframe drawing, HUD
+      text), and all ImGui debug panels in one file. Split into `Sandbox/src/Entities/`
+      (`PlayerFactory`, `EnemyFactory`, `WorldFactory` — each a `static Create(Scene&)`,
+      following the existing `Systems/`/`Debug/` per-concern-subfolder convention) and two
+      new `Debug/` files (`ColliderDebugDraw`, `AnimationDebugPanel`, moved verbatim out of
+      the tiled-render-loop and ImGui code respectively). `SandboxLayer.cpp` is now ~345
+      lines; `SandboxLayer.h`'s member list dropped from 25 to 14 (all 11 `Ref<Mesh>`
+      members removed — `AssetManager` already owns their lifetime, so each factory loads
+      its own meshes internally instead of `SandboxLayer` pre-loading and handing out
+      `Ref<>`s). Two of those removed members, `m_ShipMesh`/`m_ShipMeshMirrored`, were
+      confirmed dead (loaded but never attached to any entity) and dropped outright rather
+      than ported over.
+      Three small, additive engine changes made this possible without duplicating more
+      boilerplate than necessary: `MeshAnimation::SetLink()` (`AnimationComponents.h`)
+      collapses the 6-line-per-link `Links[a][b].Enabled/Magnitude/Frequency/Damping/
+      Response/Clamp` pattern (repeated ~54 times across player/gun/camera setup) into one
+      call; `Scene::CreateChild()` collapses the `Tag`+`Transform`+`Kinematics`+`Parent`
+      quintet that's identical across every one of the ~12 child-entity call sites (a
+      *full* "spawn rig part" helper was considered and rejected — components genuinely
+      differ per part, e.g. the camera entity has no `MeshRenderer` — so only the
+      truly-universal prefix was extracted); `AssetManager::GetOrCreateMesh`/
+      `GetMirroredMesh` extend the existing asset cache to cover meshes that aren't
+      loaded from a file path (the derived mirrored-leg meshes, the procedurally-built
+      cube mesh) — required, not optional, since a function-local `static` or a plain
+      local variable for either would have introduced a real lifetime bug (a static
+      would outlive the GL context at shutdown; a local `Ref<Mesh>` for the cube would
+      dangle the very next frame after `WorldFactory::Create()` returns, since
+      `MeshRenderer::MeshPtr` is a non-owning raw pointer).
+      Also dropped the dead `plate.h`/`triangle.h` includes (see the item above — both
+      files deleted outright).
+      Verified as a pure structural move, not a behavior change: captured a full dump of
+      every entity's component set, transform, and every enabled `MotionLink`'s 5 tuning
+      values before and after the refactor and diffed them — byte-for-byte identical for
+      every entity except the intentionally-randomized world cubes. Also verified a full
+      reconfigure+build picks up the new files via CMake's `CONFIGURE_DEPENDS` glob, and a
+      live run shows no GL/shutdown errors across several seconds (covering the two
+      lifetime fixes above).
+
 ## Phase 3 — Scale & polish (once a game is actually in production)
 
 - [ ] Generalize `PlayerControllerSystem`/`Movement` beyond the flight/FPS-hybrid demo
@@ -447,8 +488,10 @@ Math, Terrain & Sandbox:
 - [ ] `Debug/SecondOrderPreview.cpp:29-36` duplicates the second-order-dynamics math from
       `SecondOrderDynamics.cpp` but omits the large-`dt` stability clamp added there — the
       ImGui preview can diverge from actual runtime animation behavior.
-- [ ] `Sandbox/src/plate.h`, `triangle.h` — included by `SandboxLayer.cpp` but their
+- [x] `Sandbox/src/plate.h`, `triangle.h` — included by `SandboxLayer.cpp` but their
       vertex/index arrays are never referenced again — dead geometry headers.
+      **Fixed** as part of the SandboxLayer refactor below: both files deleted outright
+      (confirmed zero references anywhere once the dead includes were dropped).
 
 ## Game-readiness gap checklist (context, not action items)
 

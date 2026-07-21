@@ -15,6 +15,12 @@ class Scene {
 public:
     Entity CreateEntity() { return Entity(m_Registry.create(), &m_Registry); }
 
+    // Creates an entity with the Tag/Transform/Kinematics/Parent quintet that's
+    // identical across every "spawn a child part" call site (head/legs/gun/camera
+    // parented to a player, body/legs parented to an enemy, etc) - the caller adds
+    // whatever else the specific part needs (MeshRenderer/Material/MeshAnimation/...).
+    Entity CreateChild(Entity parent, const std::string& name);
+
     void DestroyEntity(Entity entity) {
         auto handle = entity.GetHandle();
 

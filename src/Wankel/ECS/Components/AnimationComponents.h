@@ -16,6 +16,21 @@ struct MeshAnimation {
     glm::vec3 RotationOffset {0.0f};
 
     bool Initialized = false;
+
+    // Enables Links[from][to] and sets its tuning in one call instead of six
+    // separate field assignments. Doesn't touch Spring - ProceduralAnimationSystem
+    // reconstructs it from Frequency/Damping/Response every frame regardless.
+    MotionLink& SetLink(MotionAxis from, MotionAxis to, float magnitude, float frequency, float damping,
+                        float response, float clamp) {
+        auto& link = Links[(int)from][(int)to];
+        link.Enabled = true;
+        link.Magnitude = magnitude;
+        link.Frequency = frequency;
+        link.Damping = damping;
+        link.Response = response;
+        link.Clamp = clamp;
+        return link;
+    }
 };
 
 } // namespace Wankel

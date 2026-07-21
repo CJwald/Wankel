@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <functional>
 
 #include "Wankel/Core/Base.h"
 
@@ -31,6 +32,17 @@ public:
     static Ref<Mesh> GetMesh(const std::string& path);
     static Ref<Shader> GetShader(const std::string& vertexPath, const std::string& fragmentPath);
     static Ref<Font> GetFont(const std::string& ttfPath, float pixelHeight = 48.0f);
+
+    // For meshes that aren't loaded from a file path at all (procedurally built,
+    // or derived from another mesh) but still need to live as long as any entity's
+    // Mesh* points at them - same cache, same Clear() lifetime, arbitrary key.
+    static Ref<Mesh> GetOrCreateMesh(const std::string& key, const std::function<Ref<Mesh>()>& factory);
+
+    // A mirrored variant of an already-loadable mesh (see Mesh::CreateMirrored),
+    // cached under a key derived from the source path + mirror flags so repeated
+    // requests for the same mirrored mesh share one instance instead of deriving
+    // a fresh (and, without this, un-owned) copy each time.
+    static Ref<Mesh> GetMirroredMesh(const std::string& sourcePath, bool mirrorX, bool mirrorY, bool mirrorZ);
 
     // Drops every cached asset (and the GPU resources they own) - call
     // before the GL context goes away.
