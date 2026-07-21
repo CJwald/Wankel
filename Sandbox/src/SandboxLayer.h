@@ -13,7 +13,6 @@ namespace Wankel {
 
 class VertexArray;
 class VertexBuffer;
-class Mesh;
 class Font;
 class AudioClip;
 
@@ -25,17 +24,10 @@ public:
     virtual void OnImGuiRender() override;
 
 private:
-    Ref<Mesh> m_ShipMesh;
-    Ref<Mesh> m_ShipMeshMirrored;
-    Ref<Mesh> m_PlayerHeadMesh;
-    Ref<Mesh> m_PlayerLegMesh;
-    Ref<Mesh> m_PlayerLegMeshMirrored;
-    Ref<Mesh> m_EnemyBodyMesh;
-    Ref<Mesh> m_EnemyLegMesh;
-    Ref<Mesh> m_EnemyLegMeshMirrored;
-    Ref<Mesh> m_GunMesh;
-    Ref<Mesh> m_CubeMesh;
-    Ref<Mesh> m_BoxMesh;
+    // Mesh ownership lives in Entities/PlayerFactory.cpp, EnemyFactory.cpp,
+    // and WorldFactory.cpp (via AssetManager) - m_Shader is the one asset
+    // this layer still needs directly, since it's read every frame in the
+    // render loop rather than from an ECS component.
     Ref<Shader> m_Shader;
     Ref<Font> m_TitleFont;
     Ref<AudioClip> m_ClickMissBeep;
