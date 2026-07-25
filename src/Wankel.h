@@ -4,6 +4,7 @@
 // Core
 // -----------------------------
 #include "Wankel/Core/Application.h"
+#include "Wankel/Core/JobSystem.h"
 #include "Wankel/Core/Layer.h"
 #include "Wankel/Core/Log.h"
 #include "Wankel/Core/Input.h"

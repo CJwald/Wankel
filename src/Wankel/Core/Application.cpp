@@ -4,6 +4,7 @@
 #include "Wankel/Core/Input.h"
 #include "Wankel/Renderer/Renderer.h"
 #include "Wankel/Core/InputSystem.h"
+#include "Wankel/Core/JobSystem.h"
 #include "Wankel/Audio/AudioSystem.h"
 #include "Wankel/Assets/AssetManager.h"
 
@@ -25,12 +26,15 @@ Application::Application() {
 
     AudioSystem::Init();
 
+    JobSystem::Init();
+
     m_ImGuiLayer = new ImGuiLayer();
     PushOverlay(m_ImGuiLayer);
 }
 
 
 Application::~Application() {
+    JobSystem::Shutdown();
     AssetManager::Clear();
     AudioSystem::Shutdown();
     InputSystem::Shutdown();
@@ -51,6 +55,8 @@ void Application::PushOverlay(Layer* layer) {
 
 void Application::Run() {
     while (m_Running) {
+        JobSystem::RunMainThreadQueue();
+
         InputSystem::PollControllers();
 
         m_Window->OnUpdate();
