@@ -66,15 +66,25 @@ Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcF
     m_RendererID = program;
 }
 
+namespace {
+unsigned int s_BoundProgram = 0; // GL is global state - one cache shared by every Shader instance
+}
+
 Shader::~Shader() {
+    if (s_BoundProgram == m_RendererID)
+        s_BoundProgram = 0; // avoid a stale cache hit if a later program reuses this GL name
     glDeleteProgram(m_RendererID);
 }
 
 void Shader::Bind() const {
+    if (s_BoundProgram == m_RendererID)
+        return;
     glUseProgram(m_RendererID);
+    s_BoundProgram = m_RendererID;
 }
 void Shader::Unbind() const {
     glUseProgram(0);
+    s_BoundProgram = 0;
 }
 
 int Shader::GetUniformLocation(const std::string& name) {

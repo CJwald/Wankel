@@ -41,10 +41,17 @@ struct LightSettings {
 // No UVs/textures in this pass - see Documents/TODO.md for the deferred
 // texture-mapped-materials follow-up.
 struct Material {
-    glm::vec3 Albedo {0.8f, 0.8f, 0.8f}; // base color; also the F0 basis for metals
-    float Roughness = 0.5f;              // 0 = mirror-smooth, 1 = fully rough
-    float Metallic = 0.0f;               // 0 = dielectric, 1 = metal
+    glm::vec3 Albedo {0.8f, 0.8f, 0.8f};   // base color; also the F0 basis for metals
+    float Roughness = 0.5f;                // 0 = mirror-smooth, 1 = fully rough
+    float Metallic = 0.0f;                 // 0 = dielectric, 1 = metal
     glm::vec3 Emissive {0.0f, 0.0f, 0.0f}; // added post-lighting; default off, costs nothing unused
+
+    // Exact equality (not approximate) - used by Renderer::Submit to skip re-uploading material
+    // uniforms when consecutive draws share the identical value (e.g. every voxel chunk).
+    bool operator==(const Material& other) const {
+        return Albedo == other.Albedo && Roughness == other.Roughness && Metallic == other.Metallic &&
+               Emissive == other.Emissive;
+    }
 };
 
 class Renderer {
@@ -65,8 +72,7 @@ public:
     // immediately, independent of BeginScene/EndScene's 3D camera. Call
     // after EndScene(), same spot the ImGui pass runs.
     static void SubmitText(const std::string& text, const Ref<Font>& font, const glm::vec2& screenPos,
-                           uint32_t screenWidth, uint32_t screenHeight,
-                           const glm::vec3& color = {1.0f, 1.0f, 1.0f});
+                           uint32_t screenWidth, uint32_t screenHeight, const glm::vec3& color = {1.0f, 1.0f, 1.0f});
 
     // Transparent Mesh Pass Eventually?
     // static void SubmitTransparent()...

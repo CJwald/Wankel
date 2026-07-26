@@ -48,6 +48,12 @@ struct RendererData {
     uint32_t TextVAO = 0;
     uint32_t TextVBO = 0;
     Shader* TextShader = nullptr;
+
+    // Submit() dedup state - reset each BeginScene so a mid-scene SetFog/SetLight change still
+    // lands on the next Submit even if the shader/material pointer/value hasn't changed.
+    Shader* LastSubmitShader = nullptr;
+    Material LastMaterial {};
+    bool LastMaterialValid = false;
 };
 
 
@@ -111,6 +117,8 @@ void Renderer::BeginScene(const Camera& camera) {
     s_Data.Projection = camera.GetProjectionMatrix();
     s_Data.CameraPos = camera.GetPosition();
     s_Data.DebugVertices.clear();
+    s_Data.LastSubmitShader = nullptr;
+    s_Data.LastMaterialValid = false;
 }
 
 
@@ -140,35 +148,51 @@ void Renderer::EndScene() {
 
 
 void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material) {
-    shader->Bind();
-    shader->SetMat4("view", s_Data.View);
-    shader->SetMat4("projection", s_Data.Projection);
+    shader->Bind(); // no-op if already the current program
+
+    // Frame-constant uniforms (view/projection/camera/light/fog/time) only need re-uploading to a
+    // given shader once per frame, not once per draw - re-set them only the first time this
+    // particular shader is used since BeginScene.
+    if (shader != s_Data.LastSubmitShader) {
+        shader->SetMat4("view", s_Data.View);
+        shader->SetMat4("projection", s_Data.Projection);
+        shader->SetVec3("u_CameraPos", s_Data.CameraPos);
+
+        shader->SetVec3("u_LightDir", s_Data.Light.Direction);
+        shader->SetVec3("u_LightColor", s_Data.Light.Color);
+        shader->SetFloat("u_AmbientStrength", s_Data.Light.Ambient);
+        shader->SetFloat("u_SpecularStrength", s_Data.Light.Specular);
+
+        shader->SetVec3("u_FogColor", s_Data.Fog.Color);
+        shader->SetFloat("u_FogDensity", s_Data.Fog.Density);
+        shader->SetFloat("u_Time", Time::GetTime());
+
+        shader->SetFloat("u_FogNoiseScale", s_Data.Fog.NoiseScale);
+        shader->SetFloat("u_FogNoiseStrength", s_Data.Fog.NoiseStrength);
+        shader->SetInt("u_FogNoiseOctaves", s_Data.Fog.NoiseOctaves);
+        shader->SetInt("u_FogNoiseEnabled", s_Data.Fog.NoiseEnabled ? 1 : 0);
+        shader->SetVec3("u_FogWindDir", s_Data.Fog.WindDir);
+        shader->SetFloat("u_FogWindSpeed", s_Data.Fog.WindSpeed);
+
+        s_Data.LastSubmitShader = shader;
+        s_Data.LastMaterialValid = false; // this program hasn't seen a material upload yet this frame
+    }
+
     shader->SetMat4("model", transform);
     shader->SetMat3("u_NormalMatrix", glm::inverseTranspose(glm::mat3(transform)));
-    shader->SetVec3("u_CameraPos", s_Data.CameraPos);
 
-    shader->SetVec3("u_LightDir", s_Data.Light.Direction);
-    shader->SetVec3("u_LightColor", s_Data.Light.Color);
-    shader->SetFloat("u_AmbientStrength", s_Data.Light.Ambient);
-    shader->SetFloat("u_SpecularStrength", s_Data.Light.Specular);
+    // Material uniforms only need re-uploading when they actually differ from the last draw's -
+    // e.g. every voxel chunk shares one identical Material, so this collapses to one upload total.
+    if (!s_Data.LastMaterialValid || !(material == s_Data.LastMaterial)) {
+        shader->SetVec3("u_Albedo", material.Albedo);
+        shader->SetFloat("u_Roughness", material.Roughness);
+        shader->SetFloat("u_Metallic", material.Metallic);
+        shader->SetVec3("u_Emissive", material.Emissive);
+        s_Data.LastMaterial = material;
+        s_Data.LastMaterialValid = true;
+    }
 
-    shader->SetVec3("u_Albedo", material.Albedo);
-    shader->SetFloat("u_Roughness", material.Roughness);
-    shader->SetFloat("u_Metallic", material.Metallic);
-    shader->SetVec3("u_Emissive", material.Emissive);
-
-    shader->SetVec3("u_FogColor", s_Data.Fog.Color);
-    shader->SetFloat("u_FogDensity", s_Data.Fog.Density);
-    shader->SetFloat("u_Time", Time::GetTime());
-
-    shader->SetFloat("u_FogNoiseScale", s_Data.Fog.NoiseScale);
-    shader->SetFloat("u_FogNoiseStrength", s_Data.Fog.NoiseStrength);
-    shader->SetInt("u_FogNoiseOctaves", s_Data.Fog.NoiseOctaves);
-    shader->SetInt("u_FogNoiseEnabled", s_Data.Fog.NoiseEnabled ? 1 : 0);
-    shader->SetVec3("u_FogWindDir", s_Data.Fog.WindDir);
-    shader->SetFloat("u_FogWindSpeed", s_Data.Fog.WindSpeed);
-
-    mesh.Bind();
+    mesh.Bind(); // no-op if already the current VAO
 
     glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);
 }
@@ -186,7 +210,7 @@ void Renderer::SubmitDebugLines(const std::vector<DebugLine>& lines) {
 
 
 void Renderer::SubmitText(const std::string& text, const Ref<Font>& font, const glm::vec2& screenPos,
-                           uint32_t screenWidth, uint32_t screenHeight, const glm::vec3& color) {
+                          uint32_t screenWidth, uint32_t screenHeight, const glm::vec3& color) {
     if (!font || text.empty())
         return;
 
@@ -224,7 +248,7 @@ void Renderer::SubmitText(const std::string& text, const Ref<Font>& font, const 
     size_t vertexCount = vertices.size();
     if (vertexCount > kMaxTextVertices) {
         WK_CORE_WARNING("Renderer::SubmitText - {0} vertices submitted, truncating to capacity ({1})", vertexCount,
-                         kMaxTextVertices);
+                        kMaxTextVertices);
         vertexCount = kMaxTextVertices;
     }
 

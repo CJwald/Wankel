@@ -5,20 +5,29 @@
 
 namespace Wankel {
 
+namespace {
+unsigned int s_BoundVAO = 0; // GL is global state - one cache shared by every VertexArray instance
+}
+
 VertexArray::VertexArray() {
     glGenVertexArrays(1, &m_ID);
 }
 
 VertexArray::~VertexArray() {
+    if (s_BoundVAO == m_ID)
+        s_BoundVAO = 0; // avoid a stale cache hit if a later VAO reuses this GL name
     glDeleteVertexArrays(1, &m_ID);
 }
 
 void VertexArray::Bind() const {
+    if (s_BoundVAO == m_ID)
+        return;
     glBindVertexArray(m_ID);
+    s_BoundVAO = m_ID;
 }
 
 void VertexArray::AddVertexBuffer(const VertexBuffer& vb) {
-    glBindVertexArray(m_ID);
+    Bind();
     vb.Bind();
 
     const auto& layout = vb.GetLayout();
@@ -35,7 +44,7 @@ void VertexArray::AddVertexBuffer(const VertexBuffer& vb) {
 }
 
 void VertexArray::SetIndexBuffer(const IndexBuffer& ib) {
-    glBindVertexArray(m_ID);
+    Bind();
     ib.Bind();
 
     m_IndexBufferID = ib.GetID();
