@@ -43,7 +43,7 @@ static glm::mat4 ComputeWorldTransform(entt::registry& registry, entt::entity e,
 
 void TransformSystem::Update(Scene& scene) {
     auto& registry = scene.Registry();
-    auto view = registry.view<Transform>();
+    auto view = registry.view<Transform>(entt::exclude<StaticTransform>);
 
     for (auto entity : view) {
         auto& tc = view.get<Transform>(entity);
@@ -56,7 +56,7 @@ void TransformSystem::Update(Scene& scene) {
 
 void TransformSystem::UpdateFinalTransforms(Scene& scene) {
     auto& registry = scene.Registry();
-    auto view = registry.view<Transform>();
+    auto view = registry.view<Transform>(entt::exclude<StaticTransform>);
 
     for (auto entity : view) {
         auto& tc = view.get<Transform>(entity);

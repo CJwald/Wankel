@@ -34,4 +34,10 @@ struct Kinematics {
     glm::quat PreviousWorldRotation {1, 0, 0, 0};
 };
 
+// Opt-in: TransformSystem skips entities tagged with this. Caller must seed Local/World/FinalTransform
+// once itself; never add to an entity with a Parent or a Transform that changes afterward.
+struct StaticTransform {
+    bool Value = true; // non-empty so Entity::AddComponent<T>()'s T& return works with entt's empty-type storage
+};
+
 } // namespace Wankel
