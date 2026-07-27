@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
 
+#include "AABB.h"
+
 namespace Wankel {
 
 class SpatialHashGrid {
@@ -16,6 +18,22 @@ public:
     void Insert(entt::entity entity, const glm::vec3& position) {
         auto key = Hash(PositionToCell(position));
         m_Cells[key].push_back(entity);
+    }
+
+    // Inserts into every cell `bounds` spans, not just one - a point-sized
+    // Insert() would make a large collider (e.g. a terrain mesh chunk)
+    // undiscoverable from most nearby dynamic bodies, since Query() only
+    // scans a fixed 3x3x3 neighborhood around a single point.
+    void InsertAABB(entt::entity entity, const AABB& bounds) {
+        glm::ivec3 minCell = PositionToCell(bounds.Min);
+        glm::ivec3 maxCell = PositionToCell(bounds.Max);
+
+        for (int x = minCell.x; x <= maxCell.x; x++)
+            for (int y = minCell.y; y <= maxCell.y; y++)
+                for (int z = minCell.z; z <= maxCell.z; z++) {
+                    auto key = Hash(glm::ivec3(x, y, z));
+                    m_Cells[key].push_back(entity);
+                }
     }
 
     std::vector<entt::entity> Query(const glm::vec3& position) {

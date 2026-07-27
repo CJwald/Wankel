@@ -101,14 +101,33 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
         m_Grid.Insert(e, center);
     }
 
+    // Mesh colliders (static terrain) are usually much larger than one grid
+    // cell, so a single center-point Insert() would make them undiscoverable
+    // from most nearby dynamic bodies - InsertAABB() spans every cell the
+    // mesh's world bounds actually touch instead.
+    auto buildMeshView = registry.view<Transform, MeshCollider>();
+
+    for (auto e : buildMeshView) {
+        auto& t = registry.get<Transform>(e);
+        auto& c = registry.get<MeshCollider>(e);
+
+        if (!c.Mesh)
+            continue;
+
+        glm::vec3 origin = t.LocalPosition + c.Offset;
+        AABB worldBounds {c.Mesh->LocalBounds().Min + origin, c.Mesh->LocalBounds().Max + origin};
+
+        m_Grid.InsertAABB(e, worldBounds);
+    }
+
     // COLLISION
     auto view = registry.view<Transform, Rigidbody>();
 
     // The broad-phase grid only contains entities with a collider
-    // (AABBCollider, SphereCollider, or CapsuleCollider), so an entity with
-    // none of those (only Transform + Rigidbody) can discover a pair but
-    // never be discovered as one. Track pairs already resolved this frame
-    // by canonical (min, max)
+    // (AABBCollider, SphereCollider, CapsuleCollider, or MeshCollider), so
+    // an entity with none of those (only Transform + Rigidbody) can
+    // discover a pair but never be discovered as one. Track pairs already
+    // resolved this frame by canonical (min, max)
     // entity key so a symmetric discovery doesn't resolve the same pair
     // twice, without assuming every pair is discovered from both directions.
     std::unordered_set<uint64_t> resolvedPairs;
