@@ -16,6 +16,9 @@
 #include "NarrowPhase/CapsuleCollision.h"
 #include "NarrowPhase/SphereCapsuleCollision.h"
 #include "NarrowPhase/CapsuleAABBCollision.h"
+#include "NarrowPhase/SphereMeshCollision.h"
+#include "NarrowPhase/CapsuleMeshCollision.h"
+#include "NarrowPhase/AABBMeshCollision.h"
 
 namespace Wankel {
 
@@ -49,6 +52,16 @@ bool ExtractShape(entt::registry& reg, entt::entity e, ColliderShape& out) {
         out.Center = transform.LocalPosition + c->Offset;
         out.Radius = c->Radius;
         out.HalfHeight = c->HalfHeight;
+        return true;
+    }
+
+    if (auto* c = reg.try_get<MeshCollider>(e)) {
+        if (!c->Mesh)
+            return false; // collider attached but not yet populated - treat as absent, not a crash
+
+        out.Type = ColliderType::Mesh;
+        out.Center = transform.LocalPosition + c->Offset; // doubles as the mesh's world origin
+        out.Mesh = c->Mesh.get();
         return true;
     }
 
@@ -103,6 +116,20 @@ NarrowPhaseTable BuildNarrowPhaseTable() {
     table[Idx(ColliderType::AABB)][Idx(ColliderType::Capsule)] = [](const ColliderShape& box,
                                                                      const ColliderShape& capsule) {
         return CapsulevsAABB(ToCapsule(capsule), ToAABB(box));
+    };
+
+    table[Idx(ColliderType::Sphere)][Idx(ColliderType::Mesh)] = [](const ColliderShape& sphere,
+                                                                    const ColliderShape& mesh) {
+        return SpherevsMesh(ToSphere(sphere), mesh.Center, *mesh.Mesh);
+    };
+
+    table[Idx(ColliderType::AABB)][Idx(ColliderType::Mesh)] = [](const ColliderShape& box, const ColliderShape& mesh) {
+        return AABBvsMesh(ToAABB(box), mesh.Center, *mesh.Mesh);
+    };
+
+    table[Idx(ColliderType::Capsule)][Idx(ColliderType::Mesh)] = [](const ColliderShape& capsule,
+                                                                     const ColliderShape& mesh) {
+        return CapsulevsMesh(ToCapsule(capsule), mesh.Center, *mesh.Mesh);
     };
 
     return table;

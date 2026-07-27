@@ -4,6 +4,8 @@
 
 namespace Wankel {
 
+class TriangleMesh;
+
 enum class ColliderType {
     None = 0,
 
@@ -25,6 +27,11 @@ struct ColliderShape {
     glm::vec3 HalfSize {0.0f}; // AABB
     float Radius = 0.0f;       // Sphere / Capsule
     float HalfHeight = 0.0f;   // Capsule
+
+    // Non-owning - MeshCollider owns the Ref<TriangleMesh>; this struct is
+    // built fresh per broad-phase candidate and scoped to one
+    // ResolveCollision call while the registry/component is guaranteed alive.
+    const TriangleMesh* Mesh = nullptr;
 };
 
 } // namespace Wankel

@@ -3,6 +3,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "Wankel/Core/Base.h"
+#include "Wankel/Physics/Collision/TriangleMesh.h"
+
 
 namespace Wankel {
 
@@ -34,6 +37,22 @@ struct SphereCollider {
 struct CapsuleCollider {
     float Radius = 0.5f;
     float HalfHeight = 0.5f;
+    glm::vec3 Offset {0.0f};
+};
+
+
+// Static triangle-mesh collider (terrain). Translation-only (Offset, like
+// every other collider here) - no rotation/scale, appropriate for
+// axis-aligned voxel chunks. Owned directly here rather than via
+// AssetManager: AssetManager's cache is permanent-until-global-Clear(),
+// which is the wrong lifetime for voxel chunks that load/unload/regenerate
+// as the player moves - whatever terrain-chunk system builds this Mesh
+// owns it for exactly as long as this component exists.
+// Must not be reassigned mid-PhysicsSystem::Update (single-threaded
+// assumption - fine today, flag this if chunk streaming ever runs
+// collision-triggered regeneration mid-tick).
+struct MeshCollider {
+    Ref<TriangleMesh> Mesh;
     glm::vec3 Offset {0.0f};
 };
 
