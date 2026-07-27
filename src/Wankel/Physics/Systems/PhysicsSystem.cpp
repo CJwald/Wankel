@@ -9,6 +9,15 @@
 
 namespace Wankel {
 
+namespace {
+
+bool IsStaticEntity(entt::registry& registry, entt::entity e) {
+    auto* rb = registry.try_get<Rigidbody>(e);
+    return !rb || rb->IsStatic;
+}
+
+} // namespace
+
 void PhysicsSystem::Update(Scene& scene, float dt) {
     auto& registry = scene.Registry();
 
@@ -60,70 +69,27 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
         }
     }
 
-    // BUILD SPATIAL GRID
-    m_Grid.Clear();
-
-    auto buildAABBView = registry.view<Transform, AABBCollider>();
-
-    for (auto e : buildAABBView) {
-        auto& t = registry.get<Transform>(e);
-        auto& c = registry.get<AABBCollider>(e);
-
-        glm::vec3 center = t.LocalPosition + c.Offset;
-
-        m_Grid.Insert(e, center);
+    // BUILD SPATIAL GRIDS
+    //
+    // Static colliders (terrain chunks in particular) almost never move or change, but
+    // InsertAABB() spans every grid cell a collider's bounds touch - for a 16-unit voxel chunk
+    // at this grid's 1.0 cell size, that's on the order of 4900 cells per chunk. Re-inserting
+    // every static collider from scratch on every single Update() call was costing a full-world
+    // voxel terrain multiple *million* hash-map insertions a frame for geometry that hadn't
+    // changed since the previous frame. The static grid is now cached across frames and only
+    // rebuilt when MarkStaticCollidersDirty() says the static collider set actually changed
+    // (terrain regenerated, a static prop spawned/despawned, etc) - the dynamic grid (few, moving
+    // bodies) is cheap enough to still just rebuild every frame.
+    if (m_StaticGridDirty) {
+        RebuildStaticGrid(scene);
+        m_StaticGridDirty = false;
     }
-
-    // Sphere colliders must also be indexed, otherwise a sphere-vs-sphere
-    // pair can never be discovered from either side (both spheres are
-    // absent from the grid) even though sphere-vs-AABB and AABB-vs-AABB work.
-    auto buildSphereView = registry.view<Transform, SphereCollider>();
-
-    for (auto e : buildSphereView) {
-        auto& t = registry.get<Transform>(e);
-        auto& c = registry.get<SphereCollider>(e);
-
-        glm::vec3 center = t.LocalPosition + c.Offset;
-
-        m_Grid.Insert(e, center);
-    }
-
-    // Same reasoning as sphere colliders above - capsules must be indexed
-    // too, otherwise pairs involving a capsule are never discovered.
-    auto buildCapsuleView = registry.view<Transform, CapsuleCollider>();
-
-    for (auto e : buildCapsuleView) {
-        auto& t = registry.get<Transform>(e);
-        auto& c = registry.get<CapsuleCollider>(e);
-
-        glm::vec3 center = t.LocalPosition + c.Offset;
-
-        m_Grid.Insert(e, center);
-    }
-
-    // Mesh colliders (static terrain) are usually much larger than one grid
-    // cell, so a single center-point Insert() would make them undiscoverable
-    // from most nearby dynamic bodies - InsertAABB() spans every cell the
-    // mesh's world bounds actually touch instead.
-    auto buildMeshView = registry.view<Transform, MeshCollider>();
-
-    for (auto e : buildMeshView) {
-        auto& t = registry.get<Transform>(e);
-        auto& c = registry.get<MeshCollider>(e);
-
-        if (!c.Mesh)
-            continue;
-
-        glm::vec3 origin = t.LocalPosition + c.Offset;
-        AABB worldBounds {c.Mesh->LocalBounds().Min + origin, c.Mesh->LocalBounds().Max + origin};
-
-        m_Grid.InsertAABB(e, worldBounds);
-    }
+    RebuildDynamicGrid(scene);
 
     // COLLISION
     auto view = registry.view<Transform, Rigidbody>();
 
-    // The broad-phase grid only contains entities with a collider
+    // The broad-phase grids only contain entities with a collider
     // (AABBCollider, SphereCollider, CapsuleCollider, or MeshCollider), so
     // an entity with none of those (only Transform + Rigidbody) can
     // discover a pair but never be discovered as one. Track pairs already
@@ -135,7 +101,10 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     for (auto a : view) {
         auto& ta = registry.get<Transform>(a);
         auto& rba = registry.get<Rigidbody>(a);
-        auto candidates = m_Grid.Query(ta.LocalPosition);
+
+        auto candidates = m_StaticGrid.Query(ta.LocalPosition);
+        auto dynamicCandidates = m_DynamicGrid.Query(ta.LocalPosition);
+        candidates.insert(candidates.end(), dynamicCandidates.begin(), dynamicCandidates.end());
 
         for (auto b : candidates) {
             if (a == b)
@@ -213,6 +182,75 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             }
         }
     }
+}
+
+// Indexes every collider entity whose static-ness (see IsStaticEntity) matches this grid's
+// role - same 4 collider-type blocks (and same reasons each needs its own Insert/InsertAABB
+// pass) as before the static/dynamic split, just gated by IsStaticEntity so a given entity ends
+// up in exactly one of the two grids.
+namespace {
+
+void BuildGrid(entt::registry& registry, SpatialHashGrid& grid, bool wantStatic) {
+    auto aabbView = registry.view<Transform, AABBCollider>();
+    for (auto e : aabbView) {
+        if (IsStaticEntity(registry, e) != wantStatic)
+            continue;
+        auto& t = registry.get<Transform>(e);
+        auto& c = registry.get<AABBCollider>(e);
+        grid.Insert(e, t.LocalPosition + c.Offset);
+    }
+
+    // Sphere colliders must also be indexed, otherwise a sphere-vs-sphere
+    // pair can never be discovered from either side (both spheres are
+    // absent from the grid) even though sphere-vs-AABB and AABB-vs-AABB work.
+    auto sphereView = registry.view<Transform, SphereCollider>();
+    for (auto e : sphereView) {
+        if (IsStaticEntity(registry, e) != wantStatic)
+            continue;
+        auto& t = registry.get<Transform>(e);
+        auto& c = registry.get<SphereCollider>(e);
+        grid.Insert(e, t.LocalPosition + c.Offset);
+    }
+
+    // Same reasoning as sphere colliders above - capsules must be indexed
+    // too, otherwise pairs involving a capsule are never discovered.
+    auto capsuleView = registry.view<Transform, CapsuleCollider>();
+    for (auto e : capsuleView) {
+        if (IsStaticEntity(registry, e) != wantStatic)
+            continue;
+        auto& t = registry.get<Transform>(e);
+        auto& c = registry.get<CapsuleCollider>(e);
+        grid.Insert(e, t.LocalPosition + c.Offset);
+    }
+
+    // Mesh colliders (static terrain) are usually much larger than one grid
+    // cell, so a single center-point Insert() would make them undiscoverable
+    // from most nearby dynamic bodies - InsertAABB() spans every cell the
+    // mesh's world bounds actually touch instead.
+    auto meshView = registry.view<Transform, MeshCollider>();
+    for (auto e : meshView) {
+        if (IsStaticEntity(registry, e) != wantStatic)
+            continue;
+        auto& t = registry.get<Transform>(e);
+        auto& c = registry.get<MeshCollider>(e);
+        if (!c.Mesh)
+            continue;
+        glm::vec3 origin = t.LocalPosition + c.Offset;
+        AABB worldBounds {c.Mesh->LocalBounds().Min + origin, c.Mesh->LocalBounds().Max + origin};
+        grid.InsertAABB(e, worldBounds);
+    }
+}
+
+} // namespace
+
+void PhysicsSystem::RebuildStaticGrid(Scene& scene) {
+    m_StaticGrid.Clear();
+    BuildGrid(scene.Registry(), m_StaticGrid, /*wantStatic=*/true);
+}
+
+void PhysicsSystem::RebuildDynamicGrid(Scene& scene) {
+    m_DynamicGrid.Clear();
+    BuildGrid(scene.Registry(), m_DynamicGrid, /*wantStatic=*/false);
 }
 
 } // namespace Wankel

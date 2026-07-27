@@ -37,6 +37,10 @@ public:
 
     entt::registry& Registry() { return m_Registry; }
 
+    // Forwards to PhysicsSystem - call after adding/removing/moving a static collider entity
+    // (e.g. terrain regeneration) so the cached static broad-phase grid picks it up.
+    void MarkStaticCollidersDirty() { m_PhysicsSystem.MarkStaticCollidersDirty(); }
+
 private:
     PlayerControllerSystem m_PlayerControllerSystem;
     TransformSystem m_TransformSystem;
