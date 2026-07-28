@@ -308,10 +308,19 @@ constexpr glm::ivec3 kCornerOffset[8] = {
     {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}, {0, 1, 0}, {1, 1, 0}, {1, 1, 1}, {0, 1, 1},
 };
 
-// Edge -> corner index pairs, matching EdgeTable's bit order (e0..e3 bottom loop, e4..e7 top loop,
-// e8..e11 verticals).
-constexpr int kEdgeCorner[12][2] = {
-    {0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6}, {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7},
+// Axis (0=X,1=Y,2=Z) and the min-corner offset (relative to the cube's own (x,y,z)) each cube edge
+// maps to (e0..e3 bottom loop, e4..e7 top loop, e8..e11 verticals - matching EdgeTable's bit order,
+// derived from kCornerOffset) so two cubes sharing a physical edge always compute the same
+// (axis, base) key regardless of which cube visits it first or which of its own 12 local edges
+// that edge is. Used to weld vertices across shared edges (see GetOrCreateEdgeVertex).
+struct EdgeKey {
+    int Axis;
+    glm::ivec3 Base;
+};
+constexpr EdgeKey kEdgeKey[12] = {
+    {0, {0, 0, 0}}, {2, {1, 0, 0}}, {0, {0, 0, 1}}, {2, {0, 0, 0}},
+    {0, {0, 1, 0}}, {2, {1, 1, 0}}, {0, {0, 1, 1}}, {2, {0, 1, 0}},
+    {1, {0, 0, 0}}, {1, {1, 0, 0}}, {1, {1, 0, 1}}, {1, {0, 0, 1}},
 };
 
 float InterpT(float isoLevel, float val1, float val2) {
@@ -344,6 +353,52 @@ glm::vec3 GradientNormalAt(const VoxelDensityField& field, int x, int y, int z) 
     return glm::normalize(-g);               // density increases into the solid -> outward = -gradient
 }
 
+constexpr uint32_t kNoVertex = 0xFFFFFFFFu;
+
+// One cache per axis - X/Y/Z edges each need their own flat index space, since each spans one
+// fewer grid point along its own axis than the other two.
+struct EdgeCaches {
+    std::vector<uint32_t> X, Y, Z;
+};
+
+uint32_t& CacheSlot(EdgeCaches& caches, const VoxelDensityField& field, int axis, int bx, int by, int bz) {
+    switch (axis) {
+        case 0:
+            return caches.X[bx + by * (field.Width - 1) + bz * (field.Width - 1) * field.Height];
+        case 1:
+            return caches.Y[bx + by * field.Width + bz * field.Width * (field.Height - 1)];
+        default:
+            return caches.Z[bx + by * field.Width + bz * field.Width * field.Height];
+    }
+}
+
+// Returns the shared vertex index for the edge from grid corner (bx,by,bz) to its +axis neighbor,
+// computing and caching it on first visit - any later cube touching the same edge (same canonical
+// base+axis, regardless of which of its own 12 local edges that is) reuses it instead of emitting a
+// duplicate vertex. Keying by exact integer grid coordinates (not the computed float position)
+// sidesteps floating-point non-associativity: interpolating the same edge from opposite corner
+// order is mathematically identical but not always bit-identical, so a position-based hash could
+// miss merges that a topological key can't.
+uint32_t GetOrCreateEdgeVertex(const VoxelDensityField& field, const std::vector<glm::vec3>& normals,
+                               EdgeCaches& caches, MCMeshData& mesh, float isoLevel, int axis, int bx, int by,
+                               int bz) {
+    uint32_t& slot = CacheSlot(caches, field, axis, bx, by, bz);
+    if (slot != kNoVertex)
+        return slot;
+
+    glm::ivec3 offset = axis == 0 ? glm::ivec3(1, 0, 0) : axis == 1 ? glm::ivec3(0, 1, 0) : glm::ivec3(0, 0, 1);
+    int ox = bx + offset.x, oy = by + offset.y, oz = bz + offset.z;
+
+    float t = InterpT(isoLevel, field.At(bx, by, bz), field.At(ox, oy, oz));
+    glm::vec3 pos = glm::mix(field.GridToWorld(bx, by, bz), field.GridToWorld(ox, oy, oz), t);
+    glm::vec3 nrm = glm::normalize(glm::mix(normals[field.Index(bx, by, bz)], normals[field.Index(ox, oy, oz)], t));
+
+    uint32_t idx = (uint32_t)mesh.Vertices.size();
+    mesh.Vertices.push_back({pos, nrm});
+    slot = idx;
+    return idx;
+}
+
 } // namespace
 
 MCMeshData MarchingCubes::Generate(const VoxelDensityField& field, float isoLevel) {
@@ -357,20 +412,23 @@ MCMeshData MarchingCubes::Generate(const VoxelDensityField& field, float isoLeve
             for (int x = 0; x < field.Width; x++)
                 normals[field.Index(x, y, z)] = GradientNormalAt(field, x, y, z);
 
+    // Vertices are welded across shared edges (see GetOrCreateEdgeVertex) rather than emitting 3
+    // fresh vertices per triangle - a bare triangle-soup mesh would otherwise duplicate every
+    // internal shared edge's vertex once per cube touching it, roughly tripling vertex count.
+    EdgeCaches caches;
+    caches.X.assign((size_t)(field.Width - 1) * field.Height * field.Depth, kNoVertex);
+    caches.Y.assign((size_t)field.Width * (field.Height - 1) * field.Depth, kNoVertex);
+    caches.Z.assign((size_t)field.Width * field.Height * (field.Depth - 1), kNoVertex);
+
     for (int z = 0; z < field.Depth - 1; z++) {
         for (int y = 0; y < field.Height - 1; y++) {
             for (int x = 0; x < field.Width - 1; x++) {
-                glm::vec3 cornerPos[8];
-                glm::vec3 cornerNormal[8];
                 float cornerDensity[8];
                 int cubeIndex = 0;
 
                 for (int c = 0; c < 8; c++) {
                     glm::ivec3 o = kCornerOffset[c];
-                    int cx = x + o.x, cy = y + o.y, cz = z + o.z;
-                    cornerPos[c] = field.GridToWorld(cx, cy, cz);
-                    cornerNormal[c] = normals[field.Index(cx, cy, cz)];
-                    cornerDensity[c] = field.At(cx, cy, cz);
+                    cornerDensity[c] = field.At(x + o.x, y + o.y, z + o.z);
 
                     // The recovered tables were authored under Bourke's convention (bit set = corner
                     // is "inside", where his density falls *below* isoLevel inside the solid).
@@ -385,32 +443,16 @@ MCMeshData MarchingCubes::Generate(const VoxelDensityField& field, float isoLeve
                 if (kEdgeTable[cubeIndex] == 0)
                     continue;
 
-                glm::vec3 edgePos[12];
-                glm::vec3 edgeNormal[12];
-
-                for (int e = 0; e < 12; e++) {
-                    if (!(kEdgeTable[cubeIndex] & (1 << e)))
-                        continue;
-
-                    int a = kEdgeCorner[e][0];
-                    int b = kEdgeCorner[e][1];
-                    float t = InterpT(isoLevel, cornerDensity[a], cornerDensity[b]);
-                    edgePos[e] = glm::mix(cornerPos[a], cornerPos[b], t);
-                    edgeNormal[e] = glm::normalize(glm::mix(cornerNormal[a], cornerNormal[b], t));
-                }
-
-                // No vertex welding - every triangle gets 3 fresh vertices/indices. TriangleMesh
-                // (collision) is triangle-soup already, and shared edges still come out bit-identical
-                // across cubes since interpolation is a pure function of the two shared corners.
                 for (int i = 0; kTriTable[cubeIndex][i] != -1; i += 3) {
-                    uint32_t base = (uint32_t)mesh.Vertices.size();
+                    uint32_t tri[3];
                     for (int k = 0; k < 3; k++) {
-                        int e = kTriTable[cubeIndex][i + k];
-                        mesh.Vertices.push_back({edgePos[e], edgeNormal[e]});
+                        const EdgeKey& key = kEdgeKey[kTriTable[cubeIndex][i + k]];
+                        tri[k] = GetOrCreateEdgeVertex(field, normals, caches, mesh, isoLevel, key.Axis,
+                                                       x + key.Base.x, y + key.Base.y, z + key.Base.z);
                     }
-                    mesh.Indices.push_back(base);
-                    mesh.Indices.push_back(base + 1);
-                    mesh.Indices.push_back(base + 2);
+                    mesh.Indices.push_back(tri[0]);
+                    mesh.Indices.push_back(tri[1]);
+                    mesh.Indices.push_back(tri[2]);
                 }
             }
         }
