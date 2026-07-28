@@ -25,6 +25,8 @@ struct BufferElement {
                 return 4;
             case GL_UNSIGNED_BYTE:
                 return 1;
+            case GL_UNSIGNED_SHORT:
+                return 2;
             default:
                 WK_CORE_ERROR("VertexBufferLayout::GetSizeOfType - unhandled GLenum {0}", (uint32_t)type);
                 return 0;
@@ -49,6 +51,20 @@ public:
     void PushUChar(uint32_t count, const std::string& name, bool normalized = true) {
         m_Elements.emplace_back(name, GL_UNSIGNED_BYTE, count, m_Stride, normalized);
         m_Stride += count * BufferElement::GetSizeOfType(GL_UNSIGNED_BYTE);
+    }
+
+    void PushUShort(uint32_t count, const std::string& name, bool normalized = true) {
+        m_Elements.emplace_back(name, GL_UNSIGNED_SHORT, count, m_Stride, normalized);
+        m_Stride += count * BufferElement::GetSizeOfType(GL_UNSIGNED_SHORT);
+    }
+
+    // GL_INT_2_10_10_10_REV: 4 logical components (x,y,z,w) packed into one 32-bit value -
+    // Count=4 is what glVertexAttribPointer requires for this type; the actual stride
+    // contribution is the packed value's own size (4 bytes), not 4 components x 4 bytes, so this
+    // doesn't go through the count * GetSizeOfType(type) formula the other Push* methods use.
+    void PushPackedNormal(const std::string& name) {
+        m_Elements.emplace_back(name, GL_INT_2_10_10_10_REV, 4, m_Stride, true);
+        m_Stride += 4;
     }
 
     inline const std::vector<BufferElement>& GetElements() const { return m_Elements; }

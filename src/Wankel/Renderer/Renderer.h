@@ -12,6 +12,7 @@ class Camera;
 class Shader;
 class Mesh;
 class Font;
+class OcclusionQuery;
 
 struct FogSettings {
     glm::vec3 Color = {0.12f, 0.1f, 0.2f};
@@ -64,6 +65,22 @@ public:
 
     // Opaque Mesh Pass
     static void Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material);
+
+    // Draws the same mesh once per entry in instanceOffsets (each a world-space translation added to
+    // the vertex position after `transform`, via the aInstanceOffset vertex attribute at location 3 -
+    // see cube.vert) in a single glDrawElementsInstanced call, instead of one Submit() per offset.
+    static void SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Shader* shader,
+                                const Material& material, const std::vector<glm::vec3>& instanceOffsets);
+
+    // Occlusion culling - see OcclusionQuery.h. Typical use: BeginOcclusionQuery/EndOcclusionQuery
+    // around a cheap (or real, color-write-disabled via SetColorWrite) proxy draw, then later
+    // BeginConditionalRender/EndConditionalRender around the real draw so the GPU itself skips it
+    // if the query found nothing visible - no CPU readback/stall either way.
+    static void SetColorWrite(bool enabled);
+    static void BeginOcclusionQuery(const OcclusionQuery& query);
+    static void EndOcclusionQuery();
+    static void BeginConditionalRender(const OcclusionQuery& query);
+    static void EndConditionalRender();
 
     // Debug Pass
     static void SubmitDebugLines(const std::vector<DebugLine>& lines);

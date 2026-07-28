@@ -22,4 +22,9 @@ void VertexBuffer::SetLayout(const VertexBufferLayout& layout) {
     m_Layout = layout;
 }
 
+void VertexBuffer::SetData(const void* data, unsigned int size) {
+    glBindBuffer(GL_ARRAY_BUFFER, m_ID);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+}
+
 } // namespace Wankel

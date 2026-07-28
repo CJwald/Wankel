@@ -7,6 +7,7 @@
 #include "Buffer.h"
 #include "Font.h"
 #include "Texture.h"
+#include "OcclusionQuery.h"
 
 #include "Wankel/Core/Time.h"
 
@@ -49,6 +50,8 @@ struct RendererData {
     uint32_t TextVBO = 0;
     Shader* TextShader = nullptr;
 
+    uint32_t InstanceVBO = 0; // shared across every SubmitInstanced call - see Init()
+
     // Submit() dedup state - reset each BeginScene so a mid-scene SetFog/SetLight change still
     // lands on the next Submit even if the shader/material pointer/value hasn't changed.
     Shader* LastSubmitShader = nullptr;
@@ -60,10 +63,15 @@ struct RendererData {
 static RendererData s_Data;
 static constexpr size_t kMaxDebugVertices = 65536;
 static constexpr size_t kMaxTextVertices = 256 * 6; // 256 glyphs/quads per SubmitText call
+static constexpr size_t kMaxInstancesPerDraw = 4096; // generous headroom over typical simultaneously-visible tile counts
 
 
 void Renderer::Init() {
     glEnable(GL_DEPTH_TEST);
+    // LEQUAL (not the default LESS) so a conditionally-rendered second pass over the same geometry
+    // at the same depth (see BeginConditionalRender) doesn't fail its own depth test - see
+    // OcclusionQuery.h/the occlusion-culling render-loop comments for why this pairing is needed.
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_CULL_FACE);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     //glDisable(GL_CULL_FACE);
@@ -94,6 +102,13 @@ void Renderer::Init() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(TextVertex), (void*)offsetof(TextVertex, UV));
     s_Data.TextShader = new Shader("WankelShaders/text.vert", "WankelShaders/text.frag");
+
+    // SHARED INSTANCE-OFFSET BUFFER (SubmitInstanced) - re-bound as a per-instance attribute onto
+    // whichever mesh VAO is current at draw time, refreshed via glBufferSubData each call, same
+    // "allocate once in Init, glBufferSubData per use" pattern as DebugVBO/TextVBO above.
+    glGenBuffers(1, &s_Data.InstanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.InstanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * kMaxInstancesPerDraw, nullptr, GL_DYNAMIC_DRAW);
 }
 
 
@@ -109,6 +124,8 @@ void Renderer::Shutdown() {
 
     glDeleteBuffers(1, &s_Data.TextVBO);
     glDeleteVertexArrays(1, &s_Data.TextVAO);
+
+    glDeleteBuffers(1, &s_Data.InstanceVBO);
 }
 
 
@@ -147,7 +164,11 @@ void Renderer::EndScene() {
 }
 
 
-void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material) {
+namespace {
+
+// Shared by Submit/SubmitInstanced: shader bind, frame-constant uniform dedup, per-draw model/normal
+// matrix, and material dedup. Everything after this differs (mesh bind + the actual draw call).
+void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& mesh, const Material& material) {
     shader->Bind(); // no-op if already the current program
 
     // Frame-constant uniforms (view/projection/camera/light/fog/time) only need re-uploading to a
@@ -178,7 +199,15 @@ void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shad
         s_Data.LastMaterialValid = false; // this program hasn't seen a material upload yet this frame
     }
 
-    shader->SetMat4("model", transform);
+    // Position-quantized meshes (Mesh's quantizing ctor) store [0,1]-normalized positions - folding
+    // the dequantization into `model` here means the vertex shader needs no changes at all;
+    // identity ({0,0,0}/{1,1,1}) for a non-quantized mesh, so this is always safe to apply. Must NOT
+    // feed into u_NormalMatrix below - that's a packing-artifact correction on position only, not a
+    // real transform of the object, and normals are already correct relative to the original
+    // (pre-quantization) local space.
+    glm::mat4 model = transform * glm::translate(glm::mat4(1.0f), mesh.GetQuantizeMin()) *
+                      glm::scale(glm::mat4(1.0f), mesh.GetQuantizeExtent());
+    shader->SetMat4("model", model);
     shader->SetMat3("u_NormalMatrix", glm::inverseTranspose(glm::mat3(transform)));
 
     // Material uniforms only need re-uploading when they actually differ from the last draw's -
@@ -191,10 +220,64 @@ void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shad
         s_Data.LastMaterial = material;
         s_Data.LastMaterialValid = true;
     }
+}
+
+} // namespace
+
+void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material) {
+    UploadPerDrawState(shader, transform, mesh, material);
 
     mesh.Bind(); // no-op if already the current VAO
 
     glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+}
+
+void Renderer::SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material,
+                               const std::vector<glm::vec3>& instanceOffsets) {
+    if (instanceOffsets.empty())
+        return;
+
+    UploadPerDrawState(shader, transform, mesh, material);
+
+    mesh.Bind(); // binds this chunk's VAO - the attribute setup below applies to it, not whatever was bound before
+
+    size_t count = instanceOffsets.size();
+    if (count > kMaxInstancesPerDraw) {
+        WK_CORE_WARNING("Renderer::SubmitInstanced - {0} instances submitted, truncating to capacity ({1})", count,
+                        kMaxInstancesPerDraw);
+        count = kMaxInstancesPerDraw;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.InstanceVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(glm::vec3), instanceOffsets.data());
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+    glVertexAttribDivisor(3, 1);
+
+    glDrawElementsInstanced(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr, (GLsizei)count);
+}
+
+
+void Renderer::SetColorWrite(bool enabled) {
+    glColorMask(enabled, enabled, enabled, enabled);
+}
+
+void Renderer::BeginOcclusionQuery(const OcclusionQuery& query) {
+    glBeginQuery(GL_ANY_SAMPLES_PASSED, query.GetID());
+}
+
+void Renderer::EndOcclusionQuery() {
+    glEndQuery(GL_ANY_SAMPLES_PASSED);
+}
+
+void Renderer::BeginConditionalRender(const OcclusionQuery& query) {
+    // NO_WAIT: if the result isn't ready yet (e.g. a chunk queried for the first time this frame),
+    // render anyway rather than stalling for it - safe/conservative, never wrongly hides geometry.
+    glBeginConditionalRender(query.GetID(), GL_QUERY_NO_WAIT);
+}
+
+void Renderer::EndConditionalRender() {
+    glEndConditionalRender();
 }
 
 
