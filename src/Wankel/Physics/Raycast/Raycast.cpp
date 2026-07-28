@@ -7,6 +7,7 @@
 
 #include "../Collision/BroadPhase/AABB.h"
 #include "../Collision/NarrowPhase/Sphere.h"
+#include "../Collision/TriangleMesh.h"
 
 namespace Wankel {
 
@@ -114,6 +115,95 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
         outHit.Normal = normal;
 
         hitAnything = true;
+    }
+
+    return hitAnything;
+}
+
+namespace {
+
+// Standard Moeller-Trumbore ray-triangle test. Nothing like this existed anywhere in the engine
+// before RaycastMesh needed it (TriangleMesh's own collision code only does closest-point/SAT
+// tests against other shapes, never against a ray).
+bool IntersectRayTriangle(const Ray& ray, const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2,
+                          float& outT) {
+    constexpr float kEpsilon = 1e-7f;
+    glm::vec3 dir = glm::normalize(ray.Direction);
+
+    glm::vec3 edge1 = p1 - p0;
+    glm::vec3 edge2 = p2 - p0;
+    glm::vec3 pvec = glm::cross(dir, edge2);
+    float det = glm::dot(edge1, pvec);
+    if (std::abs(det) < kEpsilon)
+        return false; // ray parallel to the triangle's plane
+
+    float invDet = 1.0f / det;
+    glm::vec3 tvec = ray.Origin - p0;
+    float u = glm::dot(tvec, pvec) * invDet;
+    if (u < 0.0f || u > 1.0f)
+        return false;
+
+    glm::vec3 qvec = glm::cross(tvec, edge1);
+    float v = glm::dot(dir, qvec) * invDet;
+    if (v < 0.0f || u + v > 1.0f)
+        return false;
+
+    float t = glm::dot(edge2, qvec) * invDet;
+    if (t < 0.0f)
+        return false;
+
+    outT = t;
+    return true;
+}
+
+} // namespace
+
+bool RaycastMesh(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDistance) {
+    auto& registry = scene.Registry();
+    auto view = registry.view<Transform, MeshCollider>();
+
+    bool hitAnything = false;
+    float closest = maxDistance;
+    glm::vec3 dir = glm::normalize(ray.Direction);
+
+    for (auto e : view) {
+        auto& t = view.get<Transform>(e);
+        auto& collider = view.get<MeshCollider>(e);
+
+        if (!collider.Mesh)
+            continue;
+
+        glm::vec3 origin = t.LocalPosition + collider.Offset;
+        AABB worldBounds {collider.Mesh->LocalBounds().Min + origin, collider.Mesh->LocalBounds().Max + origin};
+
+        // Whole-mesh reject before touching any triangle, same reasoning as TriangleMesh's own
+        // narrow-phase collision functions (SphereMeshCollision.cpp etc).
+        float boundsT;
+        glm::vec3 boundsNormal;
+        if (!IntersectRayAABB(ray, worldBounds, boundsT, boundsNormal) || boundsT > closest)
+            continue;
+
+        size_t triCount = collider.Mesh->GetTriangleCount();
+        for (size_t i = 0; i < triCount; i++) {
+            glm::vec3 p0, p1, p2;
+            collider.Mesh->GetTriangle(i, p0, p1, p2);
+            p0 += origin;
+            p1 += origin;
+            p2 += origin;
+
+            float triT;
+            if (!IntersectRayTriangle(ray, p0, p1, p2, triT) || triT > closest)
+                continue;
+
+            closest = triT;
+
+            outHit.HitEntity = Entity(e, &registry);
+            outHit.Distance = triT;
+            outHit.Point = ray.Origin + dir * triT;
+            outHit.Normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
+
+            hitAnything = true;
+        }
     }
 
     return hitAnything;
