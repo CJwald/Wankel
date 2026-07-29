@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <unordered_map>
 #include <vector>
 #include <glm/glm.hpp>
@@ -13,11 +14,15 @@ class SpatialHashGrid {
 public:
     SpatialHashGrid(float cellSize) : m_CellSize(cellSize) {}
 
-    void Clear() { m_Cells.clear(); }
+    void Clear() {
+        m_Cells.clear();
+        m_EntityCells.clear();
+    }
 
     void Insert(entt::entity entity, const glm::vec3& position) {
         auto key = Hash(PositionToCell(position));
         m_Cells[key].push_back(entity);
+        m_EntityCells[entity].push_back(key);
     }
 
     // Inserts into every cell `bounds` spans, not just one - a point-sized
@@ -33,7 +38,28 @@ public:
                 for (int z = minCell.z; z <= maxCell.z; z++) {
                     auto key = Hash(glm::ivec3(x, y, z));
                     m_Cells[key].push_back(entity);
+                    m_EntityCells[entity].push_back(key);
                 }
+    }
+
+    // Removes entity from every cell it currently occupies, via the reverse map Insert/InsertAABB
+    // populate above - lets a caller update a single collider (e.g. one edited voxel terrain chunk)
+    // without a full Clear()+rebuild of the whole grid. No-op if entity was never inserted.
+    void Remove(entt::entity entity) {
+        auto it = m_EntityCells.find(entity);
+        if (it == m_EntityCells.end())
+            return;
+
+        for (int64_t key : it->second) {
+            auto cellIt = m_Cells.find(key);
+            if (cellIt == m_Cells.end())
+                continue;
+            auto& bucket = cellIt->second;
+            bucket.erase(std::remove(bucket.begin(), bucket.end(), entity), bucket.end());
+            if (bucket.empty())
+                m_Cells.erase(cellIt);
+        }
+        m_EntityCells.erase(it);
     }
 
     std::vector<entt::entity> Query(const glm::vec3& position) {
@@ -62,6 +88,7 @@ private:
     float m_CellSize;
 
     std::unordered_map<int64_t, std::vector<entt::entity>> m_Cells;
+    std::unordered_map<entt::entity, std::vector<int64_t>> m_EntityCells;
 
 private:
     glm::ivec3 PositionToCell(const glm::vec3& pos) {

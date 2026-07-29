@@ -42,6 +42,9 @@ struct RendererData {
     LightSettings Light;
 
     std::vector<DebugVertex> DebugVertices;
+    // Same vertex format/shader/GL objects as DebugVertices, drawn every frame regardless of
+    // DebugEnabled - see SubmitGameplayLines.
+    std::vector<DebugVertex> GameplayLineVertices;
     uint32_t DebugVAO = 0;
     uint32_t DebugVBO = 0;
     Shader* DebugShader = nullptr;
@@ -63,7 +66,8 @@ struct RendererData {
 static RendererData s_Data;
 static constexpr size_t kMaxDebugVertices = 65536;
 static constexpr size_t kMaxTextVertices = 256 * 6; // 256 glyphs/quads per SubmitText call
-static constexpr size_t kMaxInstancesPerDraw = 4096; // generous headroom over typical simultaneously-visible tile counts
+static constexpr size_t kMaxInstancesPerDraw =
+    4096; // generous headroom over typical simultaneously-visible tile counts
 
 
 void Renderer::Init() {
@@ -134,33 +138,47 @@ void Renderer::BeginScene(const Camera& camera) {
     s_Data.Projection = camera.GetProjectionMatrix();
     s_Data.CameraPos = camera.GetPosition();
     s_Data.DebugVertices.clear();
+    s_Data.GameplayLineVertices.clear();
     s_Data.LastSubmitShader = nullptr;
     s_Data.LastMaterialValid = false;
 }
 
 
-void Renderer::EndScene() {
-    // DEBUG PASS
-    if (DebugEnabled && !s_Data.DebugVertices.empty()) {
-        size_t vertexCount = s_Data.DebugVertices.size();
+namespace {
 
-        if (vertexCount > kMaxDebugVertices) {
-            WK_CORE_WARNING("Renderer::EndScene - {0} debug vertices submitted, truncating to capacity ({1})",
-                            vertexCount, kMaxDebugVertices);
-            vertexCount = kMaxDebugVertices;
-        }
+// Shared by both line queues below - same shader/VAO/VBO either way, just a different vertex source.
+void FlushLineQueue(const std::vector<DebugVertex>& vertices) {
+    if (vertices.empty())
+        return;
 
-        s_Data.DebugShader->Bind();
-        s_Data.DebugShader->SetMat4("view", s_Data.View);
-        s_Data.DebugShader->SetMat4("projection", s_Data.Projection);
-
-        glBindVertexArray(s_Data.DebugVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), s_Data.DebugVertices.data());
-        glDisable(GL_CULL_FACE);
-        glDrawArrays(GL_LINES, 0, (GLsizei)vertexCount);
-        glEnable(GL_CULL_FACE);
+    size_t vertexCount = vertices.size();
+    if (vertexCount > kMaxDebugVertices) {
+        WK_CORE_WARNING("Renderer::EndScene - {0} line vertices submitted, truncating to capacity ({1})", vertexCount,
+                        kMaxDebugVertices);
+        vertexCount = kMaxDebugVertices;
     }
+
+    s_Data.DebugShader->Bind();
+    s_Data.DebugShader->SetMat4("view", s_Data.View);
+    s_Data.DebugShader->SetMat4("projection", s_Data.Projection);
+
+    glBindVertexArray(s_Data.DebugVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), vertices.data());
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_LINES, 0, (GLsizei)vertexCount);
+    glEnable(GL_CULL_FACE);
+}
+
+} // namespace
+
+void Renderer::EndScene() {
+    // DEBUG PASS - gated, only visible with the "Debug Draw" toggle on.
+    if (DebugEnabled)
+        FlushLineQueue(s_Data.DebugVertices);
+
+    // GAMEPLAY PASS - always drawn, see SubmitGameplayLines.
+    FlushLineQueue(s_Data.GameplayLineVertices);
 }
 
 
@@ -289,6 +307,51 @@ void Renderer::SubmitDebugLines(const std::vector<DebugLine>& lines) {
         s_Data.DebugVertices.push_back({line.P0, line.Color});
         s_Data.DebugVertices.push_back({line.P1, line.Color});
     }
+}
+
+void Renderer::SubmitGameplayLines(const std::vector<DebugLine>& lines) {
+    for (const auto& line : lines) {
+        s_Data.GameplayLineVertices.push_back({line.P0, line.Color});
+        s_Data.GameplayLineVertices.push_back({line.P1, line.Color});
+    }
+}
+
+void Renderer::SubmitScreenLines(const std::vector<DebugLine>& lines, uint32_t screenWidth, uint32_t screenHeight) {
+    if (lines.empty() || screenWidth == 0 || screenHeight == 0)
+        return;
+
+    std::vector<DebugVertex> vertices;
+    vertices.reserve(lines.size() * 2);
+    for (const auto& line : lines) {
+        vertices.push_back({line.P0, line.Color});
+        vertices.push_back({line.P1, line.Color});
+    }
+
+    size_t vertexCount = vertices.size();
+    if (vertexCount > kMaxDebugVertices) {
+        WK_CORE_WARNING("Renderer::SubmitScreenLines - {0} vertices submitted, truncating to capacity ({1})",
+                        vertexCount, kMaxDebugVertices);
+        vertexCount = kMaxDebugVertices;
+    }
+
+    // Same DebugVAO/DebugVBO/DebugShader as the 3D line queues, just fed an orthographic pixel-space
+    // projection and an identity view instead - reuses the shader's `projection * view * position`
+    // transform for 2D screen space rather than adding a second shader/GL object set.
+    glm::mat4 projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
+
+    s_Data.DebugShader->Bind();
+    s_Data.DebugShader->SetMat4("view", glm::mat4(1.0f));
+    s_Data.DebugShader->SetMat4("projection", projection);
+
+    glBindVertexArray(s_Data.DebugVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), vertices.data());
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_LINES, 0, (GLsizei)vertexCount);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 }
 
 

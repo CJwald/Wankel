@@ -69,8 +69,8 @@ public:
     // Draws the same mesh once per entry in instanceOffsets (each a world-space translation added to
     // the vertex position after `transform`, via the aInstanceOffset vertex attribute at location 3 -
     // see cube.vert) in a single glDrawElementsInstanced call, instead of one Submit() per offset.
-    static void SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Shader* shader,
-                                const Material& material, const std::vector<glm::vec3>& instanceOffsets);
+    static void SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material,
+                                const std::vector<glm::vec3>& instanceOffsets);
 
     // Occlusion culling - see OcclusionQuery.h. Typical use: BeginOcclusionQuery/EndOcclusionQuery
     // around a cheap (or real, color-write-disabled via SetColorWrite) proxy draw, then later
@@ -84,6 +84,16 @@ public:
 
     // Debug Pass
     static void SubmitDebugLines(const std::vector<DebugLine>& lines);
+
+    // Gameplay Pass - unlike SubmitDebugLines, always drawn regardless of Renderer::DebugEnabled.
+    // For player-facing wireframes (e.g. a voxel targeting highlight) that must be visible in
+    // normal play, not just when the debug overlay is toggled on.
+    static void SubmitGameplayLines(const std::vector<DebugLine>& lines);
+
+    // Screen-space line overlay (pixels, Y-down, origin top-left; DebugLine.P0/P1.z is ignored) -
+    // draws immediately, independent of BeginScene/EndScene's 3D camera, same as SubmitText. For
+    // simple UI wireframes (e.g. a center-screen crosshair) where a font glyph isn't the right tool.
+    static void SubmitScreenLines(const std::vector<DebugLine>& lines, uint32_t screenWidth, uint32_t screenHeight);
 
     // Screen-space text overlay (pixels, Y-down, origin top-left) - draws
     // immediately, independent of BeginScene/EndScene's 3D camera. Call

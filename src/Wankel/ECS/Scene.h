@@ -41,6 +41,14 @@ public:
     // (e.g. terrain regeneration) so the cached static broad-phase grid picks it up.
     void MarkStaticCollidersDirty() { m_PhysicsSystem.MarkStaticCollidersDirty(); }
 
+    // Forwards to PhysicsSystem - prefer these over MarkStaticCollidersDirty() when only a few
+    // static colliders changed (e.g. voxel terrain edits), since a full rebuild costs O(whole
+    // static collider set) regardless of how many entities actually changed.
+    void UpdateStaticCollider(Entity entity, const AABB& worldBounds) {
+        m_PhysicsSystem.UpdateStaticCollider(entity.GetHandle(), worldBounds);
+    }
+    void RemoveStaticCollider(Entity entity) { m_PhysicsSystem.RemoveStaticCollider(entity.GetHandle()); }
+
 private:
     PlayerControllerSystem m_PlayerControllerSystem;
     TransformSystem m_TransformSystem;
