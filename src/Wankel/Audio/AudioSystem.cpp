@@ -15,8 +15,8 @@ struct Voice {
     ma_audio_buffer_ref BufferRef {};
     ma_sound Sound {};
     Ref<AudioClip> ClipRef; // keeps the clip's PCM data alive for as long as
-                             // this voice references it, regardless of what
-                             // the caller does with its own Ref afterward.
+                            // this voice references it, regardless of what
+                            // the caller does with its own Ref afterward.
     bool Initialized = false;
 };
 
@@ -68,8 +68,8 @@ void AudioSystem::Play(const Ref<AudioClip>& clip, float volume) {
 
     ReleaseVoice(voice); // voice stealing - cut short whatever was playing here
 
-    ma_result result = ma_audio_buffer_ref_init(ma_format_f32, 1, clip->GetSamples().data(),
-                                                 clip->GetSamples().size(), &voice.BufferRef);
+    ma_result result = ma_audio_buffer_ref_init(ma_format_f32, 1, clip->GetSamples().data(), clip->GetSamples().size(),
+                                                &voice.BufferRef);
     if (result != MA_SUCCESS) {
         WK_CORE_WARNING("AudioSystem::Play - ma_audio_buffer_ref_init failed ({0})", (int)result);
         return;
@@ -81,8 +81,8 @@ void AudioSystem::Play(const Ref<AudioClip>& clip, float volume) {
     // workaround.
     voice.BufferRef.sampleRate = clip->GetSampleRate();
 
-    result =
-        ma_sound_init_from_data_source(&s_Engine, &voice.BufferRef, MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr, &voice.Sound);
+    result = ma_sound_init_from_data_source(&s_Engine, &voice.BufferRef, MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr,
+                                            &voice.Sound);
     if (result != MA_SUCCESS) {
         WK_CORE_WARNING("AudioSystem::Play - ma_sound_init_from_data_source failed ({0})", (int)result);
         ma_audio_buffer_ref_uninit(&voice.BufferRef);

@@ -103,23 +103,22 @@ NarrowPhaseTable BuildNarrowPhaseTable() {
         return SpherevsAABB(ToSphere(sphere), ToAABB(box));
     };
 
-    table[Idx(ColliderType::Capsule)][Idx(ColliderType::Capsule)] = [](const ColliderShape& a,
-                                                                        const ColliderShape& b) {
+    table[Idx(ColliderType::Capsule)][Idx(ColliderType::Capsule)] = [](const ColliderShape& a, const ColliderShape& b) {
         return CapsulevsCapsule(ToCapsule(a), ToCapsule(b));
     };
 
     table[Idx(ColliderType::Sphere)][Idx(ColliderType::Capsule)] = [](const ColliderShape& sphere,
-                                                                       const ColliderShape& capsule) {
+                                                                      const ColliderShape& capsule) {
         return SpherevsCapsule(ToSphere(sphere), ToCapsule(capsule));
     };
 
     table[Idx(ColliderType::AABB)][Idx(ColliderType::Capsule)] = [](const ColliderShape& box,
-                                                                     const ColliderShape& capsule) {
+                                                                    const ColliderShape& capsule) {
         return CapsulevsAABB(ToCapsule(capsule), ToAABB(box));
     };
 
     table[Idx(ColliderType::Sphere)][Idx(ColliderType::Mesh)] = [](const ColliderShape& sphere,
-                                                                    const ColliderShape& mesh) {
+                                                                   const ColliderShape& mesh) {
         return SpherevsMesh(ToSphere(sphere), mesh.Center, *mesh.Mesh);
     };
 
@@ -128,7 +127,7 @@ NarrowPhaseTable BuildNarrowPhaseTable() {
     };
 
     table[Idx(ColliderType::Capsule)][Idx(ColliderType::Mesh)] = [](const ColliderShape& capsule,
-                                                                     const ColliderShape& mesh) {
+                                                                    const ColliderShape& mesh) {
         return CapsulevsMesh(ToCapsule(capsule), mesh.Center, *mesh.Mesh);
     };
 

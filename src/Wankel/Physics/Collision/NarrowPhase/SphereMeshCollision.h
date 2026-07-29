@@ -10,4 +10,4 @@ namespace Wankel {
 // (MeshCollider is translation-only, so this is the whole world transform).
 CollisionManifold SpherevsMesh(const Sphere& sphere, const glm::vec3& meshOrigin, const TriangleMesh& mesh);
 
-}
+} // namespace Wankel

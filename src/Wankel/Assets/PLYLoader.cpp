@@ -44,7 +44,7 @@ void PLYLoader::Load(const std::string& path, std::vector<Vertex>& outVertices, 
             // read it as text, so fail loudly instead.
             if (line.find("ascii") == std::string::npos)
                 throw std::runtime_error("PLYLoader: '" + path +
-                                          "' is not an ASCII PLY file (only ASCII is supported): " + line);
+                                         "' is not an ASCII PLY file (only ASCII is supported): " + line);
         } else if (line.find("element vertex") != std::string::npos) {
             std::stringstream ss(line);
             std::string tmp;
@@ -122,7 +122,7 @@ void PLYLoader::Load(const std::string& path, std::vector<Vertex>& outVertices, 
 
             if (idx[i] >= vertexCount) {
                 WK_CORE_WARNING("PLYLoader: face index {0} out of range (vertex count {1}) in '{2}'", idx[i],
-                                 vertexCount, path);
+                                vertexCount, path);
                 valid = false;
                 break;
             }
@@ -141,8 +141,8 @@ void PLYLoader::Load(const std::string& path, std::vector<Vertex>& outVertices, 
         facesRead++;
     }
 
-    WK_CORE_INFO("PLYLoader: loaded '{0}' ({1} vertices, {2} faces, {3} indices)", path, outVertices.size(),
-                 facesRead, outIndices.size());
+    WK_CORE_INFO("PLYLoader: loaded '{0}' ({1} vertices, {2} faces, {3} indices)", path, outVertices.size(), facesRead,
+                 outIndices.size());
 
     ComputeSmoothNormals(outVertices, outIndices);
 }

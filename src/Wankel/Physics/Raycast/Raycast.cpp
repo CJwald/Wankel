@@ -125,8 +125,7 @@ namespace {
 // Standard Moeller-Trumbore ray-triangle test. Nothing like this existed anywhere in the engine
 // before RaycastMesh needed it (TriangleMesh's own collision code only does closest-point/SAT
 // tests against other shapes, never against a ray).
-bool IntersectRayTriangle(const Ray& ray, const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2,
-                          float& outT) {
+bool IntersectRayTriangle(const Ray& ray, const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2, float& outT) {
     constexpr float kEpsilon = 1e-7f;
     glm::vec3 dir = glm::normalize(ray.Direction);
 

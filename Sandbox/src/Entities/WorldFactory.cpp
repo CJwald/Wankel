@@ -24,9 +24,8 @@ float RandomFloat() {
 } // namespace
 
 void WorldFactory::Create(Scene& scene) {
-    Ref<Mesh> cubeMesh = AssetManager::GetOrCreateMesh("builtin:cube", [] { 
-		return CreateRef<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices); 
-	});
+    Ref<Mesh> cubeMesh = AssetManager::GetOrCreateMesh(
+        "builtin:cube", [] { return CreateRef<Mesh>(Geometry::CubeVertices, Geometry::CubeIndices); });
     Ref<Mesh> groundMesh = AssetManager::GetMesh("Assets/Mesh/Rolling200m.ply");
 
     // RANDOM CUBES

@@ -9,7 +9,7 @@ namespace {
 // Collision Detection, 5.1.9). Handles parallel/degenerate segments via the
 // standard clamp-and-reclamp case analysis.
 void ClosestPtSegmentSegment(const glm::vec3& p1, const glm::vec3& q1, const glm::vec3& p2, const glm::vec3& q2,
-                              glm::vec3& c1, glm::vec3& c2) {
+                             glm::vec3& c1, glm::vec3& c2) {
     constexpr float kEpsilon = 1e-8f;
 
     glm::vec3 d1 = q1 - p1;

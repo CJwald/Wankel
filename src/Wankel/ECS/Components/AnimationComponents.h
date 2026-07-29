@@ -20,8 +20,8 @@ struct MeshAnimation {
     // Enables Links[from][to] and sets its tuning in one call instead of six
     // separate field assignments. Doesn't touch Spring - ProceduralAnimationSystem
     // reconstructs it from Frequency/Damping/Response every frame regardless.
-    MotionLink& SetLink(MotionAxis from, MotionAxis to, float magnitude, float frequency, float damping,
-                        float response, float clamp) {
+    MotionLink& SetLink(MotionAxis from, MotionAxis to, float magnitude, float frequency, float damping, float response,
+                        float clamp) {
         auto& link = Links[(int)from][(int)to];
         link.Enabled = true;
         link.Magnitude = magnitude;

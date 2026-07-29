@@ -38,7 +38,7 @@ void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std:
 
             if (prim.type != cgltf_primitive_type_triangles) {
                 WK_CORE_WARNING("GltfLoader: skipping non-triangle primitive in mesh '{0}'",
-                                 node->mesh->name ? node->mesh->name : "(unnamed)");
+                                node->mesh->name ? node->mesh->name : "(unnamed)");
                 continue;
             }
 
@@ -148,7 +148,7 @@ void GltfLoader::Load(const std::string& path, std::vector<Vertex>& outVertices,
     cgltf_result result = cgltf_parse_file(&options, path.c_str(), &data);
     if (result != cgltf_result_success)
         throw std::runtime_error("GltfLoader: failed to parse '" + path + "' (cgltf error " +
-                                  std::to_string((int)result) + ")");
+                                 std::to_string((int)result) + ")");
 
     result = cgltf_load_buffers(&options, data, path.c_str());
     if (result != cgltf_result_success) {

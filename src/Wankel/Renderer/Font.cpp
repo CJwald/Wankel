@@ -14,7 +14,7 @@ namespace Wankel {
 namespace {
 
 constexpr int kFirstChar = 32;
-constexpr int kNumChars = 96; // ASCII 32..127 - covers standard printable text
+constexpr int kNumChars = 96;   // ASCII 32..127 - covers standard printable text
 constexpr int kAtlasSize = 512; // fixed square atlas; comfortably fits one baked ASCII set
 
 } // namespace
@@ -35,12 +35,11 @@ Ref<Font> Font::Load(const std::string& ttfPath, float pixelHeight) {
     std::vector<uint8_t> bakedChars(sizeof(stbtt_bakedchar) * kNumChars);
 
     int result = stbtt_BakeFontBitmap(fontData.data(), 0, pixelHeight, atlasPixels.data(), kAtlasSize, kAtlasSize,
-                                       kFirstChar, kNumChars, reinterpret_cast<stbtt_bakedchar*>(bakedChars.data()));
+                                      kFirstChar, kNumChars, reinterpret_cast<stbtt_bakedchar*>(bakedChars.data()));
 
     if (result <= 0)
         throw std::runtime_error("Font: '" + ttfPath + "' didn't fit in the " + std::to_string(kAtlasSize) + "x" +
-                                  std::to_string(kAtlasSize) + " atlas at pixel height " +
-                                  std::to_string(pixelHeight));
+                                 std::to_string(kAtlasSize) + " atlas at pixel height " + std::to_string(pixelHeight));
 
     auto font = CreateRef<Font>();
     font->m_AtlasTexture = CreateRef<Texture>(atlasPixels.data(), (uint32_t)kAtlasSize, (uint32_t)kAtlasSize);
@@ -48,8 +47,7 @@ Ref<Font> Font::Load(const std::string& ttfPath, float pixelHeight) {
     font->m_AtlasWidth = kAtlasSize;
     font->m_AtlasHeight = kAtlasSize;
 
-    WK_CORE_INFO("Font: loaded '{0}' ({1}px, atlas {2}x{2}, {3} rows used)", ttfPath, pixelHeight, kAtlasSize,
-                 result);
+    WK_CORE_INFO("Font: loaded '{0}' ({1}px, atlas {2}x{2}, {3} rows used)", ttfPath, pixelHeight, kAtlasSize, result);
 
     return font;
 }

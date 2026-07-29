@@ -13,7 +13,7 @@ namespace {
 // and the triangle's 3 (box-relative) vertices onto `axis`, returns true if
 // this axis separates them (i.e. no overlap on this axis alone).
 bool IsSeparatingAxis(const glm::vec3& axis, const glm::vec3& boxHalfSize, const glm::vec3& v0, const glm::vec3& v1,
-                     const glm::vec3& v2) {
+                      const glm::vec3& v2) {
     float axisLen2 = glm::dot(axis, axis);
     if (axisLen2 < 1e-10f)
         return false; // degenerate (near-zero) axis - can't separate, skip it

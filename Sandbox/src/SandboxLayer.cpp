@@ -118,7 +118,8 @@ void SandboxLayer::OnUpdate() {
     // Cube click test
     static bool lastClick = false;
 
-    bool click = Input::IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) || ControllerInput::IsButtonPressed(0, GamepadButton::R1);
+    bool click =
+        Input::IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) || ControllerInput::IsButtonPressed(0, GamepadButton::R1);
     for (int i = 0; i < 16; i++) {
         if (ControllerInput::IsButtonPressed(0, (GamepadButton)i)) {
             WK_CORE_INFO("BUTTON PRESSED: {0}", i);
@@ -167,38 +168,39 @@ void SandboxLayer::OnUpdate() {
 
     // X Y Z loop for tiling world
     for (int ix = -m_RepeatN; ix <= m_RepeatN; ix++) {
-    for (int iy = -m_RepeatN; iy <= m_RepeatN; iy++) {
-    for (int iz = -m_RepeatN; iz <= m_RepeatN; iz++) {
-        glm::vec3 worldOffset = glm::vec3(ix, iy, iz) * m_ChunkSize;
+        for (int iy = -m_RepeatN; iy <= m_RepeatN; iy++) {
+            for (int iz = -m_RepeatN; iz <= m_RepeatN; iz++) {
+                glm::vec3 worldOffset = glm::vec3(ix, iy, iz) * m_ChunkSize;
 
-        if (!(ix == 0 && iy == 0 && iz == 0)) {
-            // check if chunk behind camera
-            glm::vec3 chunkCenter = worldOffset;
-            glm::vec3 toChunk = chunkCenter - camPos;
-            float chunklen = glm::length(toChunk);
-            if (chunklen > 0.001f) {
-                float d = glm::dot(toChunk / chunklen, camForward);
+                if (!(ix == 0 && iy == 0 && iz == 0)) {
+                    // check if chunk behind camera
+                    glm::vec3 chunkCenter = worldOffset;
+                    glm::vec3 toChunk = chunkCenter - camPos;
+                    float chunklen = glm::length(toChunk);
+                    if (chunklen > 0.001f) {
+                        float d = glm::dot(toChunk / chunklen, camForward);
 
-                // Skip chunks behind camera
-                if (d < -0.05f)
-                    continue;
-            }
-        }
+                        // Skip chunks behind camera
+                        if (d < -0.05f)
+                            continue;
+                    }
+                }
 
-        // Render
-        for (auto entity : view) {
-            auto& transform = view.get<Transform>(entity);
-            auto& mesh = view.get<MeshRenderer>(entity);
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform * mesh.GetLocalTransform();
+                // Render
+                for (auto entity : view) {
+                    auto& transform = view.get<Transform>(entity);
+                    auto& mesh = view.get<MeshRenderer>(entity);
+                    glm::mat4 model = glm::translate(glm::mat4(1.0f), worldOffset) * transform.FinalTransform *
+                                      mesh.GetLocalTransform();
 
-            const Material* material = m_Scene.Registry().try_get<Material>(entity);
-            Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get(), material ? *material : Material{});
-        }
+                    const Material* material = m_Scene.Registry().try_get<Material>(entity);
+                    Renderer::Submit(model, *mesh.MeshPtr, m_Shader.get(), material ? *material : Material {});
+                }
 
-        ColliderDebugDraw::Draw(m_Scene, worldOffset);
+                ColliderDebugDraw::Draw(m_Scene, worldOffset);
 
-    } // Z
-    } // Y
+            } // Z
+        } // Y
     } // X
 
     Renderer::EndScene();
@@ -223,7 +225,8 @@ void SandboxLayer::OnUpdate() {
         for (auto entity : playerView) {
             auto& controller = playerView.get<PlayerController>(entity);
 
-            const std::string modeText = std::string("Mode: ") + (controller.Mode == PlayerController::LookMode::FPS ? "FPS" : "FLIGHT");
+            const std::string modeText =
+                std::string("Mode: ") + (controller.Mode == PlayerController::LookMode::FPS ? "FPS" : "FLIGHT");
             float modeWidth = m_TitleFont->MeasureWidth(modeText);
             glm::vec2 modePos = {(float)screenWidth - padding - modeWidth, (float)screenHeight - padding};
 

@@ -33,7 +33,7 @@ public:
     // from its neighbor's (their triangulated surfaces don't usually span the same sub-volume
     // even though they must agree exactly at the shared boundary), reintroducing seam cracks.
     Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const glm::vec3& quantizeMin,
-        const glm::vec3& quantizeMax);
+         const glm::vec3& quantizeMax);
 
     ~Mesh();
 

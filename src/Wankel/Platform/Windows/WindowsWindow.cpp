@@ -202,9 +202,15 @@ void WindowsWindow::SetCursorMode(CursorMode mode) {
 
     int glfwMode = GLFW_CURSOR_DISABLED;
     switch (mode) {
-        case CursorMode::Normal: glfwMode = GLFW_CURSOR_NORMAL; break;
-        case CursorMode::Hidden: glfwMode = GLFW_CURSOR_HIDDEN; break;
-        case CursorMode::Disabled: glfwMode = GLFW_CURSOR_DISABLED; break;
+        case CursorMode::Normal:
+            glfwMode = GLFW_CURSOR_NORMAL;
+            break;
+        case CursorMode::Hidden:
+            glfwMode = GLFW_CURSOR_HIDDEN;
+            break;
+        case CursorMode::Disabled:
+            glfwMode = GLFW_CURSOR_DISABLED;
+            break;
     }
 
     glfwSetInputMode(m_Window, GLFW_CURSOR, glfwMode);

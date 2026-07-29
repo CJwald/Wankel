@@ -69,43 +69,31 @@ void ColliderDebugDraw::Draw(Scene& scene, const glm::vec3& worldOffset) {
         glm::vec3 colliderLineColor = {0.4f, 0.0f, 1.0f};
         // Right
         lines.push_back({cOrigin + right * cDims[0] + up * cDims[1] + forward * cDims[2],
-                         cOrigin + right * cDims[0] + up * cDims[1] - forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin + right * cDims[0] + up * cDims[1] - forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin + right * cDims[0] + up * cDims[1] - forward * cDims[2],
-                         cOrigin + right * cDims[0] - up * cDims[1] - forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin + right * cDims[0] - up * cDims[1] - forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin + right * cDims[0] - up * cDims[1] - forward * cDims[2],
-                         cOrigin + right * cDims[0] - up * cDims[1] + forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin + right * cDims[0] - up * cDims[1] + forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin + right * cDims[0] - up * cDims[1] + forward * cDims[2],
-                         cOrigin + right * cDims[0] + up * cDims[1] + forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin + right * cDims[0] + up * cDims[1] + forward * cDims[2], colliderLineColor});
         // Left
         lines.push_back({cOrigin - right * cDims[0] + up * cDims[1] + forward * cDims[2],
-                         cOrigin - right * cDims[0] + up * cDims[1] - forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] + up * cDims[1] - forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin - right * cDims[0] + up * cDims[1] - forward * cDims[2],
-                         cOrigin - right * cDims[0] - up * cDims[1] - forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] - up * cDims[1] - forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin - right * cDims[0] - up * cDims[1] - forward * cDims[2],
-                         cOrigin - right * cDims[0] - up * cDims[1] + forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] - up * cDims[1] + forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin - right * cDims[0] - up * cDims[1] + forward * cDims[2],
-                         cOrigin - right * cDims[0] + up * cDims[1] + forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] + up * cDims[1] + forward * cDims[2], colliderLineColor});
         // Connection lines
         lines.push_back({cOrigin + right * cDims[0] + up * cDims[1] + forward * cDims[2],
-                         cOrigin - right * cDims[0] + up * cDims[1] + forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] + up * cDims[1] + forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin + right * cDims[0] + up * cDims[1] - forward * cDims[2],
-                         cOrigin - right * cDims[0] + up * cDims[1] - forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] + up * cDims[1] - forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin + right * cDims[0] - up * cDims[1] + forward * cDims[2],
-                         cOrigin - right * cDims[0] - up * cDims[1] + forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] - up * cDims[1] + forward * cDims[2], colliderLineColor});
         lines.push_back({cOrigin + right * cDims[0] - up * cDims[1] - forward * cDims[2],
-                         cOrigin - right * cDims[0] - up * cDims[1] - forward * cDims[2],
-                         colliderLineColor});
+                         cOrigin - right * cDims[0] - up * cDims[1] - forward * cDims[2], colliderLineColor});
 
         Renderer::SubmitDebugLines(lines);
     }

@@ -8,9 +8,9 @@
 namespace Wankel {
 
 enum class CursorMode {
-    Normal,   // visible, free to move off-window
-    Hidden,   // hidden over the window, but not locked/re-centered
-    Disabled  // hidden and locked to the window (FPS-style look control)
+    Normal,  // visible, free to move off-window
+    Hidden,  // hidden over the window, but not locked/re-centered
+    Disabled // hidden and locked to the window (FPS-style look control)
 };
 
 struct WindowProps {

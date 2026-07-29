@@ -50,7 +50,7 @@ uint16_t QuantizeComponent(float value, float min, float extent) {
 // Shared by the quantizing constructor and UpdateData, so a mesh's GPU buffers can be respecified
 // with fresh data (see UpdateData) without duplicating this packing logic.
 std::vector<QuantizedVertex> BuildQuantizedVertices(const std::vector<Wankel::Vertex>& vertices, const glm::vec3& min,
-                                                     const glm::vec3& extent) {
+                                                    const glm::vec3& extent) {
     std::vector<QuantizedVertex> packed;
     packed.reserve(vertices.size());
     for (const Wankel::Vertex& v : vertices) {
@@ -97,7 +97,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const glm::vec3& quantizeMin,
-          const glm::vec3& quantizeMax)
+           const glm::vec3& quantizeMax)
     : m_Vertices(vertices), m_Indices(indices), m_IndexCount((uint32_t)indices.size()), m_QuantizeMin(quantizeMin),
       m_QuantizeExtent(quantizeMax - quantizeMin) {
     m_VertexArray = std::make_unique<VertexArray>();
@@ -105,8 +105,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
 
     std::vector<QuantizedVertex> packed = BuildQuantizedVertices(m_Vertices, m_QuantizeMin, m_QuantizeExtent);
 
-    m_VertexBuffer =
-        std::make_unique<VertexBuffer>(packed.data(), (uint32_t)(packed.size() * sizeof(QuantizedVertex)));
+    m_VertexBuffer = std::make_unique<VertexBuffer>(packed.data(), (uint32_t)(packed.size() * sizeof(QuantizedVertex)));
 
     m_IndexBuffer = std::make_unique<IndexBuffer>(m_Indices.data(), m_IndexCount);
 
