@@ -72,14 +72,14 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // BUILD SPATIAL GRIDS
     //
     // Static colliders (terrain chunks in particular) almost never move or change, but
-    // InsertAABB() spans every grid cell a collider's bounds touch - for a 16-unit voxel chunk
-    // at this grid's 1.0 cell size, that's on the order of 4900 cells per chunk. Re-inserting
-    // every static collider from scratch on every single Update() call was costing a full-world
-    // voxel terrain multiple *million* hash-map insertions a frame for geometry that hadn't
-    // changed since the previous frame. The static grid is now cached across frames and only
-    // rebuilt when MarkStaticCollidersDirty() says the static collider set actually changed
-    // (terrain regenerated, a static prop spawned/despawned, etc) - the dynamic grid (few, moving
-    // bodies) is cheap enough to still just rebuild every frame.
+    // InsertAABB() spans every grid cell a collider's bounds touch - even at this grid's coarser,
+    // static-tuned cell size (see m_StaticGrid's own comment), a full-world voxel terrain is still
+    // thousands of colliders. Re-inserting every static collider from scratch on every single
+    // Update() call was costing a full-world voxel terrain multiple *million* hash-map insertions a
+    // frame for geometry that hadn't changed since the previous frame. The static grid is now cached
+    // across frames and only rebuilt when MarkStaticCollidersDirty() says the static collider set
+    // actually changed (terrain regenerated, a static prop spawned/despawned, etc) - the dynamic grid
+    // (few, moving bodies) is cheap enough to still just rebuild every frame.
     if (m_StaticGridDirty) {
         RebuildStaticGrid(scene);
         m_StaticGridDirty = false;

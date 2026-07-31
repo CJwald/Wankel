@@ -34,7 +34,15 @@ private:
     void RebuildDynamicGrid(Scene& scene);
 
     SpatialHashGrid m_DynamicGrid {1.0f}; // cell size ~ cube size, rebuilt every Update()
-    SpatialHashGrid m_StaticGrid {1.0f};  // cached across frames - see MarkStaticCollidersDirty()
+
+    // Static colliders (terrain chunks in particular) are typically an order of magnitude larger than
+    // dynamic ones - a 1.0f cell size made InsertAABB/Remove span ~4900 cells for a single 16-unit
+    // voxel chunk (see RebuildStaticGrid's own comment), turning any bulk add/remove (world regenerate,
+    // entering/leaving the void) into millions of hash-map operations done synchronously in one frame.
+    // 16.0f keeps a default-sized chunk to a handful of cells instead, at the cost of a slightly larger
+    // (still cheap - static colliders are few relative to typical query volume) per-Query() candidate
+    // list for anything using this grid.
+    SpatialHashGrid m_StaticGrid {16.0f}; // cached across frames - see MarkStaticCollidersDirty()
     bool m_StaticGridDirty = true;        // starts dirty so the first Update() populates it
 };
 
