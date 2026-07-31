@@ -30,6 +30,7 @@ void CameraSystem::Update(Scene& scene, Camera& camera) {
         camera.SetFOV(cam.FOV);
         camera.SetNearClip(cam.Near);
         camera.SetFarClip(cam.Far);
+        camera.SetCullingMask(cam.CullingMask);
 
         break;
     }

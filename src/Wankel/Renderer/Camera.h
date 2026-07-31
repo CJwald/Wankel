@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <cstdint>
+
 namespace Wankel {
 
 class Camera {
@@ -30,6 +32,11 @@ public:
     float GetFarClip() const;
     float GetAspect() const;
 
+    // See CameraComponent::CullingMask (Wankel/ECS/Components/RenderComponents.h) - the render loop
+    // ANDs this against each MeshRenderer::Layers to decide whether to submit it.
+    void SetCullingMask(uint32_t mask) { m_CullingMask = mask; }
+    uint32_t GetCullingMask() const { return m_CullingMask; }
+
     // Matrices
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
@@ -42,6 +49,8 @@ private:
     float m_FOV;
     float m_Aspect;
     float m_Near, m_Far;
+
+    uint32_t m_CullingMask = 0xFFFFFFFFu;
 };
 
 } // namespace Wankel
