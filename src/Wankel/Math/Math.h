@@ -8,6 +8,21 @@ constexpr float PI = 3.14159265359f;
 constexpr float TAU = 6.28318530718f;
 
 template <typename T>
+constexpr T Abs(T value) {
+    return std::abs(value);
+}
+
+template <typename T>
+constexpr T Min(T a, T b) {
+    return std::min(a, b);
+}
+
+template <typename T>
+constexpr T Max(T a, T b) {
+    return std::max(a, b);
+}
+
+template <typename T>
 constexpr T Clamp(T value, T min, T max) {
     return std::clamp(value, min, max);
 }

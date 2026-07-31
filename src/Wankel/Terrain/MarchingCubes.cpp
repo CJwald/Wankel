@@ -370,7 +370,16 @@ uint32_t GetOrCreateEdgeVertex(const VoxelDensityField& field, const std::vector
 
     float t = InterpT(isoLevel, field.At(bx, by, bz), field.At(ox, oy, oz));
     glm::vec3 pos = glm::mix(field.GridToWorld(bx, by, bz), field.GridToWorld(ox, oy, oz), t);
-    glm::vec3 nrm = glm::normalize(glm::mix(normals[field.Index(bx, by, bz)], normals[field.Index(ox, oy, oz)], t));
+
+    // Unlike GradientNormalAt's own zero-length guard, mixing two already-unit normals has no such
+    // protection - if they're nearly opposite (a sharp density discontinuity right at this edge,
+    // e.g. a placed voxel against forced-air neighbors), the mix can be near-zero-length and
+    // normalize() divides by ~0, producing a NaN/Inf normal. Falls back to the nearer endpoint's
+    // normal (t<0.5) or the far one (t>=0.5) instead - never wrong by more than "picked one side."
+    glm::vec3 mixedNormal = glm::mix(normals[field.Index(bx, by, bz)], normals[field.Index(ox, oy, oz)], t);
+    glm::vec3 nrm = glm::dot(mixedNormal, mixedNormal) > 1e-8f
+                        ? glm::normalize(mixedNormal)
+                        : (t < 0.5f ? normals[field.Index(bx, by, bz)] : normals[field.Index(ox, oy, oz)]);
 
     uint32_t idx = (uint32_t)mesh.Vertices.size();
     mesh.Vertices.push_back({pos, nrm});

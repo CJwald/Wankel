@@ -31,8 +31,9 @@ float Input::GetMouseDeltaY() {
 }
 
 void Input::SetMouseDelta(float dx, float dy) {
-    s_MouseDeltaX = dx;
-    s_MouseDeltaY = dy;
+    // Accumulate, don't overwrite - see LinuxInput.cpp's identical fix for why.
+    s_MouseDeltaX += dx;
+    s_MouseDeltaY += dy;
 }
 
 // Reset every frame after use
