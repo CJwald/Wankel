@@ -14,6 +14,7 @@ enum class GamepadButton {
     Back = SDL_GAMEPAD_BUTTON_BACK,
     Start = SDL_GAMEPAD_BUTTON_START,
     PS = SDL_GAMEPAD_BUTTON_GUIDE,
+    Touchpad = SDL_GAMEPAD_BUTTON_TOUCHPAD, // PS4/PS5 center touchpad click
 
     L3 = SDL_GAMEPAD_BUTTON_LEFT_STICK,
     R3 = SDL_GAMEPAD_BUTTON_RIGHT_STICK,
