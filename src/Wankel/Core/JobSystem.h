@@ -9,13 +9,17 @@ namespace Wankel {
 // must instead go through SubmitMainThread(), drained once per frame by Application::Run().
 class JobSystem {
 public:
-    // threadCount == 0 picks hardware_concurrency() (clamped >= 1) additional worker threads.
+    // threadCount == 0 picks hardware_concurrency()-1 (one core reserved for the main thread, clamped
+    // >= 1) worker threads.
     static void Init(unsigned int threadCount = 0);
     static void Shutdown();
 
     // Runs fn on a worker thread at some future point, exactly once. fn must not touch OpenGL,
     // Scene/registry, or any other main-thread-only state - only pure CPU work / privately-owned data.
-    static void Submit(std::function<void()> fn);
+    // Higher `priority` runs sooner relative to whatever else is currently queued; jobs with equal
+    // priority stay FIFO relative to each other (so callers that never pass a priority keep today's
+    // plain-FIFO behavior).
+    static void Submit(std::function<void()> fn, int priority = 0);
 
     // Runs fn exactly once, only when RunMainThreadQueue() next drains it on the main thread.
     static void SubmitMainThread(std::function<void()> fn);
