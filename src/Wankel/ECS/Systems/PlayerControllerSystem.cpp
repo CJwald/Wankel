@@ -42,7 +42,7 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
 
             float yawDelta = -dx * controller.MouseSensitivity;
             float pitchDelta = -dy * controller.MouseSensitivity;
-            float rollDelta = rollMag * controller.RollSpeed * dt;
+            float rollDelta = 0.0f; //float rollDelta = rollMag * controller.RollSpeed * dt;
             controller.Pitch += pitchDelta;
 
             // CLAMP PITCH
@@ -91,6 +91,11 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
             movement.MaxSpeed = movement.SavedMaxSpeed;
         }
         movement.MoveIntent = moveDir;
+
+        // Mode-specific stop feel - PhysicsSystem uses Movement::Deceleration once MoveIntent goes to
+        // zero (see its own comment); Mech/FPS stays snappy, Flight drifts slowly to a stop instead.
+        movement.Deceleration = controller.Mode == PlayerController::LookMode::Flight ? controller.FlightDeceleration
+                                                                                      : controller.FPSDeceleration;
 
         // APPLY TRANSFORM
         transform.LocalOrientation = controller.Orientation;

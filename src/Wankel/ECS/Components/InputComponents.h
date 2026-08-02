@@ -25,6 +25,14 @@ struct PlayerController {
     LookMode Mode = LookMode::FPS;
     bool R3PressedLastFrame = false;
 
+    // Per-mode Movement::Deceleration, applied each frame by PlayerControllerSystem (mirrors how
+    // Boost/MaxSpeed already works below) - Mech/FPS stays snappy (matches Movement's own prior
+    // single shared default), Flight drifts slowly to a stop after input releases instead of
+    // stopping just as fast as it started. Tune FlightDeceleration to taste - lower = longer drift
+    // (time-to-stop from MaxSpeed is roughly MaxSpeed / Deceleration seconds).
+    float FPSDeceleration = 50.0f;
+    float FlightDeceleration = 2.0f;
+
     // FPS CAMERA STATE, TODO: make sure I need these
     float Yaw = 0.0f;
     float Pitch = 0.0f;
@@ -43,7 +51,10 @@ struct Movement {
     float MaxSpeed = 5.0f;
     float SavedMaxSpeed = 5.0f; // TODO: Remove, this is a hack to get boost working before full refactor
     float Acceleration = 50.0f;
-    float Deceleration = 50.0f; // low decel rate with fast acc fells good for space flight
+    // Default/standalone value for a Movement not driven by a PlayerController (e.g. future
+    // Movement-driven AI) - an entity with both gets this overwritten every frame from
+    // PlayerController::FPSDeceleration/FlightDeceleration instead (see PlayerControllerSystem).
+    float Deceleration = 50.0f;
 };
 
 
