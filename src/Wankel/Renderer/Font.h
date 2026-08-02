@@ -33,11 +33,17 @@ public:
 
     const Ref<Texture>& GetAtlasTexture() const { return m_AtlasTexture; }
 
+    // The pixel height this font was loaded at (Load()'s own parameter) - no true ascent/descent
+    // metrics are exposed (see the class comment), but this is enough for callers to approximate
+    // vertical centering of a single line of text (e.g. UI::DrawButton).
+    float GetPixelHeight() const { return m_PixelHeight; }
+
 private:
     Ref<Texture> m_AtlasTexture;
     std::vector<uint8_t> m_BakedChars; // opaque stbtt_bakedchar[] storage - kept out of the public header
     int m_AtlasWidth = 0;
     int m_AtlasHeight = 0;
+    float m_PixelHeight = 0.0f;
 };
 
 } // namespace Wankel

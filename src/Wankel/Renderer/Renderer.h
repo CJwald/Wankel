@@ -73,9 +73,10 @@ public:
                                 const std::vector<glm::vec3>& instanceOffsets);
 
     // Occlusion culling - see OcclusionQuery.h. Typical use: BeginOcclusionQuery/EndOcclusionQuery
-    // around a cheap (or real, color-write-disabled via SetColorWrite) proxy draw, then later
-    // BeginConditionalRender/EndConditionalRender around the real draw so the GPU itself skips it
-    // if the query found nothing visible - no CPU readback/stall either way.
+    // around a cheap (or real, color-write-disabled via SetColorWrite) proxy draw, then in a *later
+    // frame* (never the same one - see OcclusionQuery::HasIssued()) BeginConditionalRender/
+    // EndConditionalRender around the real draw so the GPU itself skips it if the query found nothing
+    // visible - no CPU readback/stall either way.
     static void SetColorWrite(bool enabled);
     static void BeginOcclusionQuery(const OcclusionQuery& query);
     static void EndOcclusionQuery();
@@ -100,6 +101,13 @@ public:
     // after EndScene(), same spot the ImGui pass runs.
     static void SubmitText(const std::string& text, const Ref<Font>& font, const glm::vec2& screenPos,
                            uint32_t screenWidth, uint32_t screenHeight, const glm::vec3& color = {1.0f, 1.0f, 1.0f});
+
+    // Screen-space filled rectangle (pixels, Y-down, origin top-left) - same conventions/call timing as
+    // SubmitText above. Solid color via `color`/`alpha` (blending is enabled globally in Init(), so
+    // alpha < 1 works with no extra state) - for in-game UI panels/buttons that aren't ImGui debug
+    // tooling (see MechtrixLayer's Backpack/Pause Menu).
+    static void SubmitScreenQuad(const glm::vec2& min, const glm::vec2& max, const glm::vec3& color, float alpha,
+                                 uint32_t screenWidth, uint32_t screenHeight);
 
     // Transparent Mesh Pass Eventually?
     // static void SubmitTransparent()...

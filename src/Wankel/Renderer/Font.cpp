@@ -46,6 +46,7 @@ Ref<Font> Font::Load(const std::string& ttfPath, float pixelHeight) {
     font->m_BakedChars = std::move(bakedChars);
     font->m_AtlasWidth = kAtlasSize;
     font->m_AtlasHeight = kAtlasSize;
+    font->m_PixelHeight = pixelHeight;
 
     WK_CORE_INFO("Font: loaded '{0}' ({1}px, atlas {2}x{2}, {3} rows used)", ttfPath, pixelHeight, kAtlasSize, result);
 

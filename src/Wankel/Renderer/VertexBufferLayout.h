@@ -67,6 +67,12 @@ public:
         m_Stride += 4;
     }
 
+    // Reserves `bytes` of stride with no corresponding attribute - for forcing a later Push*'s offset
+    // onto a natural alignment boundary in a #pragma pack(1) vertex struct (see QuantizedVertex in
+    // Mesh.cpp), where the compiler's usual alignment padding has been deliberately removed to hit an
+    // exact manually-tracked stride and needs to be re-added by hand where it actually matters.
+    void PushPadding(uint32_t bytes) { m_Stride += bytes; }
+
     inline const std::vector<BufferElement>& GetElements() const { return m_Elements; }
     inline uint32_t GetStride() const { return m_Stride; }
 

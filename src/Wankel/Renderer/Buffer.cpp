@@ -24,7 +24,10 @@ void VertexBuffer::SetLayout(const VertexBufferLayout& layout) {
 
 void VertexBuffer::SetData(const void* data, unsigned int size) {
     glBindBuffer(GL_ARRAY_BUFFER, m_ID);
-    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    // DYNAMIC (not STATIC like the one-time constructor upload above) - SetData exists specifically
+    // for repeatedly-respecified buffers (see VoxelWorld::m_MeshPool's chunk mesh reuse via
+    // Mesh::UpdateData), so the usage hint should match how the buffer is actually used.
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 }
 
 } // namespace Wankel

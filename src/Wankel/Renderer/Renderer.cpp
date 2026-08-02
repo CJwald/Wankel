@@ -53,6 +53,14 @@ struct RendererData {
     uint32_t TextVBO = 0;
     Shader* TextShader = nullptr;
 
+    // Screen-space filled rectangle pass (SubmitScreenQuad) - own shader rather than reusing
+    // DebugShader, since its color/alpha are set via uniforms (not per-vertex like DebugVertex), and
+    // a shared uniform mutated per-call would otherwise leak into unrelated SubmitDebugLines/
+    // SubmitScreenLines draws using the same shader object unless carefully restored every time.
+    uint32_t ScreenQuadVAO = 0;
+    uint32_t ScreenQuadVBO = 0;
+    Shader* ScreenQuadShader = nullptr;
+
     uint32_t InstanceVBO = 0; // shared across every SubmitInstanced call - see Init()
 
     // Submit() dedup state - reset each BeginScene so a mid-scene SetFog/SetLight change still
@@ -107,6 +115,17 @@ void Renderer::Init() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(TextVertex), (void*)offsetof(TextVertex, UV));
     s_Data.TextShader = new Shader("WankelShaders/text.vert", "WankelShaders/text.frag");
 
+    // SCREEN QUAD PASS GPU OBJECTS (SubmitScreenQuad) - position-only, 2 triangles (6 verts) per call,
+    // color/alpha come from uniforms instead of per-vertex attributes.
+    glGenVertexArrays(1, &s_Data.ScreenQuadVAO);
+    glGenBuffers(1, &s_Data.ScreenQuadVBO);
+    glBindVertexArray(s_Data.ScreenQuadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.ScreenQuadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 6, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+    s_Data.ScreenQuadShader = new Shader("WankelShaders/screenquad.vert", "WankelShaders/screenquad.frag");
+
     // SHARED INSTANCE-OFFSET BUFFER (SubmitInstanced) - re-bound as a per-instance attribute onto
     // whichever mesh VAO is current at draw time, refreshed via glBufferSubData each call, same
     // "allocate once in Init, glBufferSubData per use" pattern as DebugVBO/TextVBO above.
@@ -128,6 +147,12 @@ void Renderer::Shutdown() {
 
     glDeleteBuffers(1, &s_Data.TextVBO);
     glDeleteVertexArrays(1, &s_Data.TextVAO);
+
+    delete s_Data.ScreenQuadShader;
+    s_Data.ScreenQuadShader = nullptr;
+
+    glDeleteBuffers(1, &s_Data.ScreenQuadVBO);
+    glDeleteVertexArrays(1, &s_Data.ScreenQuadVAO);
 
     glDeleteBuffers(1, &s_Data.InstanceVBO);
 }
@@ -419,6 +444,39 @@ void Renderer::SubmitText(const std::string& text, const Ref<Font>& font, const 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertexCount);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+}
+
+
+void Renderer::SubmitScreenQuad(const glm::vec2& min, const glm::vec2& max, const glm::vec3& color, float alpha,
+                                uint32_t screenWidth, uint32_t screenHeight) {
+    // Same 0x0-framebuffer guard as SubmitText - see its own comment.
+    if (screenWidth == 0 || screenHeight == 0)
+        return;
+
+    glm::vec3 vertices[6] = {
+        {min.x, min.y, 0.0f}, {max.x, min.y, 0.0f}, {max.x, max.y, 0.0f},
+        {min.x, min.y, 0.0f}, {max.x, max.y, 0.0f}, {min.x, max.y, 0.0f},
+    };
+
+    glm::mat4 projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
+
+    s_Data.ScreenQuadShader->Bind();
+    s_Data.ScreenQuadShader->SetMat4("view", glm::mat4(1.0f));
+    s_Data.ScreenQuadShader->SetMat4("projection", projection);
+    s_Data.ScreenQuadShader->SetVec3("u_Color", color);
+    s_Data.ScreenQuadShader->SetFloat("u_Alpha", alpha);
+
+    glBindVertexArray(s_Data.ScreenQuadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.ScreenQuadVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+    // Screen-space overlay, same reasoning as SubmitText's own comment: the ortho Y-flip makes this
+    // quad's winding come out clockwise, which would otherwise be back-face culled.
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 }

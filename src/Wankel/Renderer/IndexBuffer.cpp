@@ -28,7 +28,8 @@ uint32_t IndexBuffer::GetID() const {
 void IndexBuffer::SetData(const uint32_t* indices, uint32_t count) {
     m_Count = count;
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indices, GL_STATIC_DRAW);
+    // DYNAMIC - see VertexBuffer::SetData's identical comment.
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indices, GL_DYNAMIC_DRAW);
 }
 
 } // namespace Wankel

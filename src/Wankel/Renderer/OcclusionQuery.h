@@ -18,8 +18,21 @@ public:
 
     uint32_t GetID() const { return m_ID; }
 
+    // The frame number this query was last issued (BeginOcclusionQuery/EndOcclusionQuery) on - 0 means
+    // never. A conditional render should only ever consume a query issued on the *immediately
+    // preceding* frame (see the caller's own frame-number comparison), not merely "at some point in
+    // the past": a chunk that drops out of the frustum for a while (e.g. turning away, then back) stops
+    // having its query reissued every frame, so an old "ever issued" flag alone would let a stale
+    // result - reflecting visibility from a since-changed camera angle - wrongly gate a much later
+    // frame's render, hiding a chunk that's actually visible again. Comparing exact frame numbers
+    // instead makes staleness self-correcting: skip the conditional render and fall back to
+    // unconditional (same as a brand-new query) whenever there's a gap.
+    uint64_t GetLastIssuedFrame() const { return m_LastIssuedFrame; }
+    void MarkIssued(uint64_t frameNumber) { m_LastIssuedFrame = frameNumber; }
+
 private:
     uint32_t m_ID = 0;
+    uint64_t m_LastIssuedFrame = 0;
 };
 
 } // namespace Wankel

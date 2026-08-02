@@ -29,18 +29,24 @@ struct PackedVertex {
 };
 
 // Same as PackedVertex but with Position also quantized (see Mesh's quantizing ctor). Packed to
-// 1-byte alignment so sizeof() is exactly 6+16+4=26 with no compiler-inserted padding between the
-// 2-byte Position array and the 4-byte-aligned fields after it - VertexBufferLayout's manually
-// tracked stride below must match this struct's true byte layout exactly, or the GPU reads every
-// attribute at the wrong offset.
+// 1-byte alignment so VertexBufferLayout's manually tracked stride below matches this struct's true
+// byte layout exactly (no compiler-inserted padding to silently disagree with it) - but pack(1) also
+// removes the padding that would otherwise naturally align Color/PackedNormal to a 4-byte boundary,
+// which the GPU needs for correct GL_FLOAT/GL_INT_2_10_10_10_REV vertex fetches. Some drivers are far
+// less forgiving of unaligned packed-attribute fetches than others - suspected root cause of chunks
+// (this quantizing layout is voxel-terrain-only) reported flickering/going solid white on one specific
+// AMD Mesa driver, never seen elsewhere: an unaligned PackedNormal fetch reading garbage that decodes
+// to a near-zero/NaN normal. `Padding` restores natural alignment explicitly - see
+// VertexBufferLayout::PushPadding, used to match it below.
 #pragma pack(push, 1)
 struct QuantizedVertex {
-    uint16_t Position[3];
-    glm::vec4 Color;
-    uint32_t PackedNormal;
+    uint16_t Position[3];  // offset 0, 6 bytes
+    uint16_t Padding = 0;  // offset 6, 2 bytes - pushes Color to offset 8 (4-byte aligned)
+    glm::vec4 Color;       // offset 8, 16 bytes
+    uint32_t PackedNormal; // offset 24, 4 bytes (4-byte aligned)
 };
 #pragma pack(pop)
-static_assert(sizeof(QuantizedVertex) == 26, "QuantizedVertex must be tightly packed - GPU stride depends on this");
+static_assert(sizeof(QuantizedVertex) == 28, "QuantizedVertex must be tightly packed - GPU stride depends on this");
 
 uint16_t QuantizeComponent(float value, float min, float extent) {
     float t = extent > 1e-8f ? glm::clamp((value - min) / extent, 0.0f, 1.0f) : 0.0f;
@@ -111,6 +117,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
 
     VertexBufferLayout layout;
     layout.PushUShort(3, "a_Position");
+    layout.PushPadding(2); // see QuantizedVertex's own comment - keeps Color/PackedNormal 4-byte aligned
     layout.PushFloat(4, "a_Color");
     layout.PushPackedNormal("a_Normal");
 
