@@ -151,6 +151,9 @@ void InputSystem::PollControllers() {
 
         ControllerInput::SetButton((int)i, (int)GamepadButton::PS, SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_GUIDE));
 
+        ControllerInput::SetButton((int)i, (int)GamepadButton::Touchpad,
+                                   SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_TOUCHPAD));
+
         // DPAD
         ControllerInput::SetButton((int)i, (int)GamepadButton::DPadUp,
                                    SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP));

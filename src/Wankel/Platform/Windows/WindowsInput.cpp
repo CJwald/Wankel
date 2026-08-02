@@ -9,6 +9,8 @@ namespace Wankel {
 // Static storage
 float Input::s_MouseDeltaX = 0.0f;
 float Input::s_MouseDeltaY = 0.0f;
+float Input::s_MouseX = 0.0f;
+float Input::s_MouseY = 0.0f;
 
 // Keyboard
 bool Input::IsKeyPressed(KeyCode key) {
@@ -40,6 +42,19 @@ void Input::SetMouseDelta(float dx, float dy) {
 void Input::ResetMouseDelta() {
     s_MouseDeltaX = 0.0f;
     s_MouseDeltaY = 0.0f;
+}
+
+float Input::GetMouseX() {
+    return s_MouseX;
+}
+
+float Input::GetMouseY() {
+    return s_MouseY;
+}
+
+void Input::SetMousePosition(float x, float y) {
+    s_MouseX = x;
+    s_MouseY = y;
 }
 
 } // namespace Wankel

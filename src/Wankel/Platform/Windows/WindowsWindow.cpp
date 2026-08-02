@@ -142,6 +142,18 @@ void WindowsWindow::Init(const WindowProps& props) {
         if (!data)
             return;
 
+        // Absolute position, converted to framebuffer-pixel space (same space Window::GetWidth/Height
+        // and all screen-space rendering/UI-hit-testing use) - GLFW's cursor callback reports window
+        // coordinates, which differ from framebuffer pixels whenever content scaling is active (any
+        // HiDPI display), causing hit-testing to drift further off the further the cursor is from the
+        // top-left corner. Always current regardless of the delta-tracking state below.
+        int winWidth = 0, winHeight = 0, fbWidth = 0, fbHeight = 0;
+        glfwGetWindowSize(window, &winWidth, &winHeight);
+        glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+        float scaleX = winWidth > 0 ? (float)fbWidth / (float)winWidth : 1.0f;
+        float scaleY = winHeight > 0 ? (float)fbHeight / (float)winHeight : 1.0f;
+        Wankel::Input::SetMousePosition((float)xPos * scaleX, (float)yPos * scaleY);
+
         float dx, dy;
 
         if (data->FirstMouse) {
