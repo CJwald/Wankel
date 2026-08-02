@@ -33,6 +33,12 @@ struct PlayerController {
     float FPSDeceleration = 50.0f;
     float FlightDeceleration = 2.0f;
 
+    // Per-mode Rigidbody::GravityScale, applied each frame by PlayerControllerSystem (same pattern as
+    // FPSDeceleration/FlightDeceleration above) - Mech/FPS is always fully grounded (hardcoded 1.0 in
+    // PlayerControllerSystem, not exposed as its own tunable), Flight defaults to 0 (today's existing
+    // free-flight feel, unaffected by world gravity unless you deliberately dial this up toward 1).
+    float FlightGravityScale = 0.0f;
+
     // FPS CAMERA STATE, TODO: make sure I need these
     float Yaw = 0.0f;
     float Pitch = 0.0f;

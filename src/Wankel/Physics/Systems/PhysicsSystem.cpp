@@ -40,6 +40,16 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             // VELOCITY
             glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed;
             glm::vec3 deltaVel = targetVel - rb.Velocity;
+
+            // Once there's no vertical input, hand vertical velocity fully to gravity (below) instead
+            // of Movement decelerating it back toward 0 - see PlayerController::FlightGravityScale /
+            // Rigidbody::GravityScale. Untouched whenever gravity doesn't apply to this entity (e.g.
+            // Flight mode at its default scale, or gravity-less worlds), so non-player Movement users
+            // and Ctrl-descend in the Void are unaffected.
+            bool gravityOwnsVertical = Gravity.Enabled && rb.GravityScale > 0.0f && glm::abs(m.MoveIntent.y) < 0.001f;
+            if (gravityOwnsVertical)
+                deltaVel.y = 0.0f;
+
             float deltaMag = glm::length(deltaVel);
 
             float maxDV = accel * dt;
@@ -49,6 +59,25 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             }
 
             rb.Velocity += deltaVel;
+        }
+    }
+
+    // Gravity - a constant force on every non-static Rigidbody, regardless of whether it has a
+    // Movement component. Note: an entity with *both* Rigidbody and Movement (the player, today) has
+    // its vertical velocity re-corrected toward Movement's own target almost every frame (Movement's
+    // Acceleration/Deceleration are far larger than any reasonable gravity magnitude), so gravity
+    // mostly cancels out for it - real player falling needs Movement's own model to stop treating all
+    // axes as fully player-controlled (see docs/TODO.md item 6), not just this force existing.
+    if (Gravity.Enabled) {
+        auto view = registry.view<Rigidbody>();
+
+        for (auto e : view) {
+            auto& rb = registry.get<Rigidbody>(e);
+
+            if (rb.IsStatic)
+                continue;
+
+            rb.Velocity += Gravity.Direction * Gravity.Magnitude * rb.GravityScale * dt;
         }
     }
 
@@ -159,26 +188,53 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             ta.LocalPosition -= manifold.Normal * manifold.Penetration * (invMassA / invMassSum);
             tb.LocalPosition += manifold.Normal * manifold.Penetration * (invMassB / invMassSum);
 
-            // VELOCITY SOLVE - single-contact normal impulse (no friction,
-            // restitution 0 i.e. fully inelastic along the normal, matching
-            // the previous "objects stop dead on contact" feel) distributed
-            // by mass, instead of independently zeroing each body's own
-            // penetrating velocity component regardless of what it hit.
-            // The old approach wasn't actually momentum-conserving even for
-            // equal masses (both bodies fully stopped rather than ending up
-            // moving together); this is the standard textbook 2-body
-            // impulse formula and is exact when one side is static.
+            // VELOCITY SOLVE - single-contact normal impulse (restitution 0
+            // i.e. fully inelastic along the normal, matching the previous
+            // "objects stop dead on contact" feel) distributed by mass,
+            // instead of independently zeroing each body's own penetrating
+            // velocity component regardless of what it hit. The old approach
+            // wasn't actually momentum-conserving even for equal masses (both
+            // bodies fully stopped rather than ending up moving together);
+            // this is the standard textbook 2-body impulse formula and is
+            // exact when one side is static. A tangential Coulomb friction
+            // impulse (see below) now follows the same pattern.
             glm::vec3 velB = bIsStatic ? glm::vec3(0.0f) : rbbPtr->Velocity;
             glm::vec3 relativeVelocity = velB - rba.Velocity;
             float velAlongNormal = glm::dot(relativeVelocity, manifold.Normal);
 
             if (velAlongNormal < 0.0f) { // still closing; separating pairs need no resolution
-                glm::vec3 impulse = manifold.Normal * (-velAlongNormal / invMassSum);
+                float normalImpulseMag = -velAlongNormal / invMassSum;
+                glm::vec3 impulse = manifold.Normal * normalImpulseMag;
 
                 if (!rba.IsStatic)
                     rba.Velocity -= impulse * invMassA;
                 if (!bIsStatic)
                     rbbPtr->Velocity += impulse * invMassB;
+
+                // FRICTION - tangential (in-surface) component of relative velocity, opposed up to
+                // the Coulomb limit (coefficient * normal impulse magnitude) rather than fully
+                // canceled outright - that clamp is exactly what lets a steep-enough slope still let
+                // a body slide (gravity's along-slope component can exceed available friction) while
+                // a shallow slope's smaller tangential velocity gets fully arrested. manifold.Friction
+                // is the geometric mean of both colliders' own Friction (see
+                // CollisionDispatcher::ResolveCollision).
+                glm::vec3 tangentVelocity = relativeVelocity - velAlongNormal * manifold.Normal;
+                float tangentSpeed = glm::length(tangentVelocity);
+
+                if (tangentSpeed > 1e-5f) {
+                    glm::vec3 tangent = tangentVelocity / tangentSpeed;
+                    float tangentialVelAlongTangent = glm::dot(relativeVelocity, tangent);
+
+                    float maxFriction = manifold.Friction * normalImpulseMag;
+                    float frictionImpulseMag =
+                        glm::clamp(-tangentialVelAlongTangent / invMassSum, -maxFriction, maxFriction);
+                    glm::vec3 frictionImpulse = tangent * frictionImpulseMag;
+
+                    if (!rba.IsStatic)
+                        rba.Velocity -= frictionImpulse * invMassA;
+                    if (!bIsStatic)
+                        rbbPtr->Velocity += frictionImpulse * invMassB;
+                }
             }
         }
     }

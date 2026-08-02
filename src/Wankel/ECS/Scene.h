@@ -49,6 +49,9 @@ public:
     }
     void RemoveStaticCollider(Entity entity) { m_PhysicsSystem.RemoveStaticCollider(entity.GetHandle()); }
 
+    // Forwards to PhysicsSystem - see GravitySettings for what's tunable (Enabled/Magnitude/Direction).
+    GravitySettings& GetGravitySettings() { return m_PhysicsSystem.Gravity; }
+
 private:
     PlayerControllerSystem m_PlayerControllerSystem;
     TransformSystem m_TransformSystem;

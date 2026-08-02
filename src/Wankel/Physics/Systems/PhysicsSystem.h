@@ -2,13 +2,28 @@
 
 #include "../Collision/BroadPhase/SpatialHashGrid.h"
 
+#include <glm/glm.hpp>
+
 namespace Wankel {
 
 class Scene;
 
+// A constant per-frame force applied to every non-static Rigidbody (see PhysicsSystem::Update) -
+// off by default so existing scenes/entities are unaffected until something opts in (e.g.
+// WorldManager enabling it for the Overworld, disabling it for the Void).
+struct GravitySettings {
+    bool Enabled = false;
+    float Magnitude = 9.81f;
+    glm::vec3 Direction = {0.0f, -1.0f, 0.0f};
+};
+
 class PhysicsSystem {
 public:
     void Update(Scene& scene, float dt);
+
+    // Plain public settings struct, same convention as Renderer's FogSettings/LightSettings - read/
+    // written directly (e.g. via Scene::GetGravitySettings()), not through getter/setter methods.
+    GravitySettings Gravity;
 
     // Static colliders (terrain chunks, static level geometry) live in a broad-phase grid that's
     // rebuilt only when this is called, not every Update() - see Update()'s own comment for why.

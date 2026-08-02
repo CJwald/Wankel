@@ -15,18 +15,30 @@ struct Rigidbody {
 
     float Mass = 1.0f;
     bool IsStatic = false;
+
+    // Per-entity multiplier on PhysicsSystem::Gravity (see PhysicsSystem::Update) - 1.0 (full gravity)
+    // by default, matching what any generic Rigidbody (props, ragdolls) should expect. A
+    // PlayerController-driven entity gets this overwritten every frame based on look mode instead
+    // (PlayerControllerSystem) - see PlayerController::FlightGravityScale.
+    float GravityScale = 1.0f;
 };
 
 
+// Friction default (0.6) is a moderate, "concrete/wood"-ish coefficient - not zero, so any collider
+// nobody's explicitly tuned yet still gets a reasonable stop-sliding-on-a-shallow-slope response
+// rather than silently reverting to the old frictionless behavior. See CollisionManifold::Friction
+// for how two colliders' values combine, and PhysicsSystem::Update for how it's actually applied.
 struct AABBCollider {
     glm::vec3 HalfSize = {0.5f, 0.5f, 0.5f};
     glm::vec3 Offset {0.0f};
+    float Friction = 0.6f;
 };
 
 
 struct SphereCollider {
     float Radius = 0.5f;
     glm::vec3 Offset {0.0f};
+    float Friction = 0.6f;
 };
 
 
@@ -38,6 +50,7 @@ struct CapsuleCollider {
     float Radius = 0.5f;
     float HalfHeight = 0.5f;
     glm::vec3 Offset {0.0f};
+    float Friction = 0.6f;
 };
 
 
@@ -54,6 +67,7 @@ struct CapsuleCollider {
 struct MeshCollider {
     Ref<TriangleMesh> Mesh;
     glm::vec3 Offset {0.0f};
+    float Friction = 0.6f;
 };
 
 } // namespace Wankel

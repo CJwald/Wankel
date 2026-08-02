@@ -32,6 +32,11 @@ struct ColliderShape {
     // built fresh per broad-phase candidate and scoped to one
     // ResolveCollision call while the registry/component is guaranteed alive.
     const TriangleMesh* Mesh = nullptr;
+
+    // Copied from whichever concrete collider component this shape was extracted from (see
+    // ExtractShape in CollisionDispatcher.cpp) - combined with the other side's own value into
+    // CollisionManifold::Friction once both shapes are known.
+    float Friction = 0.0f;
 };
 
 } // namespace Wankel

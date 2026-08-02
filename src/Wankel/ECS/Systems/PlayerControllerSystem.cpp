@@ -20,6 +20,7 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
     for (auto entity : view) {
         auto& transform = view.get<Transform>(entity);
         auto& controller = view.get<PlayerController>(entity);
+        auto& rb = view.get<Rigidbody>(entity);
         auto& movement = view.get<Movement>(entity);
 
         // INPUT
@@ -96,6 +97,10 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
         // zero (see its own comment); Mech/FPS stays snappy, Flight drifts slowly to a stop instead.
         movement.Deceleration = controller.Mode == PlayerController::LookMode::Flight ? controller.FlightDeceleration
                                                                                       : controller.FPSDeceleration;
+
+        // Mech/FPS is always fully grounded (full gravity); Flight uses the tunable scalar - see
+        // PlayerController::FlightGravityScale and Rigidbody::GravityScale.
+        rb.GravityScale = controller.Mode == PlayerController::LookMode::Flight ? controller.FlightGravityScale : 1.0f;
 
         // APPLY TRANSFORM
         transform.LocalOrientation = controller.Orientation;

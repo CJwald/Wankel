@@ -37,6 +37,7 @@ bool ExtractShape(entt::registry& reg, entt::entity e, ColliderShape& out) {
         out.Type = ColliderType::AABB;
         out.Center = transform.LocalPosition + c->Offset;
         out.HalfSize = c->HalfSize;
+        out.Friction = c->Friction;
         return true;
     }
 
@@ -44,6 +45,7 @@ bool ExtractShape(entt::registry& reg, entt::entity e, ColliderShape& out) {
         out.Type = ColliderType::Sphere;
         out.Center = transform.LocalPosition + c->Offset;
         out.Radius = c->Radius;
+        out.Friction = c->Friction;
         return true;
     }
 
@@ -52,6 +54,7 @@ bool ExtractShape(entt::registry& reg, entt::entity e, ColliderShape& out) {
         out.Center = transform.LocalPosition + c->Offset;
         out.Radius = c->Radius;
         out.HalfHeight = c->HalfHeight;
+        out.Friction = c->Friction;
         return true;
     }
 
@@ -62,6 +65,7 @@ bool ExtractShape(entt::registry& reg, entt::entity e, ColliderShape& out) {
         out.Type = ColliderType::Mesh;
         out.Center = transform.LocalPosition + c->Offset; // doubles as the mesh's world origin
         out.Mesh = c->Mesh.get();
+        out.Friction = c->Friction;
         return true;
     }
 
@@ -165,6 +169,11 @@ bool ResolveCollision(Scene& scene, entt::entity a, entt::entity b, CollisionMan
     out = swapped ? fn(shapeB, shapeA) : fn(shapeA, shapeB);
     if (swapped)
         out.Normal *= -1.0f;
+
+    // Geometric mean - same default combination rule most physics engines use for two contacting
+    // materials' friction coefficients (a low-friction side still meaningfully reduces the combined
+    // result, unlike a plain average).
+    out.Friction = glm::sqrt(shapeA.Friction * shapeB.Friction);
 
     return out.Colliding;
 }
