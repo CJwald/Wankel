@@ -5,6 +5,25 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# ---- Release optimization ----
+# Explicit rather than relying on CMake's own per-generator Release defaults (see Mechtrix's own
+# top-level CMakeLists.txt for the full rationale - duplicated here so Wankel's own Sandbox app
+# gets the same guarantee when built standalone, independent of Mechtrix).
+if(MSVC)
+    add_compile_options($<$<CONFIG:Release>:/O2>)
+else()
+    add_compile_options($<$<CONFIG:Release>:-O3>)
+endif()
+add_compile_definitions($<$<CONFIG:Release>:NDEBUG>)
+
+include(CheckIPOSupported)
+check_ipo_supported(RESULT WANKEL_IPO_SUPPORTED OUTPUT WANKEL_IPO_ERROR)
+if(WANKEL_IPO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+else()
+    message(STATUS "LTO/IPO not supported by this toolchain, skipping for Release builds: ${WANKEL_IPO_ERROR}")
+endif()
+
 # Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

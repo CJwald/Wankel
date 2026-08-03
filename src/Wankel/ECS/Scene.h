@@ -11,6 +11,21 @@
 
 namespace Wankel {
 
+// Per-system CPU cost of the last Scene::OnUpdate call, smoothed (exponential moving average) so a
+// debug display is readable rather than jumping every frame. Milliseconds, one field per system-
+// stage in the exact order OnUpdate runs them - see its own comment for why TransformSystem appears
+// twice (once before animation, once after, folding the animation's visual offset into
+// FinalTransform).
+struct SceneSystemTimings {
+    float PlayerControllerMs = 0.0f;
+    float PhysicsMs = 0.0f;
+    float TransformMs = 0.0f;
+    float KinematicsMs = 0.0f;
+    float ProceduralAnimationMs = 0.0f;
+    float TransformFinalMs = 0.0f;
+    float CameraMs = 0.0f;
+};
+
 class Scene {
 public:
     Entity CreateEntity() { return Entity(m_Registry.create(), &m_Registry); }
@@ -52,6 +67,10 @@ public:
     // Forwards to PhysicsSystem - see GravitySettings for what's tunable (Enabled/Magnitude/Direction).
     GravitySettings& GetGravitySettings() { return m_PhysicsSystem.Gravity; }
 
+    // Per-system CPU timing from the most recent OnUpdate, for a debug/profiling overlay - see
+    // SceneSystemTimings' own comment.
+    const SceneSystemTimings& GetSystemTimings() const { return m_SystemTimings; }
+
 private:
     PlayerControllerSystem m_PlayerControllerSystem;
     TransformSystem m_TransformSystem;
@@ -61,6 +80,7 @@ private:
 
     entt::registry m_Registry;
     PhysicsSystem m_PhysicsSystem;
+    SceneSystemTimings m_SystemTimings;
 };
 
 } // namespace Wankel
