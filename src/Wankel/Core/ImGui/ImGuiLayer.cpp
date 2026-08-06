@@ -23,11 +23,7 @@ void ImGuiLayer::OnAttach() {
     ImGuiIO& io = ImGui::GetIO();
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-    // Docking/multi-viewport require ImGui's docking branch; external/imgui
-    // is vendored at plain master, which doesn't declare
-    // ImGuiConfigFlags_DockingEnable/ViewportsEnable at all. Re-add these
-    // once (if) the submodule is switched to the docking branch.
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     ImGui::StyleColorsDark();
 
