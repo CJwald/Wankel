@@ -29,6 +29,27 @@ void ImGuiLayer::OnAttach() {
     ImGui::StyleColorsDark();
     ApplyImGuiTheme();
 
+    // Default font first (merge target), then the icon glyphs Icons.h defines, merged in from
+    // NotoEmoji (OFL-licensed monochrome emoji font - see fonts/OFL.txt) at a size matching the
+    // default font. Only this narrow range is loaded, not the font's full repertoire, to keep the
+    // atlas small - see docs/IMGUIRefactor.md Phase 8.
+    io.Fonts->AddFontDefault();
+
+    static const ImWchar kIconGlyphRanges[] = {
+        0x23ED,  0x23ED,  // Step
+        0x23F8,  0x23F8,  // Pause
+        0x25B6,  0x25B6,  // Play
+        0x1F4A1, 0x1F4A1, // Light bulb
+        0,
+    };
+    ImFontConfig iconFontConfig;
+    iconFontConfig.MergeMode = true;
+    iconFontConfig.PixelSnapH = true;
+    // 0.0f = implicit reference size, so icons scale with the default font instead of a fixed size -
+    // ImGui asserts if a MergeMode font requests an explicit size against an implicitly-sized target
+    // (AddFontDefault() above), see imgui_draw.cpp's AddFont() sizing compatibility table.
+    io.Fonts->AddFontFromFileTTF("WankelFonts/NotoEmoji.ttf", 0.0f, &iconFontConfig, kIconGlyphRanges);
+
     Application& app = Application::Get();
     GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
 

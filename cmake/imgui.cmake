@@ -18,8 +18,8 @@ target_include_directories(imgui PUBLIC
 
 target_link_libraries(imgui PUBLIC glfw)
 
-# Optional features
-# target_compile_definitions(imgui PUBLIC
-#     IMGUI_ENABLE_DOCKING
-#     IMGUI_ENABLE_VIEWPORTS
-# )
+# ImWchar defaults to 16-bit (unsigned short), which can't hold codepoints above the Basic
+# Multilingual Plane (U+FFFF) - silently truncates instead of erroring, so eg. an emoji-range icon
+# glyph (see Wankel/Core/ImGui/Icons.h, docs/IMGUIRefactor.md Phase 8) would alias to the wrong
+# codepoint. PUBLIC so every translation unit that includes imgui.h agrees on ImWchar's width.
+target_compile_definitions(imgui PUBLIC IMGUI_USE_WCHAR32)

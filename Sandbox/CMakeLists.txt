@@ -40,6 +40,13 @@ add_custom_command(TARGET Sandbox POST_BUILD
         $<TARGET_FILE_DIR:Sandbox>/WankelShaders
 )
 
+# Copy Wankel runtime fonts
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        $<TARGET_FILE_DIR:Wankel>/WankelFonts
+        $<TARGET_FILE_DIR:Sandbox>/WankelFonts
+)
+
 # Copy shaders to bin dir
 add_custom_command(TARGET Sandbox POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

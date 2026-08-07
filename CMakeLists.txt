@@ -103,6 +103,16 @@ add_custom_command(TARGET Wankel POST_BUILD
         $<TARGET_FILE_DIR:Wankel>/WankelShaders
 )
 
+# Copy Wankel internal fonts (icon font for ImGuiLayer - see Core/ImGui/Icons.h,
+# docs/IMGUIRefactor.md Phase 8)
+add_custom_command(TARGET Wankel POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:Wankel>/WankelFonts
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Wankel/Core/ImGui/fonts
+        $<TARGET_FILE_DIR:Wankel>/WankelFonts
+)
+
 source_group(
 	TREE ${CMAKE_CURRENT_SOURCE_DIR}/src
 	FILES ${WANKEL_SOURCES}
