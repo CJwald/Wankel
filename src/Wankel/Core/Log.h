@@ -2,6 +2,7 @@
 
 #include "Engine.h"
 #include "spdlog/spdlog.h"
+#include "spdlog/sinks/ringbuffer_sink.h"
 
 
 namespace Wankel {
@@ -13,10 +14,15 @@ public:
     inline static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
     inline static std::shared_ptr<spdlog::logger>& GetServerLogger() { return s_ServerLogger; }
 
+    // Every Core/Client line (mt = thread-safe, since JobSystem worker threads can log too), oldest
+    // first - feeds a Console panel (eg. Mechtrix's, see docs/IMGUIRefactor.md Phase 9).
+    inline static std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt>& GetConsoleSink() { return s_ConsoleSink; }
+
 private:
     static std::shared_ptr<spdlog::logger> s_CoreLogger;
     static std::shared_ptr<spdlog::logger> s_ClientLogger;
     static std::shared_ptr<spdlog::logger> s_ServerLogger;
+    static std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> s_ConsoleSink;
 };
 } // namespace Wankel
 
