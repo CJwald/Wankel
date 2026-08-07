@@ -2,6 +2,7 @@
 #include "ImGuiLayer.h"
 
 #include "Wankel/Core/Application.h"
+#include "Wankel/Core/ImGui/ImGuiTheme.h"
 #include "Wankel/Core/Window.h"
 
 #include <imgui.h>
@@ -26,6 +27,7 @@ void ImGuiLayer::OnAttach() {
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     ImGui::StyleColorsDark();
+    ApplyImGuiTheme();
 
     Application& app = Application::Get();
     GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());

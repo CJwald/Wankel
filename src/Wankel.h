@@ -37,6 +37,7 @@
 // ImGui
 // -----------------------------
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
+#include "Wankel/Core/ImGui/ImGuiTheme.h"
 
 // -----------------------------
 // Math
