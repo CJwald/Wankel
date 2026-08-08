@@ -209,6 +209,36 @@ bool LinuxWindow::IsVSync() const {
 }
 
 
+void LinuxWindow::SetFullscreen(bool enabled) {
+    if (enabled == m_Fullscreen)
+        return;
+
+    if (enabled) {
+        // glfwGetWindowPos is unsupported under native Wayland ("the platform does not provide the
+        // window position" - by design, not a bug: Wayland never tells a client its absolute screen
+        // position). Harmless to still call it - it's a no-op/logs a GLFW error there and the restored
+        // position below is then just ignored by the compositor too, while X11/Windows get a real,
+        // usable position back.
+        glfwGetWindowPos(m_Window, &m_WindowedX, &m_WindowedY);
+        glfwGetWindowSize(m_Window, &m_WindowedWidth, &m_WindowedHeight);
+
+        // Real (monitor-argument) fullscreen, not a manual undecorate+resize "borderless" hack - tried
+        // that first and it broke under Wayland (position-dependent calls above return garbage there,
+        // producing a wrongly-scaled window). GLFW translates this into the compositor's native
+        // xdg_toplevel fullscreen request under Wayland (already smooth/flicker-free there, no real
+        // video-mode switch), and into an actual fullscreen video mode under X11/Windows.
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        glfwSetWindowMonitor(m_Window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    } else {
+        glfwSetWindowMonitor(m_Window, nullptr, m_WindowedX, m_WindowedY, m_WindowedWidth, m_WindowedHeight,
+                             GLFW_DONT_CARE);
+    }
+
+    m_Fullscreen = enabled;
+}
+
+
 void LinuxWindow::SetCursorMode(CursorMode mode) {
     m_CursorMode = mode;
 

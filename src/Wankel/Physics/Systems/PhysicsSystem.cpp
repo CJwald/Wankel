@@ -81,6 +81,26 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
         }
     }
 
+    // Terminal velocity - clamps every non-static Rigidbody's speed before it's integrated into
+    // position below, so an unbounded fall (or any other unbounded velocity source, eg. a hard
+    // collision impulse) can't tunnel through a thin collider in one frame - see
+    // GravitySettings::TerminalVelocity's own comment for why this is needed independent of the dt
+    // clamp. Runs even when Gravity.Enabled is false - it's a general speed cap, not a gravity effect.
+    {
+        auto view = registry.view<Rigidbody>();
+
+        for (auto e : view) {
+            auto& rb = registry.get<Rigidbody>(e);
+
+            if (rb.IsStatic)
+                continue;
+
+            float speed = glm::length(rb.Velocity);
+            if (speed > Gravity.TerminalVelocity)
+                rb.Velocity *= Gravity.TerminalVelocity / speed;
+        }
+    }
+
     // Position integration applies to every dynamic rigidbody, whether or
     // not it has a Movement component (e.g. thrown props, ragdolls, anything
     // whose velocity comes purely from collision response).

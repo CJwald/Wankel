@@ -25,6 +25,9 @@ public:
     void SetCursorMode(CursorMode mode) override;
     CursorMode GetCursorMode() const override { return m_CursorMode; }
 
+    void SetFullscreen(bool enabled) override;
+    bool IsFullscreen() const override { return m_Fullscreen; }
+
 private:
     virtual void Init(const WindowProps& props);
     virtual void Shutdown();
@@ -32,6 +35,12 @@ private:
 private:
     GLFWwindow* m_Window;
     CursorMode m_CursorMode = CursorMode::Disabled;
+
+    // Windowed geometry to restore when leaving fullscreen - captured the moment SetFullscreen(true)
+    // is called, since GLFW itself doesn't track "the size/pos before we last touched them".
+    bool m_Fullscreen = false;
+    int m_WindowedX = 0, m_WindowedY = 0;
+    int m_WindowedWidth = 0, m_WindowedHeight = 0;
 
     double m_LastMouseX = 0.0; // TODO: Remove? Set in WindowData
     double m_LastMouseY = 0.0; // TODO: Remove? Set in WindowData

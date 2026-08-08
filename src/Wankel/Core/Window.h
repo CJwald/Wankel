@@ -43,6 +43,15 @@ public:
     virtual void SetCursorMode(CursorMode mode) = 0;
     virtual CursorMode GetCursorMode() const = 0;
 
+    // Fullscreen via GLFW's real monitor-argument API (glfwSetWindowMonitor), not a manual
+    // undecorate+resize "borderless" hack - the latter depends on window-position queries that native
+    // Wayland doesn't support at all (by design), so it breaks there. GLFW translates the real
+    // fullscreen API into each platform's smooth native path (eg. Wayland's xdg_toplevel fullscreen
+    // request - no disruptive video-mode switch). Toggling back to windowed restores whatever
+    // position/size preceded it.
+    virtual void SetFullscreen(bool enabled) = 0;
+    virtual bool IsFullscreen() const = 0;
+
     static Scope<Window> Create(const WindowProps& props = WindowProps());
 };
 } // namespace Wankel

@@ -15,6 +15,14 @@ struct GravitySettings {
     bool Enabled = false;
     float Magnitude = 9.81f;
     glm::vec3 Direction = {0.0f, -1.0f, 0.0f};
+
+    // Hard cap on every non-static Rigidbody's speed (see PhysicsSystem::Update), applied regardless
+    // of Enabled - position integration is plain discrete-time Euler with no substepping or swept
+    // collision, so an unbounded fall (or any other unbounded velocity source) can accumulate enough
+    // speed in one frame to skip clean over a thin collider ("tunneling"). Independent of and
+    // complementary to MechtrixLayer's own dt clamp, which bounds the *step size* but not velocity
+    // itself.
+    float TerminalVelocity = 25.0f;
 };
 
 class PhysicsSystem {
