@@ -21,14 +21,15 @@ struct MeshAnimation {
     // separate field assignments. Doesn't touch Spring - ProceduralAnimationSystem
     // reconstructs it from Frequency/Damping/Response every frame regardless.
     MotionLink& SetLink(MotionAxis from, MotionAxis to, float magnitude, float frequency, float damping, float response,
-                        float clamp) {
+                        float clampMin, float clampMax) {
         auto& link = Links[(int)from][(int)to];
         link.Enabled = true;
         link.Magnitude = magnitude;
         link.Frequency = frequency;
         link.Damping = damping;
         link.Response = response;
-        link.Clamp = clamp;
+        link.ClampMin = clampMin;
+        link.ClampMax = clampMax;
         return link;
     }
 };

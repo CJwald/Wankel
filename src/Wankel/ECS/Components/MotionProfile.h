@@ -24,7 +24,8 @@ struct MotionLink {
     float Damping = 0.8f;
     float Response = 2.0f;
 
-    float Clamp = 9999.0f;
+    float ClampMin = -9999.0f;
+    float ClampMax = 9999.0f;
 
     SecondOrderDynamics Spring = SecondOrderDynamics(2.0f, 0.8f, 2.0f, 0.0f);
 

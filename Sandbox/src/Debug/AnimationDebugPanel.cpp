@@ -121,7 +121,8 @@ void AnimationDebugPanel::Draw(Scene& scene, entt::entity& selectedEntity) {
                         ImGui::DragFloat(("Frequency##" + label).c_str(), &link.Frequency, 0.01f, 0.01f, 20.0f);
                         ImGui::DragFloat(("Damping##" + label).c_str(), &link.Damping, 0.01f, 0.0f, 10.0f);
                         ImGui::DragFloat(("Response##" + label).c_str(), &link.Response, 0.01f, -10.0f, 10.0f);
-                        ImGui::DragFloat(("Clamp##" + label).c_str(), &link.Clamp, 0.01f, 0.0f, 1000.0f);
+                        ImGui::DragFloatRange2(("Clamp##" + label).c_str(), &link.ClampMin, &link.ClampMax, 0.01f,
+                                               -1000.0f, 1000.0f);
                         ImGui::Text("Output: %.3f", link.Output);
                         ImGui::Separator();
                         auto values = SecondOrderPreview::GetStepResponse(link.Frequency, link.Damping, link.Response);
@@ -151,7 +152,7 @@ void AnimationDebugPanel::Draw(Scene& scene, entt::entity& selectedEntity) {
                     auto& link = anim.Links[input][output];
 
                     if (!link.Enabled) {
-                        anim.SetLink((MotionAxis)input, (MotionAxis)output, 1.0f, 2.0f, 0.5f, 1.0f, 10.0f);
+                        anim.SetLink((MotionAxis)input, (MotionAxis)output, 1.0f, 2.0f, 0.5f, 1.0f, -10.0f, 10.0f);
                     }
                 }
 

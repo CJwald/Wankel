@@ -54,7 +54,7 @@ void ProceduralAnimationSystem::Update(Scene& scene, float dt) {
                     continue;
 
                 float target = input[in] * link.Magnitude;
-                target = glm::clamp(target, -link.Clamp, link.Clamp);
+                target = glm::clamp(target, link.ClampMin, link.ClampMax);
 
                 link.Spring.SetDynamics(link.Frequency, link.Damping, link.Response);
                 link.Output = link.Spring.Update(dt, target);

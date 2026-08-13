@@ -37,11 +37,11 @@ Entity PlayerFactory::Create(Scene& scene) {
         head.AddComponent<MeshRenderer>().MeshPtr = headMesh.get();
         head.AddComponent<Material>(bodyMaterial);
         auto& anim = head.AddComponent<MeshAnimation>();
-        anim.SetLink(MotionAxis::X, MotionAxis::X, 0.5f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -0.5f, 1.6f, 1.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 0.2f, 1.6f, 1.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Yaw, 5.0f, 0.6f, 1.6f, 1.6f, 45.0f);
-        anim.SetLink(MotionAxis::Pitch, MotionAxis::Pitch, 5.0f, 0.6f, 1.6f, 1.6f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::X, 0.5f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -0.5f, 1.6f, 1.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 0.2f, 1.6f, 1.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Yaw, 5.0f, 0.6f, 1.6f, 1.6f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Pitch, MotionAxis::Pitch, 5.0f, 0.6f, 1.6f, 1.6f, -45.0f, 45.0f);
     }
 
     // LEG FR
@@ -51,17 +51,17 @@ Entity PlayerFactory::Create(Scene& scene) {
         leg.AddComponent<MeshRenderer>().MeshPtr = legMesh.get();
         leg.AddComponent<Material>(bodyMaterial);
         auto& anim = leg.AddComponent<MeshAnimation>();
-        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 0.5f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -0.5f, 1.6f, 0.45f, 0.25f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 0.5f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -0.5f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
     }
 
     // LEG BR
@@ -75,17 +75,17 @@ Entity PlayerFactory::Create(Scene& scene) {
         leg.AddComponent<MeshRenderer>().MeshPtr = legMesh.get();
         leg.AddComponent<Material>(bodyMaterial);
         auto& anim = leg.AddComponent<MeshAnimation>();
-        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 2.5f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -2.5f, 1.6f, 0.45f, 0.25f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 2.5f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -2.5f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
     }
 
     // LEG FL (mirrored mesh)
@@ -95,17 +95,17 @@ Entity PlayerFactory::Create(Scene& scene) {
         leg.AddComponent<MeshRenderer>().MeshPtr = legMeshMirrored.get();
         leg.AddComponent<Material>(bodyMaterial);
         auto& anim = leg.AddComponent<MeshAnimation>();
-        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 2.5f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -2.5f, 1.6f, 0.45f, 0.25f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 2.5f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -2.5f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
     }
 
     // LEG BL (mirrored mesh)
@@ -119,17 +119,17 @@ Entity PlayerFactory::Create(Scene& scene) {
         leg.AddComponent<MeshRenderer>().MeshPtr = legMeshMirrored.get();
         leg.AddComponent<Material>(bodyMaterial);
         auto& anim = leg.AddComponent<MeshAnimation>();
-        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.6f, 1.4f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 2.5f, 1.6f, 0.45f, 0.25f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -2.5f, 1.6f, 0.45f, 0.25f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Y, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::X, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Z, -1.0f * 0.01f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -5.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Pitch, 5.0f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Roll, -1.0f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Y, MotionAxis::Pitch, -1.0f, 1.6f, 0.6f, 1.4f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Roll, 2.5f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Pitch, -2.5f, 1.6f, 0.45f, 0.25f, -45.0f, 45.0f);
     }
 
     // GUN
@@ -139,10 +139,10 @@ Entity PlayerFactory::Create(Scene& scene) {
         gun.AddComponent<MeshRenderer>().MeshPtr = gunMesh.get();
         gun.AddComponent<Material>(Material {{0.4f, 0.4f, 0.4f}, 0.75f, 0.0f, {0.0f, 0.0f, 0.0f}});
         auto& anim = gun.AddComponent<MeshAnimation>();
-        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -1.2f, 1.8f, 0.8f, 2.0f, 45.0f);
-        anim.SetLink(MotionAxis::Z, MotionAxis::Z, 0.002f, 1.8f, 0.8f, 2.0f, 45.0f);
-        anim.SetLink(MotionAxis::Yaw, MotionAxis::Yaw, 5.0f, 1.8f, 1.3f, 0.5f, 45.0f);
-        anim.SetLink(MotionAxis::Pitch, MotionAxis::Pitch, 3.5f, 1.8f, 1.3f, 0.5f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -1.2f, 1.8f, 0.8f, 2.0f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Z, MotionAxis::Z, 0.002f, 1.8f, 0.8f, 2.0f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Yaw, MotionAxis::Yaw, 5.0f, 1.8f, 1.3f, 0.5f, -45.0f, 45.0f);
+        anim.SetLink(MotionAxis::Pitch, MotionAxis::Pitch, 3.5f, 1.8f, 1.3f, 0.5f, -45.0f, 45.0f);
     }
 
     // CAMERA
@@ -155,7 +155,7 @@ Entity PlayerFactory::Create(Scene& scene) {
                               glm::angleAxis(glm::radians(0.0f), glm::vec3(0, 1, 0)) *
                               glm::angleAxis(glm::radians(0.0f), glm::vec3(0, 0, 1));
         auto& anim = camEntity.AddComponent<MeshAnimation>();
-        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -1.2f, 1.8f, 0.8f, 2.0f, 45.0f);
+        anim.SetLink(MotionAxis::X, MotionAxis::Roll, -1.2f, 1.8f, 0.8f, 2.0f, -45.0f, 45.0f);
     }
 
     return player;
