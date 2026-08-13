@@ -6,6 +6,7 @@
 
 #include "../Collision/BroadPhase/AABB.h"
 #include "../Collision/CollisionDispatcher.h"
+#include "../Raycast/Raycast.h"
 
 namespace Wankel {
 
@@ -104,8 +105,17 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // Position integration applies to every dynamic rigidbody, whether or
     // not it has a Movement component (e.g. thrown props, ragdolls, anything
     // whose velocity comes purely from collision response).
+    //
+    // Discrete collision (SpherevsMesh etc. in CollisionDispatcher) only tests the *post-move*
+    // position, so a fast-enough sphere can skip clean through terrain thinner than its
+    // per-frame displacement ("tunneling") with nothing ever detecting the crossing - lowering
+    // TerminalVelocity only shrinks that window, it can't close it. For SphereCollider bodies
+    // moving fast relative to their own radius, sweep a ray against the static terrain mesh
+    // first (reusing RaycastMesh - Physics/Raycast/Raycast.cpp) and clamp the move short of any
+    // hit instead of stepping straight through it.
     {
         auto view = registry.view<Transform, Rigidbody>();
+        constexpr float kSkin = 0.02f; // small stand-off so the sphere doesn't end up exactly touching the surface
 
         for (auto e : view) {
             auto& t = registry.get<Transform>(e);
@@ -114,7 +124,28 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             if (rb.IsStatic)
                 continue;
 
-            t.LocalPosition += rb.Velocity * dt;
+            glm::vec3 delta = rb.Velocity * dt;
+
+            auto* sphere = registry.try_get<SphereCollider>(e);
+            if (sphere) {
+                float travel = glm::length(delta);
+                if (travel > sphere->Radius * 0.5f) {
+                    Ray ray {t.LocalPosition + sphere->Offset, delta};
+                    RaycastHit hit;
+                    if (RaycastMesh(scene, ray, hit, travel + sphere->Radius)) {
+                        float safeDist = glm::max(hit.Distance - sphere->Radius - kSkin, 0.0f);
+                        t.LocalPosition += glm::normalize(delta) * safeDist;
+
+                        float intoSurface = glm::dot(rb.Velocity, hit.Normal);
+                        if (intoSurface < 0.0f)
+                            rb.Velocity -= hit.Normal * intoSurface;
+
+                        continue;
+                    }
+                }
+            }
+
+            t.LocalPosition += delta;
         }
     }
 
