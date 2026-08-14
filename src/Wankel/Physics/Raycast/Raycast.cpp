@@ -120,6 +120,43 @@ bool RaycastAABB(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
     return hitAnything;
 }
 
+bool RaycastSphere(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDistance, entt::entity excludeEntity) {
+    auto& registry = scene.Registry();
+    auto view = registry.view<Transform, SphereCollider>();
+
+    bool hitAnything = false;
+    float closest = maxDistance;
+    glm::vec3 dir = glm::normalize(ray.Direction);
+
+    for (auto e : view) {
+        if (e == excludeEntity)
+            continue;
+
+        auto& t = view.get<Transform>(e);
+        auto& c = view.get<SphereCollider>(e);
+
+        Sphere sphere {t.LocalPosition + c.Offset, c.Radius};
+
+        float distance;
+        if (!IntersectRaySphere(ray, sphere, distance))
+            continue;
+
+        if (distance > closest)
+            continue;
+
+        closest = distance;
+
+        outHit.HitEntity = Entity(e, &registry);
+        outHit.Distance = distance;
+        outHit.Point = ray.Origin + dir * distance;
+        outHit.Normal = glm::normalize(outHit.Point - sphere.Center);
+
+        hitAnything = true;
+    }
+
+    return hitAnything;
+}
+
 namespace {
 
 // Standard Moeller-Trumbore ray-triangle test. Nothing like this existed anywhere in the engine
