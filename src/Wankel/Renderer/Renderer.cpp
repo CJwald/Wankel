@@ -211,7 +211,8 @@ namespace {
 
 // Shared by Submit/SubmitInstanced: shader bind, frame-constant uniform dedup, per-draw model/normal
 // matrix, and material dedup. Everything after this differs (mesh bind + the actual draw call).
-void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& mesh, const Material& material) {
+void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& mesh, const Material& material,
+                        bool useVertexColor) {
     shader->Bind(); // no-op if already the current program
 
     // Frame-constant uniforms (view/projection/camera/light/fog/time) only need re-uploading to a
@@ -242,6 +243,13 @@ void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& 
         s_Data.LastMaterialValid = false; // this program hasn't seen a material upload yet this frame
     }
 
+    // Not frame-constant, so not part of the dedup block above - Submit and SubmitInstanced can
+    // alternate within the same frame using the same shader (player/enemy vs. terrain chunks in
+    // MechtrixLayer's render loop), so this must be set on every draw, not just the shader's first
+    // use this frame. Gates whether the fragment shader multiplies Vertex::Color into the surface
+    // color - see Submit/SubmitInstanced's own call sites for which is which.
+    shader->SetInt("u_UseVertexColor", useVertexColor ? 1 : 0);
+
     // Position-quantized meshes (Mesh's quantizing ctor) store [0,1]-normalized positions - folding
     // the dequantization into `model` here means the vertex shader needs no changes at all;
     // identity ({0,0,0}/{1,1,1}) for a non-quantized mesh, so this is always safe to apply. Must NOT
@@ -268,7 +276,7 @@ void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& 
 } // namespace
 
 void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material) {
-    UploadPerDrawState(shader, transform, mesh, material);
+    UploadPerDrawState(shader, transform, mesh, material, /*useVertexColor=*/false);
 
     mesh.Bind(); // no-op if already the current VAO
 
@@ -280,7 +288,9 @@ void Renderer::SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Sha
     if (instanceOffsets.empty())
         return;
 
-    UploadPerDrawState(shader, transform, mesh, material);
+    // Exclusively used for voxel terrain today - real per-voxel color (see VoxelMesher) lives in
+    // Vertex::Color, so this is the one draw path that wants it multiplied in.
+    UploadPerDrawState(shader, transform, mesh, material, /*useVertexColor=*/true);
 
     mesh.Bind(); // binds this chunk's VAO - the attribute setup below applies to it, not whatever was bound before
 
