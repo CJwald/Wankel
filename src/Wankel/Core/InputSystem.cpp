@@ -10,7 +10,10 @@ static std::vector<SDL_Gamepad*> s_Gamepads;
 static bool s_Initialized = false;
 
 bool InputSystem::Init() {
-    if (SDL_Init(SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS) != 0) {
+    // SDL3's SDL_Init returns bool (true = success), not SDL2's old "0 = success" int convention -
+    // this was inverted, so every successful init was logged and treated as a failure, permanently
+    // disabling gamepad support on every run regardless of whether a controller was even connected.
+    if (!SDL_Init(SDL_INIT_GAMEPAD | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS)) {
         WK_CORE_ERROR("SDL Init failed: {0}", SDL_GetError());
         return false;
     }
