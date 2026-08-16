@@ -18,6 +18,7 @@
 
 // ANIMATION
 #include "Components/AnimationComponents.h"
+#include "Components/PoseComponents.h"
 
 // GAMEPLAY
 #include "Components/GameplayComponents.h"
