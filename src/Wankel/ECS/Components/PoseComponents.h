@@ -3,6 +3,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <vector>
 
+#include "Wankel/ECS/Components/AnimationComponents.h"
 #include "Wankel/Math/Easing.h"
 
 
@@ -16,6 +17,8 @@ struct Pose {
     EaseType Ease = EaseType::Linear;
     float EaseExponent = 2.0f; // only meaningful for EaseIn/EaseOut
     float Duration = 0.0f;     // seconds to transition INTO this pose; 0 = instant snap
+
+    MeshAnimation Animation; // this pose's sway tuning - applied to the entity's live MeshAnimation on activation
 };
 
 struct PoseSet {

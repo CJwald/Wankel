@@ -20,7 +20,8 @@ void PoseSystem::Update(Scene& scene, float dt) {
         if (poseSet.Poses.empty())
             continue;
 
-        if (poseSet.Current != poseSet.Previous) {
+        bool poseChanged = poseSet.Current != poseSet.Previous;
+        if (poseChanged) {
             // Re-target from wherever the transform actually is right now, not the old pose's raw
             // value - so changing the target again mid-transition doesn't jump.
             poseSet.Blend.Position = tc.LocalPosition;
@@ -30,6 +31,18 @@ void PoseSystem::Update(Scene& scene, float dt) {
         }
 
         const Pose& target = poseSet.Poses[poseSet.Current];
+
+        if (poseChanged) {
+            // Swap this pose's sway tuning onto the entity's live MeshAnimation, if it has one -
+            // tuning only (see MotionLink::CopyTuning), so the spring keeps moving continuously
+            // instead of popping to rest.
+            if (auto* meshAnim = registry.try_get<MeshAnimation>(entity)) {
+                for (int in = 0; in < MeshAnimation::AxisCount; in++)
+                    for (int out = 0; out < MeshAnimation::AxisCount; out++)
+                        meshAnim->Links[in][out].CopyTuning(target.Animation.Links[in][out]);
+            }
+        }
+
         poseSet.Elapsed += dt;
         float t = target.Duration <= 0.0f ? 1.0f : glm::clamp(poseSet.Elapsed / target.Duration, 0.0f, 1.0f);
         float eased = Ease(target.Ease, t, target.EaseExponent);
