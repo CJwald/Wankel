@@ -40,6 +40,8 @@ struct RendererData {
 
     FogSettings Fog;
     LightSettings Light;
+    std::array<PointLightGPU, kMaxPointLights> PointLights;
+    int PointLightCount = 0;
 
     std::vector<DebugVertex> DebugVertices;
     // Same vertex format/shader/GL objects as DebugVertices, drawn every frame regardless of
@@ -227,6 +229,15 @@ void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& 
         shader->SetVec3("u_LightColor", s_Data.Light.Color);
         shader->SetFloat("u_AmbientStrength", s_Data.Light.Ambient);
         shader->SetFloat("u_SpecularStrength", s_Data.Light.Specular);
+
+        shader->SetInt("u_PointLightCount", s_Data.PointLightCount);
+        for (int i = 0; i < s_Data.PointLightCount; ++i) {
+            std::string prefix = "u_PointLights[" + std::to_string(i) + "].";
+            shader->SetVec3(prefix + "Position", s_Data.PointLights[i].Position);
+            shader->SetVec3(prefix + "Color", s_Data.PointLights[i].Color);
+            shader->SetFloat(prefix + "Intensity", s_Data.PointLights[i].Intensity);
+            shader->SetFloat(prefix + "Radius", s_Data.PointLights[i].Radius);
+        }
 
         shader->SetVec3("u_FogColor", s_Data.Fog.Color);
         shader->SetFloat("u_FogDensity", s_Data.Fog.Density);
@@ -516,6 +527,19 @@ void Renderer::SetFog(const FogSettings& fog) {
 
 void Renderer::SetLight(const LightSettings& light) {
     s_Data.Light = light;
+}
+
+void Renderer::SetPointLights(const std::vector<PointLightGPU>& lights) {
+    size_t count = lights.size();
+    if (count > kMaxPointLights) {
+        WK_CORE_WARNING("Renderer::SetPointLights - {0} point lights submitted, truncating to capacity ({1})", count,
+                        kMaxPointLights);
+        count = kMaxPointLights;
+    }
+
+    for (size_t i = 0; i < count; ++i)
+        s_Data.PointLights[i] = lights[i];
+    s_Data.PointLightCount = (int)count;
 }
 
 } // namespace Wankel

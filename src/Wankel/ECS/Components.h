@@ -9,6 +9,7 @@
 
 // RENDER
 #include "Components/RenderComponents.h"
+#include "Components/LightComponents.h"
 
 // INPUT
 #include "Components/InputComponents.h"

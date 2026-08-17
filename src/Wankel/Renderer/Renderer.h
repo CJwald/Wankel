@@ -38,6 +38,19 @@ struct LightSettings {
     float Specular = 0.35f;
 };
 
+// GPU-ready snapshot of one point light: world position (read from the owning
+// entity's Transform) plus the PointLight component's own fields. Built fresh
+// each frame by whoever collects <Transform, PointLight> entities (Renderer
+// has no ECS knowledge, same separation as Material vs MeshRenderer).
+struct PointLightGPU {
+    glm::vec3 Position {0.0f};
+    glm::vec3 Color {1.0f};
+    float Intensity = 1.0f;
+    float Radius = 10.0f;
+};
+
+static constexpr size_t kMaxPointLights = 8;
+
 // Solid-color, non-textured PBR material (metallic-roughness workflow).
 // No UVs/textures in this pass - see Documents/TODO.md for the deferred
 // texture-mapped-materials follow-up.
@@ -117,6 +130,7 @@ public:
     static void OnWindowResize(uint32_t width, uint32_t height);
     static void SetFog(const FogSettings& fog);
     static void SetLight(const LightSettings& light);
+    static void SetPointLights(const std::vector<PointLightGPU>& lights);
 
     static bool DebugEnabled; // Global toggle
 };
