@@ -38,14 +38,19 @@ public:
     // whatever else the specific part needs (MeshRenderer/Material/MeshAnimation/...).
     Entity CreateChild(Entity parent, const std::string& name);
 
+    // Recurses into children (a mob's body/leg meshes, a player's head/legs/gun/camera, ...) rather
+    // than detaching and orphaning them - destroying a hierarchy root should remove the whole rig.
     void DestroyEntity(Entity entity) {
         auto handle = entity.GetHandle();
 
         auto view = m_Registry.view<Parent>();
+        std::vector<entt::entity> children;
         for (auto e : view) {
             if (view.get<Parent>(e).Parent.GetHandle() == handle)
-                m_Registry.remove<Parent>(e);
+                children.push_back(e);
         }
+        for (auto child : children)
+            DestroyEntity(Entity(child, &m_Registry));
 
         m_Registry.destroy(handle);
     }
