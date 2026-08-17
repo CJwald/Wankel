@@ -14,6 +14,8 @@ struct MeshAnimation {
 
     glm::vec3 PositionOffset {0.0f};
     glm::vec3 RotationOffset {0.0f};
+    glm::vec3 RotationOrigin {
+        0.0f}; // local-space pivot point for RotationOffset; {0,0,0} = rotate around the entity origin
 
     bool Initialized = false;
 

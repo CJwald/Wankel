@@ -40,6 +40,7 @@ void PoseSystem::Update(Scene& scene, float dt) {
                 for (int in = 0; in < MeshAnimation::AxisCount; in++)
                     for (int out = 0; out < MeshAnimation::AxisCount; out++)
                         meshAnim->Links[in][out].CopyTuning(target.Animation.Links[in][out]);
+                meshAnim->RotationOrigin = target.Animation.RotationOrigin;
             }
         }
 

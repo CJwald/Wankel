@@ -66,10 +66,15 @@ void ProceduralAnimationSystem::Update(Scene& scene, float dt) {
             glm::vec3(output[(int)MotionAxis::X], output[(int)MotionAxis::Y], output[(int)MotionAxis::Z]);
         anim.RotationOffset =
             glm::vec3(output[(int)MotionAxis::Pitch], output[(int)MotionAxis::Yaw], output[(int)MotionAxis::Roll]);
-        tc.VisualPosition = anim.PositionOffset;
 
         glm::vec3 rotRad = glm::radians(anim.RotationOffset);
         tc.VisualRotation = glm::normalize(glm::quat(rotRad));
+
+        // Rotate around anim.RotationOrigin instead of the local origin: T(pivot)*R*T(-pivot) collapses to
+        // T(pivot - R*pivot)*R, so folding that into the existing Translate*Rotate composition
+        // (TransformSystem::UpdateFinalTransforms) just needs this extra offset added to the position term.
+        glm::vec3 pivot = anim.RotationOrigin;
+        tc.VisualPosition = anim.PositionOffset + pivot - (tc.VisualRotation * pivot);
     }
 }
 
