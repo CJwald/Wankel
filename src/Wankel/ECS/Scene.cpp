@@ -39,27 +39,31 @@ void Scene::OnUpdate(float dt, Camera& camera) {
     Smooth(m_SystemTimings.PlayerControllerMs, ElapsedMs(t0));
 
     auto t1 = std::chrono::high_resolution_clock::now();
-    m_PhysicsSystem.Update(*this, dt);
-    Smooth(m_SystemTimings.PhysicsMs, ElapsedMs(t1));
+    m_PoseSystem.Update(*this, dt);
+    Smooth(m_SystemTimings.PoseMs, ElapsedMs(t1));
 
     auto t2 = std::chrono::high_resolution_clock::now();
-    m_TransformSystem.Update(*this);
-    Smooth(m_SystemTimings.TransformMs, ElapsedMs(t2));
+    m_PhysicsSystem.Update(*this, dt);
+    Smooth(m_SystemTimings.PhysicsMs, ElapsedMs(t2));
 
     auto t3 = std::chrono::high_resolution_clock::now();
-    m_KinematicsSystem.Update(*this, dt);
-    Smooth(m_SystemTimings.KinematicsMs, ElapsedMs(t3));
+    m_TransformSystem.Update(*this);
+    Smooth(m_SystemTimings.TransformMs, ElapsedMs(t3));
 
     auto t4 = std::chrono::high_resolution_clock::now();
-    m_ProceduralAnimationSystem.Update(*this, dt);
-    Smooth(m_SystemTimings.ProceduralAnimationMs, ElapsedMs(t4));
+    m_KinematicsSystem.Update(*this, dt);
+    Smooth(m_SystemTimings.KinematicsMs, ElapsedMs(t4));
 
     auto t5 = std::chrono::high_resolution_clock::now();
-    m_TransformSystem.UpdateFinalTransforms(*this);
-    Smooth(m_SystemTimings.TransformFinalMs, ElapsedMs(t5));
+    m_ProceduralAnimationSystem.Update(*this, dt);
+    Smooth(m_SystemTimings.ProceduralAnimationMs, ElapsedMs(t5));
 
     auto t6 = std::chrono::high_resolution_clock::now();
+    m_TransformSystem.UpdateFinalTransforms(*this);
+    Smooth(m_SystemTimings.TransformFinalMs, ElapsedMs(t6));
+
+    auto t7 = std::chrono::high_resolution_clock::now();
     m_CameraSystem.Update(*this, camera);
-    Smooth(m_SystemTimings.CameraMs, ElapsedMs(t6));
+    Smooth(m_SystemTimings.CameraMs, ElapsedMs(t7));
 }
 } // namespace Wankel

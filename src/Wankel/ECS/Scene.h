@@ -3,6 +3,7 @@
 #include "Wankel/ECS/Components/HiearchyComponents.h"
 #include "Wankel/Physics/Systems/PhysicsSystem.h"
 #include "Wankel/ECS/Systems/PlayerControllerSystem.h"
+#include "Wankel/ECS/Systems/PoseSystem.h"
 #include "Wankel/ECS/Systems/TransformSystem.h"
 #include "Wankel/ECS/Systems/KinematicsSystem.h"
 #include "Wankel/ECS/Systems/ProceduralAnimationSystem.h"
@@ -18,6 +19,7 @@ namespace Wankel {
 // FinalTransform).
 struct SceneSystemTimings {
     float PlayerControllerMs = 0.0f;
+    float PoseMs = 0.0f;
     float PhysicsMs = 0.0f;
     float TransformMs = 0.0f;
     float KinematicsMs = 0.0f;
@@ -73,6 +75,7 @@ public:
 
 private:
     PlayerControllerSystem m_PlayerControllerSystem;
+    PoseSystem m_PoseSystem;
     TransformSystem m_TransformSystem;
     KinematicsSystem m_KinematicsSystem;
     ProceduralAnimationSystem m_ProceduralAnimationSystem;
