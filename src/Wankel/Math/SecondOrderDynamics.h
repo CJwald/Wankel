@@ -10,6 +10,10 @@ public:
 
     float Update(float dt, float target);
 
+    // Bumps the spring's internal velocity directly, independent of target - a one-shot kick that
+    // Update() then naturally integrates/settles back down per the spring's own f/z/r tuning.
+    void AddImpulse(float velocityDelta);
+
     void Reset(float value);
 
     void SetDynamics(float frequency, float damping, float response);

@@ -19,12 +19,13 @@ void CameraSystem::Update(Scene& scene, Camera& camera) {
         if (!cam.Primary)
             continue;
 
-        // POSITION
-        glm::vec3 position = glm::vec3(transform.WorldTransform[3]);
+        // POSITION - FinalTransform (not WorldTransform) so any MeshAnimation-driven VisualPosition
+        // offset on this entity (e.g. procedural sway) reaches the actual render camera.
+        glm::vec3 position = glm::vec3(transform.FinalTransform[3]);
         camera.SetPosition(position);
 
         // ROTATION
-        glm::quat rotation = glm::quat_cast(transform.WorldTransform);
+        glm::quat rotation = glm::quat_cast(transform.FinalTransform);
         camera.SetOrientation(rotation);
 
         camera.SetFOV(cam.FOV);

@@ -40,6 +40,11 @@ float SecondOrderDynamics::Update(float dt, float target) {
 }
 
 
+void SecondOrderDynamics::AddImpulse(float velocityDelta) {
+    m_OutputVelocity += velocityDelta;
+}
+
+
 void SecondOrderDynamics::Reset(float value) {
     m_PreviousInput = value;
     m_Output = value;
