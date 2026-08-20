@@ -64,7 +64,16 @@ void WorkerLoop() {
             entry = std::move(const_cast<JobEntry&>(JobQueue().top()));
             JobQueue().pop();
         }
-        entry.Fn();
+        // A throwing job (bad-seed terrain-gen edge case, allocation failure) would otherwise call
+        // std::terminate() with zero diagnostic output and take the whole process down with it -
+        // log and drop the one bad job instead, leaving the worker loop running.
+        try {
+            entry.Fn();
+        } catch (const std::exception& e) {
+            WK_CORE_ERROR("JobSystem: worker job threw: {0}", e.what());
+        } catch (...) {
+            WK_CORE_ERROR("JobSystem: worker job threw a non-std::exception");
+        }
     }
 }
 
@@ -132,8 +141,15 @@ void JobSystem::RunMainThreadQueue(int maxJobs) {
 
     // Run outside the lock - a callback may itself call SubmitMainThread again (e.g. a batched
     // upload re-queuing its own continuation), which would deadlock on a lock still held here.
-    for (std::function<void()>& job : toRun)
-        job();
+    for (std::function<void()>& job : toRun) {
+        try {
+            job();
+        } catch (const std::exception& e) {
+            WK_CORE_ERROR("JobSystem: main-thread job threw: {0}", e.what());
+        } catch (...) {
+            WK_CORE_ERROR("JobSystem: main-thread job threw a non-std::exception");
+        }
+    }
 }
 
 unsigned int JobSystem::WorkerCount() {
