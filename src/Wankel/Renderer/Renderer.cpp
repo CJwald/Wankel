@@ -8,6 +8,7 @@
 #include "Font.h"
 #include "Texture.h"
 #include "OcclusionQuery.h"
+#include "ChunkGeometryPool.h"
 
 #include "Wankel/Core/Time.h"
 
@@ -211,15 +212,15 @@ void Renderer::EndScene() {
 
 namespace {
 
-// Shared by Submit/SubmitInstanced: shader bind, frame-constant uniform dedup, per-draw model/normal
-// matrix, and material dedup. Everything after this differs (mesh bind + the actual draw call).
-void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& mesh, const Material& material,
-                        bool useVertexColor) {
+// Shared by every draw path (Submit/SubmitInstanced/SubmitIndirect): shader bind + frame-constant
+// uniform dedup (view/projection/camera/light/fog/time) + material dedup. Frame-constant uniforms
+// only need re-uploading to a given shader once per frame, not once per draw - re-set them only the
+// first time this particular shader is used since BeginScene. Material uniforms only need
+// re-uploading when they actually differ from the last draw's - e.g. every voxel chunk shares one
+// identical Material, so this collapses to one upload total regardless of which draw path is used.
+void UploadSharedDrawState(Shader* shader, const Material& material, bool useVertexColor) {
     shader->Bind(); // no-op if already the current program
 
-    // Frame-constant uniforms (view/projection/camera/light/fog/time) only need re-uploading to a
-    // given shader once per frame, not once per draw - re-set them only the first time this
-    // particular shader is used since BeginScene.
     if (shader != s_Data.LastSubmitShader) {
         shader->SetMat4("view", s_Data.View);
         shader->SetMat4("projection", s_Data.Projection);
@@ -254,26 +255,12 @@ void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& 
         s_Data.LastMaterialValid = false; // this program hasn't seen a material upload yet this frame
     }
 
-    // Not frame-constant, so not part of the dedup block above - Submit and SubmitInstanced can
-    // alternate within the same frame using the same shader (player/enemy vs. terrain chunks in
-    // MechtrixLayer's render loop), so this must be set on every draw, not just the shader's first
-    // use this frame. Gates whether the fragment shader multiplies Vertex::Color into the surface
-    // color - see Submit/SubmitInstanced's own call sites for which is which.
+    // Not frame-constant, so not part of the dedup block above - different draw paths can alternate
+    // within the same frame using the same shader, so this must be set on every draw, not just the
+    // shader's first use this frame. Gates whether the fragment shader multiplies Vertex::Color into
+    // the surface color.
     shader->SetInt("u_UseVertexColor", useVertexColor ? 1 : 0);
 
-    // Position-quantized meshes (Mesh's quantizing ctor) store [0,1]-normalized positions - folding
-    // the dequantization into `model` here means the vertex shader needs no changes at all;
-    // identity ({0,0,0}/{1,1,1}) for a non-quantized mesh, so this is always safe to apply. Must NOT
-    // feed into u_NormalMatrix below - that's a packing-artifact correction on position only, not a
-    // real transform of the object, and normals are already correct relative to the original
-    // (pre-quantization) local space.
-    glm::mat4 model = transform * glm::translate(glm::mat4(1.0f), mesh.GetQuantizeMin()) *
-                      glm::scale(glm::mat4(1.0f), mesh.GetQuantizeExtent());
-    shader->SetMat4("model", model);
-    shader->SetMat3("u_NormalMatrix", glm::inverseTranspose(glm::mat3(transform)));
-
-    // Material uniforms only need re-uploading when they actually differ from the last draw's -
-    // e.g. every voxel chunk shares one identical Material, so this collapses to one upload total.
     if (!s_Data.LastMaterialValid || !(material == s_Data.LastMaterial)) {
         shader->SetVec3("u_Albedo", material.Albedo);
         shader->SetFloat("u_Roughness", material.Roughness);
@@ -284,10 +271,26 @@ void UploadPerDrawState(Shader* shader, const glm::mat4& transform, const Mesh& 
     }
 }
 
+// Submit/SubmitInstanced-only: the per-draw `model`/`u_NormalMatrix` uniforms these two paths still
+// use (SubmitIndirect instead reads both per-chunk from a SSBO - see ChunkGeometryPool/chunk.vert).
+void UploadPerDrawTransform(Shader* shader, const glm::mat4& transform, const Mesh& mesh) {
+    // Position-quantized meshes (Mesh's quantizing ctor) store [0,1]-normalized positions - folding
+    // the dequantization into `model` here means the vertex shader needs no changes at all;
+    // identity ({0,0,0}/{1,1,1}) for a non-quantized mesh, so this is always safe to apply. Must NOT
+    // feed into u_NormalMatrix below - that's a packing-artifact correction on position only, not a
+    // real transform of the object, and normals are already correct relative to the original
+    // (pre-quantization) local space.
+    glm::mat4 model = transform * glm::translate(glm::mat4(1.0f), mesh.GetQuantizeMin()) *
+                      glm::scale(glm::mat4(1.0f), mesh.GetQuantizeExtent());
+    shader->SetMat4("model", model);
+    shader->SetMat3("u_NormalMatrix", glm::inverseTranspose(glm::mat3(transform)));
+}
+
 } // namespace
 
 void Renderer::Submit(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material) {
-    UploadPerDrawState(shader, transform, mesh, material, /*useVertexColor=*/false);
+    UploadSharedDrawState(shader, material, /*useVertexColor=*/false);
+    UploadPerDrawTransform(shader, transform, mesh);
 
     mesh.Bind(); // no-op if already the current VAO
 
@@ -301,7 +304,8 @@ void Renderer::SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Sha
 
     // Exclusively used for voxel terrain today - real per-voxel color (see VoxelMesher) lives in
     // Vertex::Color, so this is the one draw path that wants it multiplied in.
-    UploadPerDrawState(shader, transform, mesh, material, /*useVertexColor=*/true);
+    UploadSharedDrawState(shader, material, /*useVertexColor=*/true);
+    UploadPerDrawTransform(shader, transform, mesh);
 
     mesh.Bind(); // binds this chunk's VAO - the attribute setup below applies to it, not whatever was bound before
 
@@ -319,6 +323,22 @@ void Renderer::SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Sha
     glVertexAttribDivisor(3, 1);
 
     glDrawElementsInstanced(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr, (GLsizei)count);
+}
+
+void Renderer::SubmitIndirect(Shader* shader, const Material& material, const ChunkGeometryPool& pool) {
+    uint32_t commandCount = pool.GetLastUploadedCommandCount(); // set by ChunkGeometryPool::UploadFrameData
+    if (commandCount == 0)
+        return;
+
+    // Per-chunk Model/NormalMatrix come from the pool's SSBO (indexed by aChunkIndex in chunk.vert)
+    // instead of a per-draw uniform - see UploadPerDrawTransform, deliberately not called here.
+    UploadSharedDrawState(shader, material, /*useVertexColor=*/true);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, pool.GetTransformSSBO()); // binding=0, matches chunk.vert
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, pool.GetIndirectBuffer());
+    pool.Bind(); // VAO wired to the pool's combined vertex/index/instance buffers
+
+    glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, (GLsizei)commandCount, 0);
 }
 
 

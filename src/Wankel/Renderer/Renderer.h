@@ -13,6 +13,7 @@ class Shader;
 class Mesh;
 class Font;
 class OcclusionQuery;
+class ChunkGeometryPool;
 
 struct FogSettings {
     glm::vec3 Color = {0.12f, 0.1f, 0.2f};
@@ -84,6 +85,12 @@ public:
     // see cube.vert) in a single glDrawElementsInstanced call, instead of one Submit() per offset.
     static void SubmitInstanced(const glm::mat4& transform, const Mesh& mesh, Shader* shader, const Material& material,
                                 const std::vector<glm::vec3>& instanceOffsets);
+
+    // Draws every chunk uploaded via pool.UploadFrameData() in one glMultiDrawElementsIndirect call -
+    // see ChunkGeometryPool's own comment. Per-chunk Model/NormalMatrix come from the pool's SSBO
+    // (indexed by aChunkIndex in chunk.vert), not a per-draw uniform - shader must be built from
+    // chunk.vert (or an equivalent reading the same SSBO layout), not cube.vert.
+    static void SubmitIndirect(Shader* shader, const Material& material, const ChunkGeometryPool& pool);
 
     // Occlusion culling - see OcclusionQuery.h. Typical use: BeginOcclusionQuery/EndOcclusionQuery
     // around a cheap (or real, color-write-disabled via SetColorWrite) proxy draw, then in a *later

@@ -5,19 +5,9 @@
 #include "Buffer.h"
 #include "IndexBuffer.h"
 #include "VertexBufferLayout.h"
+#include "QuantizedVertex.h"
 
 namespace {
-
-// Packs a normalized vec3 into GL_INT_2_10_10_10_REV layout (X:bits0-9, Y:bits10-19,
-// Z:bits20-29, W:bits30-31, each a signed 10-bit component) - GL unpacks this to a normalized
-// vec4 in the shader for free, no decode ALU cost, at 4 bytes instead of a plain vec3's 12.
-uint32_t PackNormal(const glm::vec3& n) {
-    glm::vec3 c = glm::clamp(n, -1.0f, 1.0f);
-    auto packComponent = [](float v) -> uint32_t {
-        return (uint32_t)(int32_t)std::lround(v * 511.0f) & 0x3FF; // 10-bit signed, masked
-    };
-    return packComponent(c.x) | (packComponent(c.y) << 10) | (packComponent(c.z) << 20);
-}
 
 // GPU-side layout: identical to Wankel::Vertex except Normal is packed - built once per Mesh
 // upload so every mesh producer (glTF/PLY loaders, VoxelMesher, CreateMirrored) keeps working
@@ -27,49 +17,6 @@ struct PackedVertex {
     glm::vec4 Color;
     uint32_t PackedNormal;
 };
-
-// Same as PackedVertex but with Position also quantized (see Mesh's quantizing ctor). Packed to
-// 1-byte alignment so VertexBufferLayout's manually tracked stride below matches this struct's true
-// byte layout exactly (no compiler-inserted padding to silently disagree with it) - but pack(1) also
-// removes the padding that would otherwise naturally align Color/PackedNormal to a 4-byte boundary,
-// which the GPU needs for correct GL_FLOAT/GL_INT_2_10_10_10_REV vertex fetches. Some drivers are far
-// less forgiving of unaligned packed-attribute fetches than others - suspected root cause of chunks
-// (this quantizing layout is voxel-terrain-only) reported flickering/going solid white on one specific
-// AMD Mesa driver, never seen elsewhere: an unaligned PackedNormal fetch reading garbage that decodes
-// to a near-zero/NaN normal. `Padding` restores natural alignment explicitly - see
-// VertexBufferLayout::PushPadding, used to match it below.
-#pragma pack(push, 1)
-struct QuantizedVertex {
-    uint16_t Position[3];  // offset 0, 6 bytes
-    uint16_t Padding = 0;  // offset 6, 2 bytes - pushes Color to offset 8 (4-byte aligned)
-    glm::vec4 Color;       // offset 8, 16 bytes
-    uint32_t PackedNormal; // offset 24, 4 bytes (4-byte aligned)
-};
-#pragma pack(pop)
-static_assert(sizeof(QuantizedVertex) == 28, "QuantizedVertex must be tightly packed - GPU stride depends on this");
-
-uint16_t QuantizeComponent(float value, float min, float extent) {
-    float t = extent > 1e-8f ? glm::clamp((value - min) / extent, 0.0f, 1.0f) : 0.0f;
-    return (uint16_t)std::lround(t * 65535.0f);
-}
-
-// Shared by the quantizing constructor and UpdateData, so a mesh's GPU buffers can be respecified
-// with fresh data (see UpdateData) without duplicating this packing logic.
-std::vector<QuantizedVertex> BuildQuantizedVertices(const std::vector<Wankel::Vertex>& vertices, const glm::vec3& min,
-                                                    const glm::vec3& extent) {
-    std::vector<QuantizedVertex> packed;
-    packed.reserve(vertices.size());
-    for (const Wankel::Vertex& v : vertices) {
-        QuantizedVertex qv;
-        qv.Position[0] = QuantizeComponent(v.Position.x, min.x, extent.x);
-        qv.Position[1] = QuantizeComponent(v.Position.y, min.y, extent.y);
-        qv.Position[2] = QuantizeComponent(v.Position.z, min.z, extent.z);
-        qv.Color = v.Color;
-        qv.PackedNormal = PackNormal(v.Normal);
-        packed.push_back(qv);
-    }
-    return packed;
-}
 
 } // namespace
 
