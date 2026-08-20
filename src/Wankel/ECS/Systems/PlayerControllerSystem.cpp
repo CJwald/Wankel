@@ -63,6 +63,32 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
             up = controller.BodyOrientation * glm::vec3(0, 1, 0);
         }
 
+        // SPECTATOR MODE - always-upright free-fly (noclip). Reuses FPS's own yaw/pitch invariant
+        // (BodyOrientation only ever receives yaw about its own current up, which - since it never
+        // accumulates pitch or roll - stays exactly world-up forever, by construction, regardless of
+        // frame count) so yaw can never introduce bank/roll the way Flight's local-up yaw does. Unlike
+        // FPS, movement below uses the full pitched Orientation (not the flattened body direction) and
+        // there is no roll input at all - flying toward wherever you're looking, no tilt, ever.
+        else if (controller.Mode == PlayerController::LookMode::Spectator) {
+            glm::vec3 bodyUp = controller.BodyOrientation * glm::vec3(0, 1, 0);
+
+            float yawDelta = -dx * controller.MouseSensitivity;
+            float pitchDelta = -dy * controller.MouseSensitivity;
+            controller.Pitch += pitchDelta;
+            controller.Pitch = glm::clamp(controller.Pitch, controller.MaxPitchDown, controller.MaxPitchUp);
+
+            glm::quat yawQuat = glm::angleAxis(yawDelta, bodyUp);
+            controller.BodyOrientation = glm::normalize(yawQuat * controller.BodyOrientation);
+            glm::vec3 bodyRight = controller.BodyOrientation * glm::vec3(1, 0, 0);
+
+            glm::quat pitchQuat = glm::angleAxis(controller.Pitch, bodyRight);
+            controller.Orientation = glm::normalize(pitchQuat * controller.BodyOrientation);
+
+            forward = controller.Orientation * glm::vec3(0, 0, -1);
+            right = controller.Orientation * glm::vec3(1, 0, 0);
+            up = controller.Orientation * glm::vec3(0, 1, 0);
+        }
+
         // FLIGHT MODE
         else if (controller.Mode == PlayerController::LookMode::Flight) {
             // MOVEMENT TODO: is this needed here?
@@ -94,13 +120,14 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
         movement.MoveIntent = moveDir;
 
         // Mode-specific stop feel - PhysicsSystem uses Movement::Deceleration once MoveIntent goes to
-        // zero (see its own comment); Mech/FPS stays snappy, Flight drifts slowly to a stop instead.
-        movement.Deceleration = controller.Mode == PlayerController::LookMode::Flight ? controller.FlightDeceleration
-                                                                                      : controller.FPSDeceleration;
+        // zero (see its own comment); Mech/FPS stays snappy, any non-grounded mode (Flight, Spectator)
+        // uses the shared tunable instead.
+        bool grounded = controller.Mode == PlayerController::LookMode::FPS;
+        movement.Deceleration = grounded ? controller.FPSDeceleration : controller.FlightDeceleration;
 
-        // Mech/FPS is always fully grounded (full gravity); Flight uses the tunable scalar - see
-        // PlayerController::FlightGravityScale and Rigidbody::GravityScale.
-        rb.GravityScale = controller.Mode == PlayerController::LookMode::Flight ? controller.FlightGravityScale : 1.0f;
+        // Mech/FPS is always fully grounded (full gravity); any non-grounded mode uses the tunable
+        // scalar - see PlayerController::FlightGravityScale and Rigidbody::GravityScale.
+        rb.GravityScale = grounded ? 1.0f : controller.FlightGravityScale;
 
         // APPLY TRANSFORM
         transform.LocalOrientation = controller.Orientation;

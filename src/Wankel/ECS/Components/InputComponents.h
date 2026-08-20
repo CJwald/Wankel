@@ -7,7 +7,10 @@
 namespace Wankel {
 
 struct PlayerController {
-    enum class LookMode { FPS, Flight };
+    // Spectator: always-upright free-fly - yaw about world up (never the tilted local up Flight uses,
+    // so it can never bank/roll), movement follows the full pitched look direction (unlike FPS, which
+    // flattens movement to the body plane). See PlayerControllerSystem::Update.
+    enum class LookMode { FPS, Flight, Spectator };
 
     float MoveSpeed = 5.0f;
     float BoostMultiplier = 1.2f;
@@ -27,16 +30,17 @@ struct PlayerController {
 
     // Per-mode Movement::Deceleration, applied each frame by PlayerControllerSystem (mirrors how
     // Boost/MaxSpeed already works below) - Mech/FPS stays snappy (matches Movement's own prior
-    // single shared default), Flight drifts slowly to a stop after input releases instead of
-    // stopping just as fast as it started. Tune FlightDeceleration to taste - lower = longer drift
-    // (time-to-stop from MaxSpeed is roughly MaxSpeed / Deceleration seconds).
+    // single shared default); any non-grounded mode (Flight, Spectator) uses FlightDeceleration
+    // instead - Flight's default drifts slowly to a stop, Spectator typically wants this cranked way
+    // up for an instant halt. Tune to taste - time-to-stop from MaxSpeed is roughly MaxSpeed/this.
     float FPSDeceleration = 50.0f;
     float FlightDeceleration = 2.0f;
 
     // Per-mode Rigidbody::GravityScale, applied each frame by PlayerControllerSystem (same pattern as
     // FPSDeceleration/FlightDeceleration above) - Mech/FPS is always fully grounded (hardcoded 1.0 in
-    // PlayerControllerSystem, not exposed as its own tunable), Flight defaults to 0 (today's existing
-    // free-flight feel, unaffected by world gravity unless you deliberately dial this up toward 1).
+    // PlayerControllerSystem, not exposed as its own tunable); any non-grounded mode (Flight,
+    // Spectator) uses FlightGravityScale, defaulting to 0 (free-flight, unaffected by world gravity
+    // unless you deliberately dial this up toward 1).
     float FlightGravityScale = 0.0f;
 
     // FPS CAMERA STATE, TODO: make sure I need these
