@@ -90,7 +90,10 @@ void ImGuiLayer::End() {
     io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 
     ImGui::Render();
+    m_GpuTimer.Begin();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    m_GpuTimer.End();
+    m_LastGpuMs = m_GpuTimer.PollElapsedMs();
 }
 
 } // namespace Wankel
