@@ -49,8 +49,8 @@ void WindowsWindow::Init(const WindowProps& props) {
         ++s_GLFWWindowCount;
     }
 
-    // Optional but recommended for modern OpenGL
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    // 4.3 core - needed for SSBOs + glMultiDrawElementsIndirect (chunk draw-call batching).
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -78,12 +78,6 @@ void WindowsWindow::Init(const WindowProps& props) {
 
     if (glfwRawMouseMotionSupported())
         glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-
-    // Load GLAD - this must come AFTER MakeContextCurrent
-    if (!gladLoadGL(glfwGetProcAddress)) {
-        WK_CORE_ERROR("Failed to initialize GLAD!");
-        return;
-    }
 
     // Print info so you know it worked
     WK_CORE_INFO("OpenGL Vendor:   {0}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
