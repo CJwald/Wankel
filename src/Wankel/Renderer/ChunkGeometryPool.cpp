@@ -186,4 +186,23 @@ void ChunkGeometryPool::Bind() const {
     glBindVertexArray(m_VAO);
 }
 
+void ChunkGeometryPool::DrawOne(const ChunkGeometryHandle& handle, const glm::vec3& instanceOffset) const {
+    if (!handle.Valid)
+        return;
+
+    // Writes into instance slot 0 and immediately issues a draw reading it - safe because GL command
+    // issuance is strictly ordered on this context/thread (same principle Renderer::SubmitInstanced
+    // already relies on when it reuses one shared instance buffer across a sequence of per-chunk
+    // draws), so there's no risk of a later DrawOne's write clobbering data an earlier draw hasn't
+    // consumed yet.
+    ChunkInstanceEntry entry {instanceOffset, handle.ChunkSlot};
+    glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(ChunkInstanceEntry), &entry);
+
+    Bind();
+    glDrawElementsInstancedBaseVertex(GL_TRIANGLES, (GLsizei)handle.IndexCount, GL_UNSIGNED_INT,
+                                      (void*)((size_t)handle.FirstIndex * sizeof(uint32_t)), 1,
+                                      (GLint)handle.VertexBase);
+}
+
 } // namespace Wankel

@@ -341,6 +341,13 @@ void Renderer::SubmitIndirect(Shader* shader, const Material& material, const Ch
     glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, (GLsizei)commandCount, 0);
 }
 
+void Renderer::SubmitPooledChunkQuery(Shader* shader, const Material& material, const ChunkGeometryPool& pool,
+                                      const ChunkGeometryHandle& handle, const glm::vec3& instanceOffset) {
+    UploadSharedDrawState(shader, material, /*useVertexColor=*/true);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, pool.GetTransformSSBO());
+    pool.DrawOne(handle, instanceOffset);
+}
+
 
 void Renderer::SetColorWrite(bool enabled) {
     glColorMask(enabled, enabled, enabled, enabled);

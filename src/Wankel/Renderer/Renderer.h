@@ -14,6 +14,7 @@ class Mesh;
 class Font;
 class OcclusionQuery;
 class ChunkGeometryPool;
+struct ChunkGeometryHandle;
 
 struct FogSettings {
     glm::vec3 Color = {0.12f, 0.1f, 0.2f};
@@ -91,6 +92,13 @@ public:
     // (indexed by aChunkIndex in chunk.vert), not a per-draw uniform - shader must be built from
     // chunk.vert (or an equivalent reading the same SSBO layout), not cube.vert.
     static void SubmitIndirect(Shader* shader, const Material& material, const ChunkGeometryPool& pool);
+
+    // Draws exactly one pooled chunk directly (see ChunkGeometryPool::DrawOne) - used to bracket an
+    // occlusion query around a cheap single-chunk proxy draw for the query re-issue pass. Caller
+    // wraps this in SetColorWrite(false)/BeginOcclusionQuery/EndOcclusionQuery, same pattern the
+    // old per-mesh occlusion pass always used.
+    static void SubmitPooledChunkQuery(Shader* shader, const Material& material, const ChunkGeometryPool& pool,
+                                       const ChunkGeometryHandle& handle, const glm::vec3& instanceOffset);
 
     // Occlusion culling - see OcclusionQuery.h. Typical use: BeginOcclusionQuery/EndOcclusionQuery
     // around a cheap (or real, color-write-disabled via SetColorWrite) proxy draw, then in a *later

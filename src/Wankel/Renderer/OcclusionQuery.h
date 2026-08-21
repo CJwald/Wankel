@@ -30,6 +30,13 @@ public:
     uint64_t GetLastIssuedFrame() const { return m_LastIssuedFrame; }
     void MarkIssued(uint64_t frameNumber) { m_LastIssuedFrame = frameNumber; }
 
+    // Non-blocking poll of this query's last-issued result (GL_QUERY_RESULT_AVAILABLE-gated, never
+    // stalls) - true + outVisible set if a result was ready, false (outVisible untouched) otherwise,
+    // same "keep going without it" philosophy as GPUTimerQuery's own poll. outVisible reflects
+    // GL_ANY_SAMPLES_PASSED: true means at least one sample passed the depth test the last time
+    // this query ran.
+    bool PollVisible(bool& outVisible) const;
+
 private:
     uint32_t m_ID = 0;
     uint64_t m_LastIssuedFrame = 0;

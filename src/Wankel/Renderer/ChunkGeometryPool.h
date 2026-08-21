@@ -104,6 +104,12 @@ public:
     uint32_t GetTransformSSBO() const { return m_TransformSSBO; }
     uint32_t GetIndirectBuffer() const { return m_IndirectBuffer; }
 
+    // Draws exactly one chunk (a single instance) directly against the pool's shared VAO/buffers,
+    // bypassing the indirect multi-draw path entirely - used only to bracket an occlusion query
+    // around a cheap proxy draw (see Renderer::SubmitPooledChunkQuery). The real per-frame draw
+    // always goes through UploadFrameData + Renderer::SubmitIndirect instead.
+    void DrawOne(const ChunkGeometryHandle& handle, const glm::vec3& instanceOffset) const;
+
 private:
     uint32_t m_VAO = 0;
     uint32_t m_VertexVBO = 0;
