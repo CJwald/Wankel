@@ -48,6 +48,10 @@ struct RendererData {
     // Same vertex format/shader/GL objects as DebugVertices, drawn every frame regardless of
     // DebugEnabled - see SubmitGameplayLines.
     std::vector<DebugVertex> GameplayLineVertices;
+    // Same vertex format/shader/GL objects as DebugVertices, just drawn GL_TRIANGLES instead of
+    // GL_LINES - see SubmitDebugTriangles/SubmitGameplayTriangles.
+    std::vector<DebugVertex> DebugTriangleVertices;
+    std::vector<DebugVertex> GameplayTriangleVertices;
     uint32_t DebugVAO = 0;
     uint32_t DebugVBO = 0;
     Shader* DebugShader = nullptr;
@@ -167,6 +171,8 @@ void Renderer::BeginScene(const Camera& camera) {
     s_Data.CameraPos = camera.GetPosition();
     s_Data.DebugVertices.clear();
     s_Data.GameplayLineVertices.clear();
+    s_Data.DebugTriangleVertices.clear();
+    s_Data.GameplayTriangleVertices.clear();
     s_Data.LastSubmitShader = nullptr;
     s_Data.LastMaterialValid = false;
 }
@@ -198,15 +204,44 @@ void FlushLineQueue(const std::vector<DebugVertex>& vertices) {
     glEnable(GL_CULL_FACE);
 }
 
+// Shared by both triangle queues below - same shader/VAO/VBO as FlushLineQueue (identical
+// DebugVertex layout), just GL_TRIANGLES instead of GL_LINES. Cull face is disabled around the draw
+// so procedurally generated geometry (cones, fans) doesn't need carefully-consistent winding order.
+void FlushTriangleQueue(const std::vector<DebugVertex>& vertices) {
+    if (vertices.empty())
+        return;
+
+    size_t vertexCount = vertices.size();
+    if (vertexCount > kMaxDebugVertices) {
+        WK_CORE_WARNING("Renderer::EndScene - {0} triangle vertices submitted, truncating to capacity ({1})",
+                        vertexCount, kMaxDebugVertices);
+        vertexCount = kMaxDebugVertices;
+    }
+
+    s_Data.DebugShader->Bind();
+    s_Data.DebugShader->SetMat4("view", s_Data.View);
+    s_Data.DebugShader->SetMat4("projection", s_Data.Projection);
+
+    glBindVertexArray(s_Data.DebugVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), vertices.data());
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertexCount);
+    glEnable(GL_CULL_FACE);
+}
+
 } // namespace
 
 void Renderer::EndScene() {
     // DEBUG PASS - gated, only visible with the "Debug Draw" toggle on.
-    if (DebugEnabled)
+    if (DebugEnabled) {
         FlushLineQueue(s_Data.DebugVertices);
+        FlushTriangleQueue(s_Data.DebugTriangleVertices);
+    }
 
-    // GAMEPLAY PASS - always drawn, see SubmitGameplayLines.
+    // GAMEPLAY PASS - always drawn, see SubmitGameplayLines/SubmitGameplayTriangles.
     FlushLineQueue(s_Data.GameplayLineVertices);
+    FlushTriangleQueue(s_Data.GameplayTriangleVertices);
 }
 
 
@@ -386,6 +421,25 @@ void Renderer::SubmitGameplayLines(const std::vector<DebugLine>& lines) {
     for (const auto& line : lines) {
         s_Data.GameplayLineVertices.push_back({line.P0, line.Color});
         s_Data.GameplayLineVertices.push_back({line.P1, line.Color});
+    }
+}
+
+void Renderer::SubmitDebugTriangles(const std::vector<DebugTriangle>& triangles) {
+    if (!DebugEnabled)
+        return;
+
+    for (const auto& tri : triangles) {
+        s_Data.DebugTriangleVertices.push_back({tri.P0, tri.Color});
+        s_Data.DebugTriangleVertices.push_back({tri.P1, tri.Color});
+        s_Data.DebugTriangleVertices.push_back({tri.P2, tri.Color});
+    }
+}
+
+void Renderer::SubmitGameplayTriangles(const std::vector<DebugTriangle>& triangles) {
+    for (const auto& tri : triangles) {
+        s_Data.GameplayTriangleVertices.push_back({tri.P0, tri.Color});
+        s_Data.GameplayTriangleVertices.push_back({tri.P1, tri.Color});
+        s_Data.GameplayTriangleVertices.push_back({tri.P2, tri.Color});
     }
 }
 

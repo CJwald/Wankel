@@ -119,6 +119,15 @@ public:
     // normal play, not just when the debug overlay is toggled on.
     static void SubmitGameplayLines(const std::vector<DebugLine>& lines);
 
+    // Solid (filled) 3D debug geometry - same vertex format/shader/GL objects as SubmitDebugLines,
+    // just drawn as GL_TRIANGLES instead of GL_LINES. Same DebugEnabled gating as its line counterpart.
+    static void SubmitDebugTriangles(const std::vector<DebugTriangle>& triangles);
+
+    // Solid 3D debug geometry, always drawn regardless of Renderer::DebugEnabled - see
+    // SubmitGameplayLines's own comment for why this variant exists (e.g. a selection gizmo that must
+    // stay visible independent of the global debug-draw toggle).
+    static void SubmitGameplayTriangles(const std::vector<DebugTriangle>& triangles);
+
     // Screen-space line overlay (pixels, Y-down, origin top-left; DebugLine.P0/P1.z is ignored) -
     // draws immediately, independent of BeginScene/EndScene's 3D camera, same as SubmitText. For
     // simple UI wireframes (e.g. a center-screen crosshair) where a font glyph isn't the right tool.
