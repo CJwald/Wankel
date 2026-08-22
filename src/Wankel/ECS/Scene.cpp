@@ -33,6 +33,24 @@ Entity Scene::CreateChild(Entity parent, const std::string& name) {
     return child;
 }
 
+nlohmann::json Scene::SerializeEntity(Entity entity) {
+    nlohmann::json json;
+    for (auto& entry : Serialization::GetComponentTable()) {
+        nlohmann::json componentJson;
+        if (entry.Serialize(m_Registry, entity.GetHandle(), componentJson))
+            json[entry.Key] = std::move(componentJson);
+    }
+    return json;
+}
+
+void Scene::DeserializeEntity(Entity entity, const nlohmann::json& json) {
+    for (auto& entry : Serialization::GetComponentTable()) {
+        auto it = json.find(entry.Key);
+        if (it != json.end())
+            entry.Deserialize(m_Registry, entity.GetHandle(), *it);
+    }
+}
+
 void Scene::OnUpdate(float dt, Camera& camera) {
     auto t0 = std::chrono::high_resolution_clock::now();
     m_PlayerControllerSystem.Update(*this, dt);

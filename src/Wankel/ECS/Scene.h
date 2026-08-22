@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include "Wankel/ECS/Components/HiearchyComponents.h"
+#include "Wankel/ECS/Serialization/ComponentRegistry.h"
 #include "Wankel/Physics/Systems/PhysicsSystem.h"
 #include "Wankel/ECS/Systems/PlayerControllerSystem.h"
 #include "Wankel/ECS/Systems/PoseSystem.h"
@@ -9,6 +10,8 @@
 #include "Wankel/ECS/Systems/ProceduralAnimationSystem.h"
 #include "Wankel/ECS/Systems/CameraSystem.h"
 #include "Wankel/Renderer/Camera.h"
+
+#include <nlohmann/json.hpp>
 
 namespace Wankel {
 
@@ -58,6 +61,20 @@ public:
     void OnUpdate(float dt, Camera& camera);
 
     entt::registry& Registry() { return m_Registry; }
+
+    // Tuning-only JSON snapshot of entity's engine-owned components (Transform, colliders,
+    // MeshAnimation, PlayerController, Rigidbody, Movement, MeshRenderer's transform/mirror/layer
+    // fields) - one object keyed by component name, missing components simply absent from the
+    // output. See Serialization::GetComponentTable() (ECS/Serialization/ComponentRegistry.h) for the
+    // exact set and ComponentSerialization.h for which fields of each are considered tuning vs.
+    // runtime state. Mechtrix-owned gameplay components (Health/Faction/MobController/Weapon) are not
+    // covered here - the game layer composes its own equivalent alongside this.
+    nlohmann::json SerializeEntity(Entity entity);
+
+    // Applies a JSON object produced by SerializeEntity back onto entity, adding any component present
+    // in json that entity doesn't already have. Unknown keys are ignored (forward-compatible); keys
+    // absent from json leave the corresponding component untouched.
+    void DeserializeEntity(Entity entity, const nlohmann::json& json);
 
     // Forwards to PhysicsSystem - call after adding/removing/moving a static collider entity
     // (e.g. terrain regeneration) so the cached static broad-phase grid picks it up.

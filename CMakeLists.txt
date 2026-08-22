@@ -132,6 +132,7 @@ target_link_libraries(Wankel
 	    glm::glm #TODO: make Private
 	    glad::glad #TODO: make Private
 	    SDL3::SDL3 #TODO: make Private
+	    nlohmann_json::nlohmann_json
 	PRIVATE
 	    glfw
 )

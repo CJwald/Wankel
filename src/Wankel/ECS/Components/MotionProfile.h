@@ -15,6 +15,28 @@ enum class MotionAxis : uint8_t {
     Count
 };
 
+// Shared with the debug/inspector panels and the component serializer, so all three agree on one
+// name per axis.
+inline const char* MotionAxisName(MotionAxis axis) {
+    switch (axis) {
+        case MotionAxis::X:
+            return "X";
+        case MotionAxis::Y:
+            return "Y";
+        case MotionAxis::Z:
+            return "Z";
+        case MotionAxis::Pitch:
+            return "Pitch";
+        case MotionAxis::Yaw:
+            return "Yaw";
+        case MotionAxis::Roll:
+            return "Roll";
+        case MotionAxis::Count:
+            break;
+    }
+    return "Unknown";
+}
+
 struct MotionLink {
     bool Enabled = false;
 
