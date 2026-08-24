@@ -140,7 +140,9 @@ std::unique_ptr<Mesh> Mesh::CreateMirrored(bool mirrorX, bool mirrorY, bool mirr
         }
     }
 
-    return std::make_unique<Mesh>(vertices, indices);
+    auto mirrored = std::make_unique<Mesh>(vertices, indices);
+    mirrored->DefaultMaterial = DefaultMaterial;
+    return mirrored;
 }
 
 } // namespace Wankel
