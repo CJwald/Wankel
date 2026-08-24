@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Wankel/Renderer/Renderer.h" // Material
+
 #include <vector>
 #include <glm/glm.hpp>
 #include <memory>
@@ -59,6 +61,12 @@ public:
     // value with no vertex shader changes needed - identity ({0,0,0}/{1,1,1}) for the plain ctor.
     glm::vec3 GetQuantizeMin() const { return m_QuantizeMin; }
     glm::vec3 GetQuantizeExtent() const { return m_QuantizeExtent; }
+
+    // The material this mesh was authored with (e.g. a .glb's PBR factors) - MeshLoader populates
+    // this at import time. Left at Material{}'s own default for formats with no material concept
+    // (.ply, procedural geometry). A per-entity Material component (see RenderComponents.h) can
+    // still override this at the ECS level; this is just the mesh's own default look.
+    Material DefaultMaterial;
 
 private:
     std::vector<Vertex> m_Vertices;

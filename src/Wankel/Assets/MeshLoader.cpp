@@ -19,16 +19,19 @@ std::unique_ptr<Mesh> MeshLoader::Load(const std::string& filepath) {
 
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    Material material; // stays default (.ply has no material concept)
 
     if (extension == ".ply") {
         PLYLoader::Load(filepath, vertices, indices);
     } else if (extension == ".gltf" || extension == ".glb") {
-        GltfLoader::Load(filepath, vertices, indices);
+        GltfLoader::Load(filepath, vertices, indices, material);
     } else {
         throw std::runtime_error("MeshLoader: unsupported mesh format: " + extension);
     }
 
-    return std::make_unique<Mesh>(vertices, indices);
+    auto mesh = std::make_unique<Mesh>(vertices, indices);
+    mesh->DefaultMaterial = material;
+    return mesh;
 }
 
 } // namespace Wankel

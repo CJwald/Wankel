@@ -26,7 +26,8 @@ glm::vec3 ToEngineSpace(const glm::vec3& gltf) {
     return {gltf.z, gltf.y, -gltf.x};
 }
 
-void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std::vector<uint32_t>& outIndices) {
+void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std::vector<uint32_t>& outIndices,
+                  Material& outMaterial, bool& materialCaptured) {
     if (node->mesh) {
         float worldMatArr[16];
         cgltf_node_transform_world(node, worldMatArr);
@@ -70,6 +71,24 @@ void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std:
             if (prim.material && prim.material->has_pbr_metallic_roughness) {
                 const float* c = prim.material->pbr_metallic_roughness.base_color_factor;
                 fallbackColor = glm::vec4(c[0], c[1], c[2], c[3]);
+            }
+
+            // First primitive with a material wins - this engine's Material is one-per-Mesh, same
+            // simplifying assumption the renderer already makes everywhere else.
+            if (prim.material && !materialCaptured) {
+                if (prim.material->has_pbr_metallic_roughness) {
+                    const auto& pbr = prim.material->pbr_metallic_roughness;
+                    outMaterial.Albedo = {pbr.base_color_factor[0], pbr.base_color_factor[1], pbr.base_color_factor[2]};
+                    outMaterial.Metallic = pbr.metallic_factor;
+                    outMaterial.Roughness = pbr.roughness_factor;
+                }
+                outMaterial.Emissive = {prim.material->emissive_factor[0], prim.material->emissive_factor[1],
+                                        prim.material->emissive_factor[2]};
+                materialCaptured = true;
+            } else if (prim.material && materialCaptured) {
+                WK_CORE_WARNING("GltfLoader: mesh '{0}' has more than one material - only the first is used "
+                                "(Mesh/Material is one-per-mesh in this engine)",
+                                node->mesh->name ? node->mesh->name : "(unnamed)");
             }
 
             // Built up per-primitive (0-based indices) rather than appended
@@ -136,12 +155,13 @@ void ReadNodeMesh(const cgltf_node* node, std::vector<Vertex>& outVertices, std:
     }
 
     for (cgltf_size c = 0; c < node->children_count; c++)
-        ReadNodeMesh(node->children[c], outVertices, outIndices);
+        ReadNodeMesh(node->children[c], outVertices, outIndices, outMaterial, materialCaptured);
 }
 
 } // namespace
 
-void GltfLoader::Load(const std::string& path, std::vector<Vertex>& outVertices, std::vector<uint32_t>& outIndices) {
+void GltfLoader::Load(const std::string& path, std::vector<Vertex>& outVertices, std::vector<uint32_t>& outIndices,
+                      Material& outMaterial) {
     cgltf_options options = {};
     cgltf_data* data = nullptr;
 
@@ -158,18 +178,20 @@ void GltfLoader::Load(const std::string& path, std::vector<Vertex>& outVertices,
 
     outVertices.clear();
     outIndices.clear();
+    outMaterial = Material {};
+    bool materialCaptured = false;
 
     if (data->scenes_count > 0) {
         const cgltf_scene* scene = data->scene ? data->scene : &data->scenes[0];
         for (cgltf_size i = 0; i < scene->nodes_count; i++)
-            ReadNodeMesh(scene->nodes[i], outVertices, outIndices);
+            ReadNodeMesh(scene->nodes[i], outVertices, outIndices, outMaterial, materialCaptured);
     } else {
         // No scene defined - fall back to every root node (ReadNodeMesh
         // already recurses into children, so only start from roots here or
         // child nodes would be visited twice).
         for (cgltf_size i = 0; i < data->nodes_count; i++) {
             if (!data->nodes[i].parent)
-                ReadNodeMesh(&data->nodes[i], outVertices, outIndices);
+                ReadNodeMesh(&data->nodes[i], outVertices, outIndices, outMaterial, materialCaptured);
         }
     }
 
