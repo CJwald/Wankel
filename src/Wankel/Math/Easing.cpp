@@ -32,6 +32,8 @@ float Ease(EaseType type, float t, float exponent) {
             return t < 0.5f ? (std::pow(2.0f * t, 2.0f) * ((c2 + 1.0f) * 2.0f * t - c2)) / 2.0f
                             : (std::pow(2.0f * t - 2.0f, 2.0f) * ((c2 + 1.0f) * (t * 2.0f - 2.0f) + c2) + 2.0f) / 2.0f;
         }
+        case EaseType::Dynamic:
+            return 0.190409f * t + 1.524683f * t * t - 2.740480f * t * t * t + 2.025388f * t * t * t * t;
     }
     return t;
 }

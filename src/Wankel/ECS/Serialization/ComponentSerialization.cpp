@@ -165,6 +165,9 @@ json Serialize(const PlayerController& controller) {
         {"WindowSensitivity", controller.WindowSensitivity},
         {"MouseSensitivity", controller.MouseSensitivity},
         {"RollSpeed", controller.RollSpeed},
+        {"ControllerSensitivity", controller.ControllerSensitivity},
+        {"LookCurve", (int)controller.LookCurve},
+        {"LookCurveExponent", controller.LookCurveExponent},
         {"FPSDeceleration", controller.FPSDeceleration},
         {"FlightDeceleration", controller.FlightDeceleration},
         {"FlightGravityScale", controller.FlightGravityScale},
@@ -180,6 +183,16 @@ void Deserialize(const json& json, PlayerController& controller) {
     controller.WindowSensitivity = json.at("WindowSensitivity").get<float>();
     controller.MouseSensitivity = json.at("MouseSensitivity").get<float>();
     controller.RollSpeed = json.at("RollSpeed").get<float>();
+
+    // Absent in archetype JSON saved before these were added - leave PlayerController's own defaults
+    // (1.0/Linear/1.5) in place rather than throwing (json.at would abort the whole Deserialize call).
+    if (json.contains("ControllerSensitivity"))
+        controller.ControllerSensitivity = glm::max(json.at("ControllerSensitivity").get<float>(), 0.05f);
+    if (json.contains("LookCurve"))
+        controller.LookCurve = (EaseType)json.at("LookCurve").get<int>();
+    if (json.contains("LookCurveExponent"))
+        controller.LookCurveExponent = json.at("LookCurveExponent").get<float>();
+
     controller.FPSDeceleration = json.at("FPSDeceleration").get<float>();
     controller.FlightDeceleration = json.at("FlightDeceleration").get<float>();
     controller.FlightGravityScale = json.at("FlightGravityScale").get<float>();

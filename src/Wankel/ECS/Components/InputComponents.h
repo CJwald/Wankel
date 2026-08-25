@@ -1,4 +1,6 @@
 #pragma once
+#include "Wankel/Math/Easing.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -19,6 +21,15 @@ struct PlayerController {
     float WindowSensitivity = 0.002f;
     float MouseSensitivity = 2.5f;
     float RollSpeed = 2.5f;
+
+    // Multiplies PlayerInputSystem's fixed StickTurnSpeed constant - kept independent of
+    // MouseSensitivity so tuning one never affects the other. Never let this reach 0 (floored
+    // wherever it's read/written - deserialize, the debug UI, and point-of-use) since that would
+    // silently make the controller stick produce zero look input, indistinguishable from "controller
+    // stopped working."
+    float ControllerSensitivity = 1.0f;
+    EaseType LookCurve = EaseType::Linear; // Linear = today's unmodified 1:1 stick response
+    float LookCurveExponent = 1.5f;        // only meaningful for EaseIn (Standard) / EaseOut (Reverse S-Curve)
 
     float LookDeltaX = 0.0f;
     float LookDeltaY = 0.0f;

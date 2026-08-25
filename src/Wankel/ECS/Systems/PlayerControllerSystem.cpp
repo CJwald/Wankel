@@ -24,6 +24,9 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
         auto& movement = view.get<Movement>(entity);
 
         // INPUT
+        // MouseSensitivity/ControllerSensitivity are applied per-source, upstream in Mechtrix's
+        // PlayerInputSystem, before LookDeltaX/Y is populated - so only WindowSensitivity (a
+        // pixel/window-scale correction, not a per-device feel tunable) applies here.
         float dx = controller.LookDeltaX * controller.WindowSensitivity;
         float dy = controller.LookDeltaY * controller.WindowSensitivity;
 
@@ -41,8 +44,8 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
             glm::vec3 bodyRight = controller.BodyOrientation * glm::vec3(1, 0, 0);
             glm::vec3 bodyUp = controller.BodyOrientation * glm::vec3(0, 1, 0);
 
-            float yawDelta = -dx * controller.MouseSensitivity;
-            float pitchDelta = -dy * controller.MouseSensitivity;
+            float yawDelta = -dx;
+            float pitchDelta = -dy;
             float rollDelta = 0.0f; //float rollDelta = rollMag * controller.RollSpeed * dt;
             controller.Pitch += pitchDelta;
 
@@ -72,8 +75,8 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
         else if (controller.Mode == PlayerController::LookMode::Spectator) {
             glm::vec3 bodyUp = controller.BodyOrientation * glm::vec3(0, 1, 0);
 
-            float yawDelta = -dx * controller.MouseSensitivity;
-            float pitchDelta = -dy * controller.MouseSensitivity;
+            float yawDelta = -dx;
+            float pitchDelta = -dy;
             controller.Pitch += pitchDelta;
             controller.Pitch = glm::clamp(controller.Pitch, controller.MaxPitchDown, controller.MaxPitchUp);
 
@@ -97,8 +100,8 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
             up = controller.Orientation * glm::vec3(0, 1, 0);
 
             // LOOK
-            glm::quat yaw = glm::angleAxis(-dx * controller.MouseSensitivity, up);
-            glm::quat pitch = glm::angleAxis(-dy * controller.MouseSensitivity, right);
+            glm::quat yaw = glm::angleAxis(-dx, up);
+            glm::quat pitch = glm::angleAxis(-dy, right);
             glm::quat roll = glm::angleAxis(rollMag * controller.RollSpeed * dt, forward);
 
             controller.Orientation = glm::normalize(roll * pitch * yaw * controller.Orientation);
