@@ -22,21 +22,16 @@ bool InputSystem::Init() {
 
     WK_CORE_INFO("SDL Gamepad subsystem initialized");
 
-    int count = 0;
-    SDL_JoystickID* ids = SDL_GetGamepads(&count);
-
-    for (int i = 0; i < count; i++) {
-        SDL_Gamepad* pad = SDL_OpenGamepad(ids[i]);
-
-        if (pad) {
-            s_Gamepads.push_back(pad);
-
-            WK_CORE_INFO("Controller connected: {0}", SDL_GetGamepadName(pad));
-        }
-    }
-
-    SDL_free(ids);
-
+    // Deliberately NOT pre-scanning/opening already-connected gamepads here (via SDL_GetGamepads +
+    // SDL_OpenGamepad) - SDL itself synthesizes an SDL_EVENT_GAMEPAD_ADDED for every gamepad already
+    // plugged in as soon as the event queue is first pumped (see SDL_events.h's SDL_GamepadDeviceEvent
+    // comment), which the very first PollControllers() call below will pick up via the exact same
+    // ADDED-event path used for a live hotplug. Doing both used to double-open every controller that
+    // was already connected at launch (one handle from this scan, a second from the replayed ADDED
+    // event) - s_Gamepads held two entries for one physical pad from frame one, so a later real
+    // unplug/replug would land the reconnected device at index 1 while gameplay code (hardcoded to
+    // pad index 0) kept reading the stale leftover handle at index 0, making the controller look dead
+    // after a reconnect.
     return true;
 }
 
@@ -65,12 +60,24 @@ void InputSystem::PollControllers() {
     while (SDL_PollEvent(&e)) {
         switch (e.type) {
             case SDL_EVENT_GAMEPAD_ADDED: {
-                SDL_Gamepad* pad = SDL_OpenGamepad(e.gdevice.which);
+                SDL_JoystickID addedId = e.gdevice.which;
 
-                if (pad) {
-                    s_Gamepads.push_back(pad);
+                // Defends against ever double-registering one physical pad (e.g. a duplicate ADDED
+                // event from a flaky driver) the same way the removed startup pre-scan used to -
+                // s_Gamepads must stay a 1:1 map of instance ID -> slot for the hardcoded pad-0
+                // assumption gameplay code makes to hold.
+                bool alreadyTracked = std::any_of(s_Gamepads.begin(), s_Gamepads.end(), [addedId](SDL_Gamepad* pad) {
+                    return pad && SDL_GetGamepadID(pad) == addedId;
+                });
 
-                    WK_CORE_INFO("Controller connected: {0}", SDL_GetGamepadName(pad));
+                if (!alreadyTracked) {
+                    SDL_Gamepad* pad = SDL_OpenGamepad(addedId);
+
+                    if (pad) {
+                        s_Gamepads.push_back(pad);
+
+                        WK_CORE_INFO("Controller connected: {0}", SDL_GetGamepadName(pad));
+                    }
                 }
 
                 break;
