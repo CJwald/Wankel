@@ -22,14 +22,26 @@ struct PlayerController {
     float MouseSensitivity = 2.5f;
     float RollSpeed = 2.5f;
 
-    // Multiplies PlayerInputSystem's fixed StickTurnSpeed constant - kept independent of
-    // MouseSensitivity so tuning one never affects the other. Never let this reach 0 (floored
-    // wherever it's read/written - deserialize, the debug UI, and point-of-use) since that would
-    // silently make the controller stick produce zero look input, indistinguishable from "controller
-    // stopped working."
-    float ControllerSensitivity = 1.0f;
+    // Independent horizontal/vertical multipliers on PlayerInputSystem's fixed StickTurnSpeed
+    // constant - kept independent of MouseSensitivity so tuning one never affects the other. Never
+    // let either reach 0 (floored wherever read/written - deserialize, the debug UI, and
+    // point-of-use) since that would silently make the controller stick produce zero look input on
+    // that axis, indistinguishable from "controller stopped working."
+    float ControllerSensitivityX = 1.0f;   // horizontal/yaw
+    float ControllerSensitivityY = 1.0f;   // vertical/pitch
     EaseType LookCurve = EaseType::Linear; // Linear = today's unmodified 1:1 stick response
     float LookCurveExponent = 1.5f;        // only meaningful for EaseIn (Standard) / EaseOut (Reverse S-Curve)
+
+    // Controller-only aim acceleration. 0 = off (no separate enable flag - this is the single source
+    // of truth for on/off, deliberately) - on by default at 0.2s. When on, PlayerInputSystem ramps a
+    // shared, sensitivity-free "nominal" look speed toward the curve's target at StickTurnSpeed /
+    // ControllerAccelTime deg/sec^2 (ControllerSensitivityX/Y apply afterward, per axis, on the
+    // ramped result - scaling a linear ramp by a constant doesn't change how long it takes to reach
+    // its own max, so each axis still reaches its full target in exactly this many seconds).
+    float ControllerAccelTime = 0.2f;
+    // Runtime-only ramp state (current applied scalar look speed, deg/sec) - not a tuning value, so
+    // deliberately excluded from ComponentSerialization.cpp same as LookDeltaX/Y/R3PressedLastFrame.
+    float ControllerLookSpeed = 0.0f;
 
     float LookDeltaX = 0.0f;
     float LookDeltaY = 0.0f;

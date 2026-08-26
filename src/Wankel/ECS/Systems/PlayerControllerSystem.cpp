@@ -24,11 +24,11 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
         auto& movement = view.get<Movement>(entity);
 
         // INPUT
-        // MouseSensitivity/ControllerSensitivity are applied per-source, upstream in Mechtrix's
-        // PlayerInputSystem, before LookDeltaX/Y is populated - so only WindowSensitivity (a
-        // pixel/window-scale correction, not a per-device feel tunable) applies here.
-        float dx = controller.LookDeltaX * controller.WindowSensitivity;
-        float dy = controller.LookDeltaY * controller.WindowSensitivity;
+        // LookDeltaX/Y is already radians-this-frame by the time it arrives here - MouseSensitivity/
+        // ControllerSensitivityX/Y/WindowSensitivity are all applied per-source, upstream in
+        // Mechtrix's PlayerInputSystem, before LookDeltaX/Y is populated.
+        float dx = controller.LookDeltaX;
+        float dy = controller.LookDeltaY;
 
         float rollMag = controller.RollInput;
 

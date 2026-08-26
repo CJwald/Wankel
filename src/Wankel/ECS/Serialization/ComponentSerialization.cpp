@@ -165,9 +165,11 @@ json Serialize(const PlayerController& controller) {
         {"WindowSensitivity", controller.WindowSensitivity},
         {"MouseSensitivity", controller.MouseSensitivity},
         {"RollSpeed", controller.RollSpeed},
-        {"ControllerSensitivity", controller.ControllerSensitivity},
+        {"ControllerSensitivityX", controller.ControllerSensitivityX},
+        {"ControllerSensitivityY", controller.ControllerSensitivityY},
         {"LookCurve", (int)controller.LookCurve},
         {"LookCurveExponent", controller.LookCurveExponent},
+        {"ControllerAccelTime", controller.ControllerAccelTime},
         {"FPSDeceleration", controller.FPSDeceleration},
         {"FlightDeceleration", controller.FlightDeceleration},
         {"FlightGravityScale", controller.FlightGravityScale},
@@ -186,12 +188,18 @@ void Deserialize(const json& json, PlayerController& controller) {
 
     // Absent in archetype JSON saved before these were added - leave PlayerController's own defaults
     // (1.0/Linear/1.5) in place rather than throwing (json.at would abort the whole Deserialize call).
-    if (json.contains("ControllerSensitivity"))
-        controller.ControllerSensitivity = glm::max(json.at("ControllerSensitivity").get<float>(), 0.05f);
+    if (json.contains("ControllerSensitivityX"))
+        controller.ControllerSensitivityX = glm::max(json.at("ControllerSensitivityX").get<float>(), 0.05f);
+    if (json.contains("ControllerSensitivityY"))
+        controller.ControllerSensitivityY = glm::max(json.at("ControllerSensitivityY").get<float>(), 0.05f);
     if (json.contains("LookCurve"))
         controller.LookCurve = (EaseType)json.at("LookCurve").get<int>();
     if (json.contains("LookCurveExponent"))
         controller.LookCurveExponent = json.at("LookCurveExponent").get<float>();
+    // 0 is the valid/intended "acceleration off" sentinel here (unlike ControllerSensitivity), so only
+    // guard against a corrupt negative value, not zero itself.
+    if (json.contains("ControllerAccelTime"))
+        controller.ControllerAccelTime = glm::max(json.at("ControllerAccelTime").get<float>(), 0.0f);
 
     controller.FPSDeceleration = json.at("FPSDeceleration").get<float>();
     controller.FlightDeceleration = json.at("FlightDeceleration").get<float>();
