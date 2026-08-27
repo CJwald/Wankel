@@ -34,6 +34,14 @@
 #include "Wankel/Renderer/Camera.h"
 
 // -----------------------------
+// Particles
+// -----------------------------
+#include "Wankel/Particles/ParticleEffect.h"
+#include "Wankel/Particles/ParticleEffectLibrary.h"
+#include "Wankel/Particles/ParticleSystem.h"
+#include "Wankel/ECS/Systems/ParticleEmitterSystem.h"
+
+// -----------------------------
 // ImGui
 // -----------------------------
 #include "Wankel/Core/ImGui/ImGuiLayer.h"
