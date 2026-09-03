@@ -68,6 +68,12 @@ struct RendererData {
     uint32_t ScreenQuadVBO = 0;
     Shader* ScreenQuadShader = nullptr;
 
+    // Occlusion-query proxy cube (DrawOcclusionProxyBox) - static geometry, transformed per call.
+    uint32_t OcclusionBoxVAO = 0;
+    uint32_t OcclusionBoxVBO = 0;
+    uint32_t OcclusionBoxIBO = 0;
+    Shader* OcclusionBoxShader = nullptr;
+
     uint32_t InstanceVBO = 0; // shared across every SubmitInstanced call - see Init()
 
     // Submit() dedup state - reset each BeginScene so a mid-scene SetFog/SetLight change still
@@ -83,6 +89,21 @@ static constexpr size_t kMaxDebugVertices = 65536;
 static constexpr size_t kMaxTextVertices = 256 * 6; // 256 glyphs/quads per SubmitText call
 static constexpr size_t kMaxInstancesPerDraw =
     4096; // generous headroom over typical simultaneously-visible tile counts
+
+// Static unit cube [0,1]^3, position only - the occlusion-query proxy volume (DrawOcclusionProxyBox).
+// Winding is irrelevant: it's drawn with back-face culling disabled.
+static constexpr float kUnitCubeVertices[] = {
+    0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // z = 0
+    0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // z = 1
+};
+static constexpr uint32_t kUnitCubeIndices[] = {
+    0, 1, 2, 2, 3, 0, // z = 0
+    4, 5, 6, 6, 7, 4, // z = 1
+    0, 4, 7, 7, 3, 0, // x = 0
+    1, 5, 6, 6, 2, 1, // x = 1
+    0, 1, 5, 5, 4, 0, // y = 0
+    3, 2, 6, 6, 7, 3, // y = 1
+};
 
 
 void Renderer::Init() {
@@ -133,6 +154,20 @@ void Renderer::Init() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
     s_Data.ScreenQuadShader = new Shader("WankelShaders/screenquad.vert", "WankelShaders/screenquad.frag");
 
+    // OCCLUSION PROXY CUBE (DrawOcclusionProxyBox) - a static unit [0,1]^3 box, transformed per call
+    // into a chunk's world-space AABB and drawn as a stable occlusion-query proxy volume.
+    glGenVertexArrays(1, &s_Data.OcclusionBoxVAO);
+    glGenBuffers(1, &s_Data.OcclusionBoxVBO);
+    glGenBuffers(1, &s_Data.OcclusionBoxIBO);
+    glBindVertexArray(s_Data.OcclusionBoxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.OcclusionBoxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(kUnitCubeVertices), kUnitCubeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, nullptr);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s_Data.OcclusionBoxIBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(kUnitCubeIndices), kUnitCubeIndices, GL_STATIC_DRAW);
+    s_Data.OcclusionBoxShader = new Shader("WankelShaders/occlusionbox.vert", "WankelShaders/occlusionbox.frag");
+
     // SHARED INSTANCE-OFFSET BUFFER (SubmitInstanced) - re-bound as a per-instance attribute onto
     // whichever mesh VAO is current at draw time, refreshed via glBufferSubData each call, same
     // "allocate once in Init, glBufferSubData per use" pattern as DebugVBO/TextVBO above.
@@ -160,6 +195,13 @@ void Renderer::Shutdown() {
 
     glDeleteBuffers(1, &s_Data.ScreenQuadVBO);
     glDeleteVertexArrays(1, &s_Data.ScreenQuadVAO);
+
+    delete s_Data.OcclusionBoxShader;
+    s_Data.OcclusionBoxShader = nullptr;
+
+    glDeleteBuffers(1, &s_Data.OcclusionBoxIBO);
+    glDeleteBuffers(1, &s_Data.OcclusionBoxVBO);
+    glDeleteVertexArrays(1, &s_Data.OcclusionBoxVAO);
 
     glDeleteBuffers(1, &s_Data.InstanceVBO);
 }
@@ -376,11 +418,18 @@ void Renderer::SubmitIndirect(Shader* shader, const Material& material, const Ch
     glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, (GLsizei)commandCount, 0);
 }
 
-void Renderer::SubmitPooledChunkQuery(Shader* shader, const Material& material, const ChunkGeometryPool& pool,
-                                      const ChunkGeometryHandle& handle, const glm::vec3& instanceOffset) {
-    UploadSharedDrawState(shader, material, /*useVertexColor=*/true);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, pool.GetTransformSSBO());
-    pool.DrawOne(handle, instanceOffset);
+void Renderer::DrawOcclusionProxyBox(const glm::mat4& boxModel) {
+    s_Data.OcclusionBoxShader->Bind();
+    s_Data.OcclusionBoxShader->SetMat4("model", boxModel);
+    s_Data.OcclusionBoxShader->SetMat4("view", s_Data.View);
+    s_Data.OcclusionBoxShader->SetMat4("projection", s_Data.Projection);
+
+    glBindVertexArray(s_Data.OcclusionBoxVAO);
+    glDepthMask(GL_FALSE);   // proxy must not write depth - a full cube would stomp the depth buffer
+    glDisable(GL_CULL_FACE); // register samples regardless of which way the box faces the camera
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+    glEnable(GL_CULL_FACE);
+    glDepthMask(GL_TRUE);
 }
 
 

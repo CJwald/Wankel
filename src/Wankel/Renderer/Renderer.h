@@ -14,7 +14,6 @@ class Mesh;
 class Font;
 class OcclusionQuery;
 class ChunkGeometryPool;
-struct ChunkGeometryHandle;
 
 struct FogSettings {
     glm::vec3 Color = {0.12f, 0.1f, 0.2f};
@@ -93,23 +92,22 @@ public:
     // chunk.vert (or an equivalent reading the same SSBO layout), not cube.vert.
     static void SubmitIndirect(Shader* shader, const Material& material, const ChunkGeometryPool& pool);
 
-    // Draws exactly one pooled chunk directly (see ChunkGeometryPool::DrawOne) - used to bracket an
-    // occlusion query around a cheap single-chunk proxy draw for the query re-issue pass. Caller
-    // wraps this in SetColorWrite(false)/BeginOcclusionQuery/EndOcclusionQuery, same pattern the
-    // old per-mesh occlusion pass always used.
-    static void SubmitPooledChunkQuery(Shader* shader, const Material& material, const ChunkGeometryPool& pool,
-                                       const ChunkGeometryHandle& handle, const glm::vec3& instanceOffset);
-
     // Occlusion culling - see OcclusionQuery.h. Typical use: BeginOcclusionQuery/EndOcclusionQuery
-    // around a cheap (or real, color-write-disabled via SetColorWrite) proxy draw, then in a *later
-    // frame* (never the same one - see OcclusionQuery::HasIssued()) BeginConditionalRender/
-    // EndConditionalRender around the real draw so the GPU itself skips it if the query found nothing
-    // visible - no CPU readback/stall either way.
+    // around a cheap proxy draw (DrawOcclusionProxyBox), then in a *later frame* (never the same one -
+    // see OcclusionQuery::GetLastIssuedFrame()) BeginConditionalRender/EndConditionalRender around the
+    // real draw so the GPU itself skips it if the query found nothing visible - no CPU readback/stall.
     static void SetColorWrite(bool enabled);
     static void BeginOcclusionQuery(const OcclusionQuery& query);
     static void EndOcclusionQuery();
     static void BeginConditionalRender(const OcclusionQuery& query);
     static void EndConditionalRender();
+
+    // Draws a unit cube (local [0,1]^3) transformed by boxModel, as a conservative occlusion-query
+    // proxy for a chunk's world-space AABB. Depth test on, depth writes OFF, back-face cull OFF, so
+    // the sample count is a stable "is this volume visible" answer regardless of camera angle - unlike
+    // testing the chunk's real (possibly sparse / back-facing) triangles. Caller brackets this with
+    // SetColorWrite(false) + BeginOcclusionQuery/EndOcclusionQuery.
+    static void DrawOcclusionProxyBox(const glm::mat4& boxModel);
 
     // Debug Pass
     static void SubmitDebugLines(const std::vector<DebugLine>& lines);
