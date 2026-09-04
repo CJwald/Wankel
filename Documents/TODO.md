@@ -184,6 +184,12 @@ Phase 1 is now fully cleared — remaining work is Phase 2/3 below.
       happen anytime. Defer the chunk-delta/mutation-state format; it's blocked on the
       Terrain/MarchingCubes pathway actually being implemented (see Phase 3) — designing
       that format now would be guessing at requirements that don't exist yet.
+      **Update:** the terrain/MC pathway is in, so the game side started the chunk-delta
+      format — a sparse per-world `{ivec3 -> voxel material}` overlay serialized per
+      `{GenerationModel, Seed}` (Mechtrix: `WorldDelta`/`WorldDeltaStore`). JSON for now,
+      flat `[x,y,z,mat]` array so a packed-binary swap (and the eventual network world-delta
+      message) is a one-file change. Session-scoped only so far; per-component entity
+      serialization and cross-session/player-state saves are still unbuilt.
 - [x] **Mass-aware physics — `Rigidbody::Mass` wired in; `Force` deliberately left alone.**
       `PhysicsSystem.cpp`'s collision resolution now uses inverse-mass weighting throughout:
       - **Position solve**: penetration correction now splits proportional to each body's
