@@ -6,6 +6,7 @@
 #include <Wankel/ECS/Components.h>
 
 #include "../Collision/BroadPhase/AABB.h"
+#include "../Collision/NarrowPhase/Capsule.h"
 #include "../Collision/NarrowPhase/Sphere.h"
 #include "../Collision/TriangleMesh.h"
 
@@ -151,6 +152,149 @@ bool RaycastSphere(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDi
         outHit.Point = ray.Origin + dir * distance;
         outHit.Normal = glm::normalize(outHit.Point - sphere.Center);
 
+        hitAnything = true;
+    }
+
+    return hitAnything;
+}
+
+// Ray vs finite capsule (Ericson-style cylinder test, clipped to the segment via the axis-projection
+// parameter `s`, plus the two sphere caps at the segment endpoints). Reuses IntersectRaySphere for the
+// caps rather than duplicating the quadratic. Returns the nearest of the three valid sub-hits.
+bool IntersectRayCapsule(const Ray& ray, const Capsule& capsule, float& outT, glm::vec3& outNormal) {
+    glm::vec3 dir = glm::normalize(ray.Direction);
+    glm::vec3 a = capsule.PointA();
+    glm::vec3 b = capsule.PointB();
+    glm::vec3 axis = b - a;
+    float axisLen = glm::length(axis);
+
+    // Degenerate (near-zero HalfHeight) capsule - just a sphere at its center.
+    if (axisLen < 1e-6f)
+        return IntersectRaySphere(ray, Sphere {capsule.Center, capsule.Radius}, outT);
+
+    glm::vec3 axisDir = axis / axisLen;
+    float bestT = -1.0f;
+    glm::vec3 bestNormal {0.0f};
+
+    auto considerCandidate = [&](float t, const glm::vec3& normal) {
+        if (t >= 0.0f && (bestT < 0.0f || t < bestT)) {
+            bestT = t;
+            bestNormal = normal;
+        }
+    };
+
+    // Infinite-cylinder wall, clamped to the segment's finite extent via `s` (the hit point's
+    // projection onto the axis) - a hit outside [0, axisLen] belongs to one of the sphere caps below
+    // instead.
+    glm::vec3 m = ray.Origin - a;
+    glm::vec3 d = dir - axisDir * glm::dot(dir, axisDir);
+    glm::vec3 mPerp = m - axisDir * glm::dot(m, axisDir);
+
+    float qa = glm::dot(d, d);
+    if (qa > 1e-8f) {
+        float qb = 2.0f * glm::dot(mPerp, d);
+        float qc = glm::dot(mPerp, mPerp) - capsule.Radius * capsule.Radius;
+        float discriminant = qb * qb - 4.0f * qa * qc;
+        if (discriminant >= 0.0f) {
+            float sqrtDisc = sqrt(discriminant);
+            float roots[2] = {(-qb - sqrtDisc) / (2.0f * qa), (-qb + sqrtDisc) / (2.0f * qa)};
+            for (float t : roots) {
+                if (t < 0.0f)
+                    continue;
+                glm::vec3 point = ray.Origin + dir * t;
+                float s = glm::dot(point - a, axisDir);
+                if (s < 0.0f || s > axisLen)
+                    continue; // outside the segment - the cap spheres below cover this region
+                glm::vec3 axisPoint = a + axisDir * s;
+                considerCandidate(t, glm::normalize(point - axisPoint));
+            }
+        }
+    }
+
+    float capT;
+    if (IntersectRaySphere(ray, Sphere {a, capsule.Radius}, capT))
+        considerCandidate(capT, glm::normalize(ray.Origin + dir * capT - a));
+    if (IntersectRaySphere(ray, Sphere {b, capsule.Radius}, capT))
+        considerCandidate(capT, glm::normalize(ray.Origin + dir * capT - b));
+
+    if (bestT < 0.0f)
+        return false;
+
+    outT = bestT;
+    outNormal = bestNormal;
+    return true;
+}
+
+bool RaycastDynamicColliders(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDistance,
+                             entt::entity excludeEntity) {
+    auto& registry = scene.Registry();
+    glm::vec3 dir = glm::normalize(ray.Direction);
+
+    bool hitAnything = false;
+    float closest = maxDistance;
+
+    auto aabbView = registry.view<Transform, AABBCollider>();
+    for (auto e : aabbView) {
+        if (e == excludeEntity)
+            continue;
+
+        auto& t = aabbView.get<Transform>(e);
+        auto& c = aabbView.get<AABBCollider>(e);
+        AABB aabb = AABB::FromCenterHalfSize(t.LocalPosition + c.Offset, c.HalfSize);
+
+        float distance;
+        glm::vec3 normal;
+        if (!IntersectRayAABB(ray, aabb, distance, normal) || distance > closest)
+            continue;
+
+        closest = distance;
+        outHit.HitEntity = Entity(e, &registry);
+        outHit.Distance = distance;
+        outHit.Point = ray.Origin + dir * distance;
+        outHit.Normal = normal;
+        hitAnything = true;
+    }
+
+    auto sphereView = registry.view<Transform, SphereCollider>();
+    for (auto e : sphereView) {
+        if (e == excludeEntity)
+            continue;
+
+        auto& t = sphereView.get<Transform>(e);
+        auto& c = sphereView.get<SphereCollider>(e);
+        Sphere sphere {t.LocalPosition + c.Offset, c.Radius};
+
+        float distance;
+        if (!IntersectRaySphere(ray, sphere, distance) || distance > closest)
+            continue;
+
+        closest = distance;
+        outHit.HitEntity = Entity(e, &registry);
+        outHit.Distance = distance;
+        outHit.Point = ray.Origin + dir * distance;
+        outHit.Normal = glm::normalize(outHit.Point - sphere.Center);
+        hitAnything = true;
+    }
+
+    auto capsuleView = registry.view<Transform, CapsuleCollider>();
+    for (auto e : capsuleView) {
+        if (e == excludeEntity)
+            continue;
+
+        auto& t = capsuleView.get<Transform>(e);
+        auto& c = capsuleView.get<CapsuleCollider>(e);
+        Capsule capsule {t.LocalPosition + c.Offset, c.Radius, c.HalfHeight};
+
+        float distance;
+        glm::vec3 normal;
+        if (!IntersectRayCapsule(ray, capsule, distance, normal) || distance > closest)
+            continue;
+
+        closest = distance;
+        outHit.HitEntity = Entity(e, &registry);
+        outHit.Distance = distance;
+        outHit.Point = ray.Origin + dir * distance;
+        outHit.Normal = normal;
         hitAnything = true;
     }
 
