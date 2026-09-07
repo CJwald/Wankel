@@ -5,12 +5,14 @@
 #include "Wankel/Renderer/Mesh.h"
 #include "Wankel/Renderer/Shader.h"
 #include "Wankel/Renderer/Font.h"
+#include "Wankel/Audio/AudioClip.h"
 
 namespace Wankel {
 
 std::unordered_map<std::string, Ref<Mesh>> AssetManager::s_Meshes;
 std::unordered_map<std::string, Ref<Shader>> AssetManager::s_Shaders;
 std::unordered_map<std::string, Ref<Font>> AssetManager::s_Fonts;
+std::unordered_map<std::string, Ref<AudioClip>> AssetManager::s_AudioClips;
 
 Ref<Mesh> AssetManager::GetMesh(const std::string& path) {
     auto it = s_Meshes.find(path);
@@ -54,6 +56,16 @@ Ref<Font> AssetManager::GetFont(const std::string& ttfPath, float pixelHeight) {
     }
 }
 
+Ref<AudioClip> AssetManager::GetAudioClip(const std::string& path) {
+    auto it = s_AudioClips.find(path);
+    if (it != s_AudioClips.end())
+        return it->second;
+
+    Ref<AudioClip> clip = AudioClip::LoadFromFile(path);
+    s_AudioClips[path] = clip;
+    return clip;
+}
+
 Ref<Mesh> AssetManager::GetOrCreateMesh(const std::string& key, const std::function<Ref<Mesh>()>& factory) {
     auto it = s_Meshes.find(key);
     if (it != s_Meshes.end())
@@ -77,6 +89,7 @@ void AssetManager::Clear() {
     s_Meshes.clear();
     s_Shaders.clear();
     s_Fonts.clear();
+    s_AudioClips.clear();
 }
 
 } // namespace Wankel

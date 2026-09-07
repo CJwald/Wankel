@@ -1,6 +1,8 @@
 #include "wkpch.h"
 #include "AudioClip.h"
 
+#include <miniaudio.h>
+
 #include <cmath>
 #include <algorithm>
 
@@ -37,6 +39,30 @@ Ref<AudioClip> AudioClip::CreateTone(float frequencyHz, float durationSeconds, f
 
         clip->m_Samples[i] = sample;
     }
+
+    return clip;
+}
+
+Ref<AudioClip> AudioClip::LoadFromFile(const std::string& path) {
+    auto clip = CreateRef<AudioClip>();
+
+    // outputSampleRate = 0 means "keep the source's native rate" - ma_decode_file writes the actual
+    // decoded rate back into config.sampleRate (see ma_decoder__full_decode_and_uninit), which we read
+    // below rather than assuming 44100 like CreateTone does.
+    ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 1, 0);
+    ma_uint64 frameCount = 0;
+    void* pFrames = nullptr;
+
+    ma_result result = ma_decode_file(path.c_str(), &config, &frameCount, &pFrames);
+    if (result != MA_SUCCESS) {
+        WK_CORE_WARNING("AudioClip::LoadFromFile: failed to decode '{0}' ({1}), returning an empty clip",
+                        path, (int)result);
+        return clip;
+    }
+
+    clip->m_SampleRate = config.sampleRate;
+    clip->m_Samples.assign((float*)pFrames, (float*)pFrames + frameCount);
+    ma_free(pFrames, nullptr);
 
     return clip;
 }

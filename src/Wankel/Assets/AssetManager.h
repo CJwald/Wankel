@@ -11,6 +11,7 @@ namespace Wankel {
 class Mesh;
 class Shader;
 class Font;
+class AudioClip;
 
 // Path-keyed cache for engine assets. Every call site used to do its own
 // raw MeshLoader::Load/Font::Load/Shader construction with its own
@@ -33,6 +34,10 @@ public:
     static Ref<Shader> GetShader(const std::string& vertexPath, const std::string& fragmentPath);
     static Ref<Font> GetFont(const std::string& ttfPath, float pixelHeight = 48.0f);
 
+    // Decoded once via AudioClip::LoadFromFile, then shared - same reasoning as GetMesh (repeated
+    // requests for the same sound, e.g. every time a weapon archetype spawns, shouldn't re-decode it).
+    static Ref<AudioClip> GetAudioClip(const std::string& path);
+
     // For meshes that aren't loaded from a file path at all (procedurally built,
     // or derived from another mesh) but still need to live as long as any entity's
     // Mesh* points at them - same cache, same Clear() lifetime, arbitrary key.
@@ -52,6 +57,7 @@ private:
     static std::unordered_map<std::string, Ref<Mesh>> s_Meshes;
     static std::unordered_map<std::string, Ref<Shader>> s_Shaders;
     static std::unordered_map<std::string, Ref<Font>> s_Fonts;
+    static std::unordered_map<std::string, Ref<AudioClip>> s_AudioClips;
 };
 
 } // namespace Wankel

@@ -132,8 +132,16 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
         // scalar - see PlayerController::FlightGravityScale and Rigidbody::GravityScale.
         rb.GravityScale = grounded ? 1.0f : controller.FlightGravityScale;
 
-        // APPLY TRANSFORM
-        transform.LocalOrientation = controller.Orientation;
+        // APPLY TRANSFORM - if the controller delegates its look orientation to another entity (a
+        // body-centre pivot child), write there and keep this entity, which carries the upright
+        // capsule collider, at identity so pitch/roll never tilt the collider or its debug draw.
+        if (auto* redirect = registry.try_get<OrientationTarget>(entity);
+            redirect && registry.valid(redirect->Target) && registry.all_of<Transform>(redirect->Target)) {
+            registry.get<Transform>(redirect->Target).LocalOrientation = controller.Orientation;
+            transform.LocalOrientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+        } else {
+            transform.LocalOrientation = controller.Orientation;
+        }
     }
 }
 

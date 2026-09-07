@@ -1,4 +1,5 @@
 #pragma once
+#include "Wankel/ECS/Entity.h"
 #include "Wankel/Math/Easing.h"
 
 #include <glm/glm.hpp>
@@ -75,6 +76,15 @@ struct PlayerController {
 
     glm::quat Orientation {1, 0, 0, 0};
     glm::quat BodyOrientation {1, 0, 0, 0}; // Needed for FPS mode
+};
+
+
+// Redirects the integrated look Orientation (see PlayerControllerSystem) onto another entity's
+// Transform each frame instead of this controller entity's own - so view pitch/roll pivot about a
+// body-centre child while the controller entity, which carries the upright capsule collider, keeps
+// an identity LocalOrientation. Runtime wiring only (a live entity handle); not serialized.
+struct OrientationTarget {
+    entt::entity Target = entt::null;
 };
 
 
