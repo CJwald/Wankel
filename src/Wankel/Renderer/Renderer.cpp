@@ -122,7 +122,7 @@ void Renderer::Init() {
     // DEBUG PASS GPU OBJECTS
     glGenVertexArrays(1, &s_Data.DebugVAO);
     glGenBuffers(1, &s_Data.DebugVBO);
-    glBindVertexArray(s_Data.DebugVAO);
+    VertexArray::BindID(s_Data.DebugVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(DebugVertex) * kMaxDebugVertices, nullptr, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
@@ -134,7 +134,7 @@ void Renderer::Init() {
     // TEXT PASS GPU OBJECTS
     glGenVertexArrays(1, &s_Data.TextVAO);
     glGenBuffers(1, &s_Data.TextVBO);
-    glBindVertexArray(s_Data.TextVAO);
+    VertexArray::BindID(s_Data.TextVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.TextVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(TextVertex) * kMaxTextVertices, nullptr, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
@@ -147,7 +147,7 @@ void Renderer::Init() {
     // color/alpha come from uniforms instead of per-vertex attributes.
     glGenVertexArrays(1, &s_Data.ScreenQuadVAO);
     glGenBuffers(1, &s_Data.ScreenQuadVBO);
-    glBindVertexArray(s_Data.ScreenQuadVAO);
+    VertexArray::BindID(s_Data.ScreenQuadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.ScreenQuadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 6, nullptr, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
@@ -159,7 +159,7 @@ void Renderer::Init() {
     glGenVertexArrays(1, &s_Data.OcclusionBoxVAO);
     glGenBuffers(1, &s_Data.OcclusionBoxVBO);
     glGenBuffers(1, &s_Data.OcclusionBoxIBO);
-    glBindVertexArray(s_Data.OcclusionBoxVAO);
+    VertexArray::BindID(s_Data.OcclusionBoxVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.OcclusionBoxVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(kUnitCubeVertices), kUnitCubeVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
@@ -238,7 +238,7 @@ void FlushLineQueue(const std::vector<DebugVertex>& vertices) {
     s_Data.DebugShader->SetMat4("view", s_Data.View);
     s_Data.DebugShader->SetMat4("projection", s_Data.Projection);
 
-    glBindVertexArray(s_Data.DebugVAO);
+    VertexArray::BindID(s_Data.DebugVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), vertices.data());
     glDisable(GL_CULL_FACE);
@@ -264,7 +264,7 @@ void FlushTriangleQueue(const std::vector<DebugVertex>& vertices) {
     s_Data.DebugShader->SetMat4("view", s_Data.View);
     s_Data.DebugShader->SetMat4("projection", s_Data.Projection);
 
-    glBindVertexArray(s_Data.DebugVAO);
+    VertexArray::BindID(s_Data.DebugVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), vertices.data());
     glDisable(GL_CULL_FACE);
@@ -424,7 +424,7 @@ void Renderer::DrawOcclusionProxyBox(const glm::mat4& boxModel) {
     s_Data.OcclusionBoxShader->SetMat4("view", s_Data.View);
     s_Data.OcclusionBoxShader->SetMat4("projection", s_Data.Projection);
 
-    glBindVertexArray(s_Data.OcclusionBoxVAO);
+    VertexArray::BindID(s_Data.OcclusionBoxVAO);
     glDepthMask(GL_FALSE);   // proxy must not write depth - a full cube would stomp the depth buffer
     glDisable(GL_CULL_FACE); // register samples regardless of which way the box faces the camera
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
@@ -519,7 +519,7 @@ void Renderer::SubmitScreenLines(const std::vector<DebugLine>& lines, uint32_t s
     s_Data.DebugShader->SetMat4("view", glm::mat4(1.0f));
     s_Data.DebugShader->SetMat4("projection", projection);
 
-    glBindVertexArray(s_Data.DebugVAO);
+    VertexArray::BindID(s_Data.DebugVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.DebugVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(DebugVertex), vertices.data());
 
@@ -582,7 +582,7 @@ void Renderer::SubmitText(const std::string& text, const Ref<Font>& font, const 
     font->GetAtlasTexture()->Bind(0);
     s_Data.TextShader->SetInt("u_FontAtlas", 0);
 
-    glBindVertexArray(s_Data.TextVAO);
+    VertexArray::BindID(s_Data.TextVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.TextVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(TextVertex), vertices.data());
 
@@ -619,7 +619,7 @@ void Renderer::SubmitScreenQuad(const glm::vec2& min, const glm::vec2& max, cons
     s_Data.ScreenQuadShader->SetVec3("u_Color", color);
     s_Data.ScreenQuadShader->SetFloat("u_Alpha", alpha);
 
-    glBindVertexArray(s_Data.ScreenQuadVAO);
+    VertexArray::BindID(s_Data.ScreenQuadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.ScreenQuadVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 

@@ -1,6 +1,8 @@
 #include "wkpch.h"
 #include "ChunkGeometryPool.h"
 
+#include "VertexArray.h"
+
 #include <glad/gl.h>
 
 namespace Wankel {
@@ -13,7 +15,7 @@ ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCap
       m_MaxIndirectInstances(maxChunks * 8), m_VertexAllocator(vertexCapacityBytes),
       m_IndexAllocator(indexCapacityBytes), m_SlotAllocator(maxChunks) {
     glGenVertexArrays(1, &m_VAO);
-    glBindVertexArray(m_VAO);
+    VertexArray::BindID(m_VAO);
 
     // COMBINED VERTEX BUFFER - QuantizedVertex layout, must match Mesh's quantizing constructor
     // exactly (locations 0-2) so a chunk's data means the same thing whether it lands here or in a
@@ -56,7 +58,7 @@ ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCap
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexIBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)indexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
 
-    glBindVertexArray(0);
+    VertexArray::BindID(0);
 
     // PER-CHUNK TRANSFORM SSBO - one ChunkTransformGPU slot per chunk, indexed by aChunkIndex.
     // Written once per chunk on generate/evict (SetTransform), not every frame - chunks are static.
@@ -133,6 +135,12 @@ void ChunkGeometryPool::Write(const ChunkGeometryHandle& handle, const Quantized
     if (!handle.Valid)
         return;
 
+    // Bind the pool's own VAO first: the GL_ELEMENT_ARRAY_BUFFER bind below is captured into
+    // whichever VAO is current, so without this an upload here (e.g. a chunk remesh from a voxel
+    // edit) would rebind the element buffer of whatever mesh VAO happened to be bound - including
+    // one a Mesh built moments earlier the same frame - and that mesh then draws with these indices.
+    VertexArray::BindID(m_VAO);
+
     glBindBuffer(GL_ARRAY_BUFFER, m_VertexVBO);
     glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)((size_t)handle.VertexBase * sizeof(QuantizedVertex)),
                     (GLsizeiptr)((size_t)vertexCount * sizeof(QuantizedVertex)), vertices);
@@ -183,7 +191,7 @@ void ChunkGeometryPool::UploadFrameData(const std::vector<DrawElementsIndirectCo
 }
 
 void ChunkGeometryPool::Bind() const {
-    glBindVertexArray(m_VAO);
+    VertexArray::BindID(m_VAO);
 }
 
 } // namespace Wankel

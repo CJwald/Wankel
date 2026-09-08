@@ -19,11 +19,15 @@ VertexArray::~VertexArray() {
     glDeleteVertexArrays(1, &m_ID);
 }
 
-void VertexArray::Bind() const {
-    if (s_BoundVAO == m_ID)
+void VertexArray::BindID(unsigned int id) {
+    if (s_BoundVAO == id)
         return;
-    glBindVertexArray(m_ID);
-    s_BoundVAO = m_ID;
+    glBindVertexArray(id);
+    s_BoundVAO = id;
+}
+
+void VertexArray::Bind() const {
+    BindID(m_ID);
 }
 
 void VertexArray::AddVertexBuffer(const VertexBuffer& vb) {
