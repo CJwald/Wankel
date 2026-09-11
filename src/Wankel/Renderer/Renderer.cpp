@@ -343,6 +343,7 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
         shader->SetFloat("u_Roughness", material.Roughness);
         shader->SetFloat("u_Metallic", material.Metallic);
         shader->SetVec3("u_Emissive", material.Emissive);
+        shader->SetFloat("u_Alpha", material.Alpha);
         s_Data.LastMaterial = material;
         s_Data.LastMaterialValid = true;
     }

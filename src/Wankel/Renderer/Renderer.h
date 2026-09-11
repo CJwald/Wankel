@@ -61,11 +61,18 @@ struct Material {
     float Metallic = 0.0f;                 // 0 = dielectric, 1 = metal
     glm::vec3 Emissive {0.0f, 0.0f, 0.0f}; // added post-lighting; default off, costs nothing unused
 
+    // Multiplies the final fragment alpha (see cube.frag) - 1 = fully opaque (every material that
+    // doesn't touch this). No dedicated transparent/sorted pass yet (see Renderer::SubmitTransparent's
+    // placeholder below); relies on the existing opaque path's always-on blend state, same tier of
+    // transparency the Structure Builder's translucent air markers already get via baked vertex alpha.
+    // Appended last so every existing positional Material{...} initializer keeps compiling unchanged.
+    float Alpha = 1.0f;
+
     // Exact equality (not approximate) - used by Renderer::Submit to skip re-uploading material
     // uniforms when consecutive draws share the identical value (e.g. every voxel chunk).
     bool operator==(const Material& other) const {
         return Albedo == other.Albedo && Roughness == other.Roughness && Metallic == other.Metallic &&
-               Emissive == other.Emissive;
+               Emissive == other.Emissive && Alpha == other.Alpha;
     }
 };
 
