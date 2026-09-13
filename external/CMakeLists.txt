@@ -20,6 +20,9 @@ set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
 
 set(JSON_BuildTests OFF CACHE INTERNAL "")
 
+set(ENET_TEST OFF CACHE BOOL "" FORCE)
+set(ENET_SHARED OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(SDL3 EXCLUDE_FROM_ALL)
 add_subdirectory(glad EXCLUDE_FROM_ALL)
 add_subdirectory(glm EXCLUDE_FROM_ALL)
@@ -27,6 +30,8 @@ add_subdirectory(spdlog EXCLUDE_FROM_ALL)
 add_subdirectory(glfw EXCLUDE_FROM_ALL)
 add_subdirectory(entt)
 add_subdirectory(json EXCLUDE_FROM_ALL)
+add_subdirectory(enet EXCLUDE_FROM_ALL)
+add_subdirectory(bitsery EXCLUDE_FROM_ALL)
 
 if(NOT TARGET SDL3::SDL3)
     message(FATAL_ERROR "SDL3::SDL3 missing!")

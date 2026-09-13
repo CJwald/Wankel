@@ -27,6 +27,19 @@
 #include "Wankel/ECS/Components.h"
 
 // -----------------------------
+// Networking
+// -----------------------------
+#include "Wankel/Networking/NetChannel.h"
+#include "Wankel/Networking/NetDispatch.h"
+#include "Wankel/Networking/NetHost.h"
+#include "Wankel/Networking/NetMessage.h"
+#include "Wankel/Networking/NetMessageTypes.h"
+#include "Wankel/Networking/NetSerialize.h"
+#include "Wankel/Networking/Replication/ReplicationComponents.h"
+#include "Wankel/Networking/Replication/ReplicationRegistry.h"
+#include "Wankel/Networking/Replication/ReplicationSystem.h"
+
+// -----------------------------
 // Renderer
 // -----------------------------
 #include "Wankel/Renderer/Renderer.h"

@@ -125,7 +125,7 @@ target_include_directories(Wankel PUBLIC
 )
 
 # Link dependencies
-target_link_libraries(Wankel 
+target_link_libraries(Wankel
 	PUBLIC
 	    spdlog::spdlog
 		imgui
@@ -133,8 +133,10 @@ target_link_libraries(Wankel
 	    glad::glad #TODO: make Private
 	    SDL3::SDL3 #TODO: make Private
 	    nlohmann_json::nlohmann_json
+	    Bitsery::bitsery
 	PRIVATE
 	    glfw
+	    enet::enet_static
 )
 
 target_compile_definitions(Wankel PUBLIC GLM_ENABLE_EXPERIMENTAL)

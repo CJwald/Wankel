@@ -8,36 +8,45 @@
 #include "Wankel/Audio/AudioSystem.h"
 #include "Wankel/Assets/AssetManager.h"
 
+#include <chrono>
+#include <thread>
+
 
 namespace Wankel {
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
 
 
-Application::Application() {
+Application::Application(const ApplicationSpecification& spec) : m_Spec(spec) {
     s_Instance = this;
 
-    m_Window = std::unique_ptr<Window>(Window::Create());
-    m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
+    if (!m_Spec.Headless) {
+        m_Window = std::unique_ptr<Window>(Window::Create());
+        m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
-    Renderer::Init();
+        Renderer::Init();
 
-    if (!InputSystem::Init())
-        WK_CORE_WARNING("Gamepad input disabled: SDL failed to initialize");
+        if (!InputSystem::Init())
+            WK_CORE_WARNING("Gamepad input disabled: SDL failed to initialize");
 
-    AudioSystem::Init();
+        AudioSystem::Init();
+    }
 
-    JobSystem::Init();
+    JobSystem::Init(); // needed headless too - network I/O and world-gen work both run through it
 
-    m_ImGuiLayer = new ImGuiLayer();
-    PushOverlay(m_ImGuiLayer);
+    if (!m_Spec.Headless) {
+        m_ImGuiLayer = new ImGuiLayer();
+        PushOverlay(m_ImGuiLayer);
+    }
 }
 
 
 Application::~Application() {
     JobSystem::Shutdown();
     AssetManager::Clear();
-    AudioSystem::Shutdown();
-    InputSystem::Shutdown();
+    if (!m_Spec.Headless) {
+        AudioSystem::Shutdown();
+        InputSystem::Shutdown();
+    }
 }
 
 
@@ -54,26 +63,39 @@ void Application::PushOverlay(Layer* layer) {
 
 
 void Application::Run() {
+    // Headless has no Window::OnUpdate() vsync wait to pace the loop, so it paces itself against
+    // m_Spec.TargetTickRate instead - a single config value so a server can drop from a 60Hz dev
+    // target to 30Hz for a real release without touching this loop.
+    using Clock = std::chrono::steady_clock;
+    auto tickStart = Clock::now();
+
     while (m_Running) {
         JobSystem::RunMainThreadQueue();
 
-        InputSystem::PollControllers();
-
-        m_Window->OnUpdate();
-
-        Renderer::Clear();
+        if (!m_Spec.Headless) {
+            InputSystem::PollControllers();
+            m_Window->OnUpdate();
+            Renderer::Clear();
+        }
 
         for (Layer* layer : m_LayerStack)
             layer->OnUpdate();
 
-        Input::ResetMouseDelta();
+        if (!m_Spec.Headless) {
+            Input::ResetMouseDelta();
 
-        m_ImGuiLayer->Begin();
+            m_ImGuiLayer->Begin();
 
-        for (Layer* layer : m_LayerStack)
-            layer->OnImGuiRender(); // optional but recommended
+            for (Layer* layer : m_LayerStack)
+                layer->OnImGuiRender(); // optional but recommended
 
-        m_ImGuiLayer->End();
+            m_ImGuiLayer->End();
+        } else {
+            auto tickDuration = std::chrono::duration<double>(1.0 / m_Spec.TargetTickRate);
+            auto nextTick = tickStart + std::chrono::duration_cast<Clock::duration>(tickDuration);
+            std::this_thread::sleep_until(nextTick);
+            tickStart = Clock::now();
+        }
     }
 }
 
