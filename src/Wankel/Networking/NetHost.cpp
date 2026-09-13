@@ -7,6 +7,7 @@
 #include <enet.h>
 
 #include "NetSerialize.h"
+#include "Wankel/Core/JobSystem.h"
 
 #include <atomic>
 #include <mutex>
@@ -106,9 +107,23 @@ struct NetHost::Impl {
             }
         }
     }
+
+    // Finishes a Connect() call once `address` is known (either resolved instantly, numerically, or
+    // resolved on a background thread - see NetHost::Connect). Checks Host under the same lock
+    // Shutdown() now also holds while destroying it, so a resolve that finishes after Shutdown() ran
+    // safely no-ops instead of touching a dangling ENetHost*.
+    void ConnectResolved(ENetAddress address) {
+        std::lock_guard<std::mutex> lock(EnetMutex);
+        if (!Host)
+            return;
+        if (!enet_host_connect(Host, &address, NetChannelCount, 0))
+            WK_CORE_ERROR("NetHost::Connect: enet_host_connect failed");
+        // Success is asynchronous either way - PollLoop's ENET_EVENT_TYPE_CONNECT case assigns the
+        // PeerId and fires OnConnect once ENet finishes the handshake.
+    }
 };
 
-NetHost::NetHost() : m_Impl(std::make_unique<Impl>()) {}
+NetHost::NetHost() : m_Impl(std::make_shared<Impl>()) {}
 
 NetHost::~NetHost() {
     Shutdown();
@@ -151,9 +166,15 @@ void NetHost::Shutdown() {
     if (m_Impl->PollThread.joinable())
         m_Impl->PollThread.join();
 
-    // No lock needed below - PollThread has already been joined, so nothing else touches Host.
-    enet_host_destroy(m_Impl->Host);
-    m_Impl->Host = nullptr;
+    // Locked (unlike before a background Connect() resolve could exist): PollThread is joined, but
+    // a hostname-resolve job (see Connect()) can still be in flight on a JobSystem worker, holding
+    // its own shared_ptr to this Impl - ConnectResolved() takes the same lock and checks Host itself,
+    // so whichever of these two runs first "wins" and the other safely no-ops instead of racing.
+    {
+        std::lock_guard<std::mutex> lock(m_Impl->EnetMutex);
+        enet_host_destroy(m_Impl->Host);
+        m_Impl->Host = nullptr;
+    }
     enet_deinitialize();
 }
 
@@ -163,19 +184,29 @@ void NetHost::Connect(const std::string& host, uint16_t port) {
         return;
     }
 
+    // enet_address_set_host_ip parses a numeric IP directly (inet_pton-style) with no network I/O -
+    // try it first so the common case (a typed IP address, e.g. a LAN server) never blocks the
+    // caller (always the main/UI thread today). Only enet_address_set_host's getaddrinfo() genuinely
+    // needs DNS and can block for real seconds - even for addresses that look trivially numeric on
+    // some systems' resolver configs, which is exactly what caused the app to visibly hang on a real
+    // LAN IP - so that path always runs on a JobSystem worker instead of the caller's thread.
     ENetAddress address {};
-    enet_address_set_host(&address, host.c_str());
-    address.port = port;
-
-    ENetPeer* peer;
-    {
-        std::lock_guard<std::mutex> lock(m_Impl->EnetMutex);
-        peer = enet_host_connect(m_Impl->Host, &address, NetChannelCount, 0);
+    if (enet_address_set_host_ip(&address, host.c_str()) == 0) {
+        address.port = port;
+        m_Impl->ConnectResolved(address);
+        return;
     }
-    if (!peer)
-        WK_CORE_ERROR("NetHost::Connect: enet_host_connect failed ({0}:{1})", host, port);
-    // Success is asynchronous - PollLoop's ENET_EVENT_TYPE_CONNECT case assigns the PeerId and
-    // fires OnConnect once ENet finishes the handshake.
+
+    std::shared_ptr<Impl> impl = m_Impl; // keep Impl alive for the job even if this NetHost is destroyed first
+    JobSystem::Submit([impl, host, port] {
+        ENetAddress resolved {};
+        if (enet_address_set_host(&resolved, host.c_str()) != 0) {
+            WK_CORE_ERROR("NetHost::Connect: could not resolve host '{0}'", host);
+            return;
+        }
+        resolved.port = port;
+        impl->ConnectResolved(resolved);
+    });
 }
 
 void NetHost::Send(NetPeer peer, const NetMessage& msg, NetChannel channel, bool reliable) {

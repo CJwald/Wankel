@@ -42,7 +42,10 @@ public:
     void Shutdown();
 
     // Client-only: begins connecting: asynchronous - the resulting PeerId is delivered via the
-    // OnConnect callback once ENet completes the handshake, not returned here.
+    // OnConnect callback once ENet completes the handshake, not returned here. `host` may be a
+    // numeric IP (resolved instantly, no I/O) or a hostname (resolved via a real DNS lookup on a
+    // background thread, since that can genuinely block for seconds - never call this expecting it
+    // to be synchronous either way).
     void Connect(const std::string& host, uint16_t port);
 
     void Send(NetPeer peer, const NetMessage& msg, NetChannel channel, bool reliable);
@@ -61,7 +64,11 @@ public:
 
 private:
     struct Impl;
-    std::unique_ptr<Impl> m_Impl;
+    // shared_ptr, not unique_ptr: Connect() may resolve a hostname on a background JobSystem thread
+    // (see NetHost.cpp) - that job captures a copy to keep Impl alive even if this NetHost is
+    // destroyed while the resolve is still in flight, so it can safely check whether Shutdown()
+    // already ran instead of touching freed memory.
+    std::shared_ptr<Impl> m_Impl;
 };
 
 } // namespace Wankel::Networking
