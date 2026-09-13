@@ -66,16 +66,27 @@ struct NetHost::Impl {
     // process `event` themselves, outside the lock, so a user callback (OnConnect/OnMessage/...)
     // never runs while this is held (avoids any risk of a callback that synchronously calls back
     // into Send/Broadcast deadlocking on a non-reentrant mutex).
-    bool ServiceOnce(ENetEvent& event, enet_uint32 timeoutMs) {
+    //
+    // ALWAYS non-blocking (timeoutMs=0 internally, regardless of what's passed to
+    // enet_host_service - see PollLoop). enet_host_service's own timeout parameter isn't a
+    // "check back in this long" hint - it makes the call itself block inside a real
+    // select()/poll() syscall for up to that long, and that happens WHILE THIS LOCK IS HELD. A
+    // non-zero timeout here previously meant the poll thread monopolized EnetMutex for ~4ms out of
+    // every ~4ms cycle, starving Send()/Broadcast() on the main thread - observed as the app
+    // dropping to ~1 frame/minute once replication traffic made those calls frequent (20Hz). The
+    // actual pacing/backoff-when-idle now happens in PollLoop via a sleep OUTSIDE this lock.
+    bool ServiceOnce(ENetEvent& event) {
         std::lock_guard<std::mutex> lock(EnetMutex);
-        return enet_host_service(Host, &event, timeoutMs) > 0;
+        return enet_host_service(Host, &event, 0) > 0;
     }
 
     void PollLoop() {
         ENetEvent event;
         while (Running.load(std::memory_order_relaxed)) {
-            // Small timeout keeps this responsive to Shutdown() without busy-spinning.
-            while (ServiceOnce(event, 4)) {
+            // Drain every currently-available event (each ServiceOnce call is a quick, non-blocking
+            // check-and-pop under the lock) before sleeping - keeps a burst of traffic from being
+            // artificially rate-limited by the 1ms backoff below.
+            while (ServiceOnce(event)) {
                 switch (event.type) {
                 case ENET_EVENT_TYPE_CONNECT: {
                     PeerId id = RegisterPeer(event.peer);
@@ -105,6 +116,11 @@ struct NetHost::Impl {
                     break;
                 }
             }
+
+            // Nothing pending right now - back off briefly WITHOUT holding EnetMutex, so Send()/
+            // Broadcast() on the main thread never has to wait long to acquire it. Short enough to
+            // stay responsive (well under one frame at even 60 ticks/s) without busy-spinning.
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
