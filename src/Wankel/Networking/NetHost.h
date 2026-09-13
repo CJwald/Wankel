@@ -52,6 +52,11 @@ public:
     void Broadcast(const NetMessage& msg, NetChannel channel, bool reliable); // server only
     void Disconnect(NetPeer peer, uint32_t reasonCode = 0);
 
+    // ENet already tracks this per-peer for free (from reliable-packet acks, refreshed even on idle
+    // connections via its own periodic pings) - no app-level ping/pong protocol needed. Returns 0 for
+    // an unknown/disconnected peer.
+    uint32_t GetRoundTripTime(NetPeer peer);
+
     using ConnectCallback = std::function<void(NetPeer)>;
     using DisconnectCallback = std::function<void(NetPeer, uint32_t reason)>;
     using MessageCallback = std::function<void(NetPeer, const uint8_t* data, size_t len, uint8_t channel)>;

@@ -258,6 +258,14 @@ void NetHost::Disconnect(NetPeer peer, uint32_t reasonCode) {
     enet_peer_disconnect(enetPeer, reasonCode);
 }
 
+uint32_t NetHost::GetRoundTripTime(NetPeer peer) {
+    ENetPeer* enetPeer = m_Impl->FindPeer(peer.Id);
+    if (!enetPeer)
+        return 0;
+    std::lock_guard<std::mutex> lock(m_Impl->EnetMutex);
+    return enet_peer_get_rtt(enetPeer);
+}
+
 void NetHost::SetOnConnect(ConnectCallback cb) {
     m_Impl->OnConnect = std::move(cb);
 }
