@@ -29,3 +29,9 @@
 [submodule "external/json"]
 	path = external/json
 	url = https://github.com/nlohmann/json.git
+[submodule "external/enet"]
+	path = external/enet
+	url = https://github.com/zpl-c/enet.git
+[submodule "external/bitsery"]
+	path = external/bitsery
+	url = https://github.com/fraillt/bitsery.git

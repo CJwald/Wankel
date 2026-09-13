@@ -14,26 +14,9 @@ using namespace Wankel;
 
 namespace {
 
-const char* MotionAxisName(MotionAxis axis) {
-    switch (axis) {
-        case MotionAxis::X:
-            return "X";
-        case MotionAxis::Y:
-            return "Y";
-        case MotionAxis::Z:
-            return "Z";
-        case MotionAxis::Pitch:
-            return "Pitch";
-        case MotionAxis::Yaw:
-            return "Yaw";
-        case MotionAxis::Roll:
-            return "Roll";
-        case MotionAxis::Count:
-            break;
-    }
-    return "Unknown";
-}
-
+// MotionAxisName itself now lives in Wankel::MotionProfile.h, shared with the component
+// serializer - this file used to carry its own duplicate, which became an ambiguous-overload
+// compile error once the engine added its copy.
 const char* MotionAxisLabels[] = {"X", "Y", "Z", "Pitch", "Yaw", "Roll"};
 
 } // namespace
