@@ -67,6 +67,13 @@ void ReplicationSystem::RegisterHandlers(NetMessageBus& bus, entt::registry& reg
             return;
 
         entt::entity entity = FindEntityByNetworkId(registry, decoded->NetworkIdValue);
+
+        // This connection owns this entity locally (its own player, say) - a broadcast snapshot for
+        // it is stale by definition (enet_host_broadcast delivers to the sender too), so applying it
+        // would fight whatever locally-authoritative state already updated it this frame.
+        if (entity != entt::null && registry.get<NetworkId>(entity).IsLocallyOwned)
+            return;
+
         if (entity == entt::null) {
             entity = registry.create();
             registry.emplace<NetworkId>(entity, NetworkId {decoded->NetworkIdValue, false});
