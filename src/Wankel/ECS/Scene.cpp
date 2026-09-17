@@ -56,6 +56,10 @@ void Scene::OnUpdate(float dt, Camera& camera) {
     m_PlayerControllerSystem.Update(*this, dt);
     Smooth(m_SystemTimings.PlayerControllerMs, ElapsedMs(t0));
 
+    auto tRotationPivot = std::chrono::high_resolution_clock::now();
+    m_RotationPivotSystem.Update(*this);
+    Smooth(m_SystemTimings.RotationPivotMs, ElapsedMs(tRotationPivot));
+
     auto t1 = std::chrono::high_resolution_clock::now();
     m_PoseSystem.Update(*this, dt);
     Smooth(m_SystemTimings.PoseMs, ElapsedMs(t1));

@@ -88,6 +88,31 @@ struct OrientationTarget {
 };
 
 
+// Bitmask of which of a driving PlayerController's rotation channels a RotationPivot should apply.
+enum OrientationChannel : uint8_t {
+    OrientationChannel_None = 0,
+    OrientationChannel_Yaw = 1 << 0,
+    OrientationChannel_Pitch = 1 << 1,
+    OrientationChannel_Roll = 1 << 2,
+    OrientationChannel_All = OrientationChannel_Yaw | OrientationChannel_Pitch | OrientationChannel_Roll,
+};
+
+
+// Drives this entity's Transform.LocalOrientation from another entity's PlayerController each frame -
+// a generalization of OrientationTarget for hierarchies with more than one look-driven pivot (e.g. a
+// yaw/roll pivot with a pitch pivot nested under it, so children of the outer pivot inherit yaw but not
+// pitch purely through normal parenting). See RotationPivotSystem.
+struct RotationPivot {
+    entt::entity Source = entt::null;
+
+    // Per-mode channel mask - named fields (not an array indexed by LookMode) to match
+    // PlayerController's own FPSDeceleration/FlightDeceleration/FlightGravityScale naming style.
+    uint8_t FPSChannels = OrientationChannel_All;
+    uint8_t FlightChannels = OrientationChannel_All;
+    uint8_t SpectatorChannels = OrientationChannel_All;
+};
+
+
 struct Movement {
     glm::vec3 MoveIntent {0.0f};
 
