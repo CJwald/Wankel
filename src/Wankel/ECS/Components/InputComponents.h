@@ -28,10 +28,10 @@ struct PlayerController {
     // let either reach 0 (floored wherever read/written - deserialize, the debug UI, and
     // point-of-use) since that would silently make the controller stick produce zero look input on
     // that axis, indistinguishable from "controller stopped working."
-    float ControllerSensitivityX = 0.8f;   // horizontal/yaw
-    float ControllerSensitivityY = 0.8f;   // vertical/pitch
+    float ControllerSensitivityX = 0.8f;    // horizontal/yaw
+    float ControllerSensitivityY = 0.8f;    // vertical/pitch
     EaseType LookCurve = EaseType::Dynamic; // Response Curve
-    float LookCurveExponent = 1.5f;        // only meaningful for EaseIn (Standard) / EaseOut (Reverse S-Curve)
+    float LookCurveExponent = 1.5f;         // only meaningful for EaseIn (Standard) / EaseOut (Reverse S-Curve)
 
     // Controller-only aim acceleration. 0 = off (no separate enable flag - this is the single source
     // of truth for on/off, deliberately) - on by default at 0.2s. When on, PlayerInputSystem ramps a

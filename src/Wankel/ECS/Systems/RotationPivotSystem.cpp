@@ -26,9 +26,15 @@ void RotationPivotSystem::Update(Scene& scene) {
 
         uint8_t channels = OrientationChannel_None;
         switch (controller.Mode) {
-            case PlayerController::LookMode::FPS: channels = pivot.FPSChannels; break;
-            case PlayerController::LookMode::Flight: channels = pivot.FlightChannels; break;
-            case PlayerController::LookMode::Spectator: channels = pivot.SpectatorChannels; break;
+            case PlayerController::LookMode::FPS:
+                channels = pivot.FPSChannels;
+                break;
+            case PlayerController::LookMode::Flight:
+                channels = pivot.FlightChannels;
+                break;
+            case PlayerController::LookMode::Spectator:
+                channels = pivot.SpectatorChannels;
+                break;
         }
 
         if (channels == OrientationChannel_None) {
