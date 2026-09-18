@@ -151,6 +151,12 @@ public:
     static void SubmitScreenQuad(const glm::vec2& min, const glm::vec2& max, const glm::vec3& color, float alpha,
                                  uint32_t screenWidth, uint32_t screenHeight);
 
+    // Screen-space filled triangle (pixels, Y-down, origin top-left) - same conventions/call timing/GPU
+    // objects as SubmitScreenQuad (a 3-vertex subset of the same buffer), for icons SubmitScreenQuad's
+    // axis-aligned rect can't express (e.g. a directional player marker).
+    static void SubmitScreenTriangle(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2,
+                                     const glm::vec3& color, float alpha, uint32_t screenWidth, uint32_t screenHeight);
+
     // Transparent Mesh Pass Eventually?
     // static void SubmitTransparent()...
 

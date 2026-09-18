@@ -634,6 +634,40 @@ void Renderer::SubmitScreenQuad(const glm::vec2& min, const glm::vec2& max, cons
 }
 
 
+void Renderer::SubmitScreenTriangle(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2,
+                                    const glm::vec3& color, float alpha, uint32_t screenWidth,
+                                    uint32_t screenHeight) {
+    // Same 0x0-framebuffer guard as SubmitScreenQuad - see its own comment.
+    if (screenWidth == 0 || screenHeight == 0)
+        return;
+
+    glm::vec3 vertices[3] = {{p0.x, p0.y, 0.0f}, {p1.x, p1.y, 0.0f}, {p2.x, p2.y, 0.0f}};
+
+    glm::mat4 projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f);
+
+    // Reuses SubmitScreenQuad's GPU objects (ScreenQuadVAO/VBO/Shader) - the VBO is already sized for
+    // 6 vertices, so 3 fit with no reallocation, and the shader takes color/alpha as uniforms rather
+    // than per-vertex attributes, so nothing about it is quad-specific.
+    s_Data.ScreenQuadShader->Bind();
+    s_Data.ScreenQuadShader->SetMat4("view", glm::mat4(1.0f));
+    s_Data.ScreenQuadShader->SetMat4("projection", projection);
+    s_Data.ScreenQuadShader->SetVec3("u_Color", color);
+    s_Data.ScreenQuadShader->SetFloat("u_Alpha", alpha);
+
+    VertexArray::BindID(s_Data.ScreenQuadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, s_Data.ScreenQuadVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+    // Screen-space overlay, same reasoning as SubmitScreenQuad's own comment: the ortho Y-flip makes
+    // this triangle's winding come out clockwise, which would otherwise be back-face culled.
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+}
+
+
 void Renderer::Draw(const Mesh& mesh) {
     mesh.Bind();
     glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);
