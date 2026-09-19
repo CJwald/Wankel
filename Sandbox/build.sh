@@ -23,7 +23,14 @@ SANITIZE_ARGS=()
 [[ "$SANITIZE" == *"address"*   ]] && SANITIZE_ARGS+=("-DWANKEL_ENABLE_ASAN=ON")
 [[ "$SANITIZE" == *"undefined"* ]] && SANITIZE_ARGS+=("-DWANKEL_ENABLE_UBSAN=ON")
 
+# ---- Use Ninja for a fresh configure if available (leave existing build dirs
+# on whatever generator they were already configured with) ----
+GENERATOR_ARGS=()
+if [ ! -f "$BUILD_DIR/CMakeCache.txt" ] && command -v ninja >/dev/null 2>&1; then
+    GENERATOR_ARGS+=(-G Ninja)
+fi
+
 mkdir -p "$BUILD_DIR" && cd "$BUILD_DIR"
-cmake "$SCRIPT_DIR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE" "${SANITIZE_ARGS[@]}"
+cmake "$SCRIPT_DIR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE" "${GENERATOR_ARGS[@]}" "${SANITIZE_ARGS[@]}"
 cmake --build . -j"$JOBS"
 echo "Done. Run: ./bin/Sandbox"

@@ -93,6 +93,7 @@ endif()
 
 # Wankel library
 add_library(Wankel STATIC ${WANKEL_SOURCES})
+target_precompile_headers(Wankel PRIVATE src/wkpch.h)
 
 # Copy Wankel internal shaders
 add_custom_command(TARGET Wankel POST_BUILD
