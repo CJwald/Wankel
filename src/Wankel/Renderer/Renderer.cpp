@@ -41,6 +41,7 @@ struct RendererData {
 
     FogSettings Fog;
     LightSettings Light;
+    float VoxelColorFlatness = 0.0f; // see Renderer::SetVoxelColorFlatness
     std::array<PointLightGPU, kMaxPointLights> PointLights;
     int PointLightCount = 0;
 
@@ -327,6 +328,8 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
         shader->SetInt("u_FogNoiseEnabled", s_Data.Fog.NoiseEnabled ? 1 : 0);
         shader->SetVec3("u_FogWindDir", s_Data.Fog.WindDir);
         shader->SetFloat("u_FogWindSpeed", s_Data.Fog.WindSpeed);
+
+        shader->SetFloat("u_VoxelColorFlatness", s_Data.VoxelColorFlatness);
 
         s_Data.LastSubmitShader = shader;
         s_Data.LastMaterialValid = false; // this program hasn't seen a material upload yet this frame
@@ -692,6 +695,10 @@ void Renderer::SetFog(const FogSettings& fog) {
 
 void Renderer::SetLight(const LightSettings& light) {
     s_Data.Light = light;
+}
+
+void Renderer::SetVoxelColorFlatness(float flatness) {
+    s_Data.VoxelColorFlatness = flatness;
 }
 
 void Renderer::SetPointLights(const std::vector<PointLightGPU>& lights) {

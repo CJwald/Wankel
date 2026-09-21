@@ -167,6 +167,16 @@ public:
     static void SetLight(const LightSettings& light);
     static void SetPointLights(const std::vector<PointLightGPU>& lights);
 
+    // [0,1], default 0 (unchanged behavior): how much of a vertex-colored (u_UseVertexColor) mesh's
+    // fragment color comes from a flat, uninterpolated-per-triangle sample of the baked vertex color
+    // instead of the normal smoothly-interpolated one. Voxel terrain bakes one color per voxel
+    // material (Stone/Dirt/Grass/...), but GPU color interpolation blends between two different
+    // materials' colors across any triangle whose vertices don't all share one - most visible on
+    // Marching Cubes terrain, where a triangle can straddle e.g. a Grass cell and a neighboring Dirt
+    // cell. Raising this toward 1 trades that smooth-but-misleading blend for a crisper, more
+    // Blocky-like material edge. Only affects vertex-colored draws - see cube.frag.
+    static void SetVoxelColorFlatness(float flatness);
+
     static bool DebugEnabled; // Global toggle
 };
 
