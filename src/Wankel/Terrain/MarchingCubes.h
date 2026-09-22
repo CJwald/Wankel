@@ -9,6 +9,7 @@ namespace Wankel {
 struct MCVertex {
     glm::vec3 Position;
     glm::vec3 Normal;
+    glm::ivec3 SolidCell {0}; // grid index of this vertex's edge endpoint on the solid side
 };
 
 struct MCMeshData {

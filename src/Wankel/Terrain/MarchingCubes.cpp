@@ -381,8 +381,12 @@ uint32_t GetOrCreateEdgeVertex(const VoxelDensityField& field, const std::vector
                         ? glm::normalize(mixedNormal)
                         : (t < 0.5f ? normals[field.Index(bx, by, bz)] : normals[field.Index(ox, oy, oz)]);
 
+    float d0 = field.At(bx, by, bz), d1 = field.At(ox, oy, oz);
+    bool firstSolid = d0 > isoLevel || (d1 <= isoLevel && d0 >= d1);
+    glm::ivec3 solidCell = firstSolid ? glm::ivec3(bx, by, bz) : glm::ivec3(ox, oy, oz);
+
     uint32_t idx = (uint32_t)mesh.Vertices.size();
-    mesh.Vertices.push_back({pos, nrm});
+    mesh.Vertices.push_back({pos, nrm, solidCell});
     slot = idx;
     return idx;
 }
