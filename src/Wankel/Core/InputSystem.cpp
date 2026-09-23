@@ -10,6 +10,12 @@ static std::vector<SDL_Gamepad*> s_Gamepads;
 static bool s_Initialized = false;
 
 bool InputSystem::Init() {
+    // A PS4/PS5 controller's center touchpad is exposed to SDL as a touch device; SDL's default
+    // behavior synthesizes mouse motion/click events from touch input, so touching/clicking the pad
+    // was silently dragging and clicking the system cursor. Disabling that keeps it a plain button
+    // (GamepadButton::Touchpad) with no mouse side effects. Must be set before SDL_Init.
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+
     // SDL3's SDL_Init returns bool (true = success), not SDL2's old "0 = success" int convention -
     // this was inverted, so every successful init was logged and treated as a failure, permanently
     // disabling gamepad support on every run regardless of whether a controller was even connected.
