@@ -157,6 +157,15 @@ public:
     static void SubmitScreenTriangle(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2,
                                      const glm::vec3& color, float alpha, uint32_t screenWidth, uint32_t screenHeight);
 
+    // Clips every subsequent Submit* call (screen-space or 3D) to `min`/`max` (pixels, Y-down,
+    // origin top-left - same convention as the screen-space Submit* calls above) until
+    // ClearScissorRect() - a thin GL_SCISSOR_TEST wrapper, for UI that needs to cut off content at a
+    // panel's own edge (e.g. a partially-visible scrolled row) that plain draw calls can't express on
+    // their own. Caller must pair every SetScissorRect with a ClearScissorRect, same discipline as
+    // BeginScene/EndScene.
+    static void SetScissorRect(const glm::vec2& min, const glm::vec2& max, uint32_t screenWidth, uint32_t screenHeight);
+    static void ClearScissorRect();
+
     // Transparent Mesh Pass Eventually?
     // static void SubmitTransparent()...
 

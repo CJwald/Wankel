@@ -638,8 +638,7 @@ void Renderer::SubmitScreenQuad(const glm::vec2& min, const glm::vec2& max, cons
 
 
 void Renderer::SubmitScreenTriangle(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2,
-                                    const glm::vec3& color, float alpha, uint32_t screenWidth,
-                                    uint32_t screenHeight) {
+                                    const glm::vec3& color, float alpha, uint32_t screenWidth, uint32_t screenHeight) {
     // Same 0x0-framebuffer guard as SubmitScreenQuad - see its own comment.
     if (screenWidth == 0 || screenHeight == 0)
         return;
@@ -670,6 +669,28 @@ void Renderer::SubmitScreenTriangle(const glm::vec2& p0, const glm::vec2& p1, co
     glEnable(GL_DEPTH_TEST);
 }
 
+
+void Renderer::SetScissorRect(const glm::vec2& min, const glm::vec2& max, uint32_t screenWidth, uint32_t screenHeight) {
+    if (screenWidth == 0 || screenHeight == 0)
+        return;
+
+    glEnable(GL_SCISSOR_TEST);
+
+    // glScissor's origin is bottom-left; every screen-space Submit* here is authored top-left/Y-down
+    // (see SubmitScreenQuad's own comment) - flip before handing off, clamped to the framebuffer so an
+    // out-of-range rect (e.g. a panel partly above the screen) can't pass GL a negative width/height.
+    float x = glm::clamp(min.x, 0.0f, (float)screenWidth);
+    float yTop = glm::clamp(min.y, 0.0f, (float)screenHeight);
+    float yBottom = glm::clamp(max.y, 0.0f, (float)screenHeight);
+    float w = glm::clamp(max.x, 0.0f, (float)screenWidth) - x;
+    float h = yBottom - yTop;
+
+    glScissor((GLint)x, (GLint)((float)screenHeight - yBottom), (GLsizei)w, (GLsizei)h);
+}
+
+void Renderer::ClearScissorRect() {
+    glDisable(GL_SCISSOR_TEST);
+}
 
 void Renderer::Draw(const Mesh& mesh) {
     mesh.Bind();
