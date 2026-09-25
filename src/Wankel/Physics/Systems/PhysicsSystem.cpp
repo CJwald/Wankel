@@ -285,8 +285,24 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                         glm::abs(glm::dot(glm::normalize(manifold.Normal), glm::vec3(0.0f, 1.0f, 0.0f)));
                     float slopeAngleDeg = glm::degrees(glm::acos(glm::clamp(cosAngleFromUp, 0.0f, 1.0f)));
 
+                    // The shallow-slope "full cancel" branch below exists to stop an otherwise-passive
+                    // body (nothing telling it where to go) from creeping/sliding down a shallow ramp
+                    // under gravity alone. It must NOT apply while either side is actively seeking a
+                    // nonzero Movement target this frame (a player/mob genuinely walking) - fully
+                    // zeroing tangential velocity every single physics step fights Movement's own
+                    // target-seeking (INTEGRATE, above) so hard the entity can never accelerate past
+                    // roughly its own per-frame Acceleration allowance, capping real walking speed far
+                    // below MaxSpeed instead of just preventing unintended sliding. A stationary entity
+                    // (no Movement, or Movement with zero MoveIntent - e.g. standing still on a ramp)
+                    // still gets full no-slide grip as before.
+                    auto hasActiveMoveIntent = [&](entt::entity e) {
+                        auto* m = registry.try_get<Movement>(e);
+                        return m && glm::length(m->MoveIntent) > 0.001f;
+                    };
+                    bool activelyMoving = hasActiveMoveIntent(a) || hasActiveMoveIntent(b);
+
                     float frictionImpulseMag;
-                    if (slopeAngleDeg <= Gravity.SlopeSlideCutoffDegrees) {
+                    if (slopeAngleDeg <= Gravity.SlopeSlideCutoffDegrees && !activelyMoving) {
                         frictionImpulseMag =
                             -tangentialVelAlongTangent / invMassSum; // shallow enough - no slide at all
                     } else {
