@@ -268,7 +268,12 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 // a body slide (gravity's along-slope component can exceed available friction) while
                 // a shallow slope's smaller tangential velocity gets fully arrested. manifold.Friction
                 // is the geometric mean of both colliders' own Friction (see
-                // CollisionDispatcher::ResolveCollision).
+                // CollisionDispatcher::ResolveCollision). Below/at Gravity.SlopeSlideCutoffDegrees
+                // (see its own comment) this clamp is bypassed entirely instead - a hard "never slides"
+                // floor independent of Friction, for a surface that's shallow enough to just be
+                // ground. abs() makes the angle check correct regardless of which way manifold.Normal
+                // happens to point for this pair (CollisionDispatcher's lo/hi-type flip convention) -
+                // a flat floor is 0 degrees, a vertical wall 90, either normal orientation.
                 glm::vec3 tangentVelocity = relativeVelocity - velAlongNormal * manifold.Normal;
                 float tangentSpeed = glm::length(tangentVelocity);
 
@@ -276,9 +281,19 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                     glm::vec3 tangent = tangentVelocity / tangentSpeed;
                     float tangentialVelAlongTangent = glm::dot(relativeVelocity, tangent);
 
-                    float maxFriction = manifold.Friction * normalImpulseMag;
-                    float frictionImpulseMag =
-                        glm::clamp(-tangentialVelAlongTangent / invMassSum, -maxFriction, maxFriction);
+                    float cosAngleFromUp =
+                        glm::abs(glm::dot(glm::normalize(manifold.Normal), glm::vec3(0.0f, 1.0f, 0.0f)));
+                    float slopeAngleDeg = glm::degrees(glm::acos(glm::clamp(cosAngleFromUp, 0.0f, 1.0f)));
+
+                    float frictionImpulseMag;
+                    if (slopeAngleDeg <= Gravity.SlopeSlideCutoffDegrees) {
+                        frictionImpulseMag =
+                            -tangentialVelAlongTangent / invMassSum; // shallow enough - no slide at all
+                    } else {
+                        float maxFriction = manifold.Friction * normalImpulseMag;
+                        frictionImpulseMag =
+                            glm::clamp(-tangentialVelAlongTangent / invMassSum, -maxFriction, maxFriction);
+                    }
                     glm::vec3 frictionImpulse = tangent * frictionImpulseMag;
 
                     if (!rba.IsStatic)

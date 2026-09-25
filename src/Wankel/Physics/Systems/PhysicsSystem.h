@@ -23,6 +23,13 @@ struct GravitySettings {
     // complementary to MechtrixLayer's own dt clamp, which bounds the *step size* but not velocity
     // itself.
     float TerminalVelocity = 25.0f;
+
+    // Hard angle cutoff (degrees from horizontal) below/at which a contact's tangential (in-surface)
+    // velocity is fully cancelled instead of Coulomb-clamped by the surface's own Friction - see
+    // PhysicsSystem::Update's friction block. A surface at or under this angle never lets anything
+    // slide down it, regardless of how low that surface's Friction is; steeper surfaces are unchanged
+    // (governed by Friction as before).
+    float SlopeSlideCutoffDegrees = 50.0f;
 };
 
 class PhysicsSystem {
