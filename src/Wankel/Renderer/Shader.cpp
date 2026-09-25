@@ -57,6 +57,7 @@ Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcF
         glGetProgramInfoLog(program, 512, nullptr, info);
         WK_CORE_ERROR("Shader link error ({0}, {1}):\n{2}", vertexSrcFile, fragmentSrcFile, info);
     }
+    m_LinkSucceeded = linkResult != 0;
 
     glValidateProgram(program);
 

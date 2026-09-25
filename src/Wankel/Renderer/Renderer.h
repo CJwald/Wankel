@@ -4,6 +4,7 @@
 #include "Wankel/Core/Base.h"
 
 #include <glm/glm.hpp>
+#include <cstdint>
 #include <string>
 
 namespace Wankel {
@@ -14,6 +15,13 @@ class Mesh;
 class Font;
 class OcclusionQuery;
 class ChunkGeometryPool;
+class SplitChunkGeometryPool;
+
+// Off = today's smooth-interpolated vertex color (see u_VoxelSplitSharpness), zero extra cost.
+// CpuSplit = de-indexed split-capable chunk mesh (SplitChunkGeometryPool) + the WA-recovery shader
+// path - portable, costs extra vertex data. GpuSplit = hardware fragment-shader-barycentric
+// extension - zero extra mesh data, but only usable when IsBarycentricExtensionSupported().
+enum class VoxelSplitMode : uint8_t { Off, CpuSplit, GpuSplit };
 
 struct FogSettings {
     glm::vec3 Color = {0.12f, 0.1f, 0.2f};
@@ -99,6 +107,10 @@ public:
     // chunk.vert (or an equivalent reading the same SSBO layout), not cube.vert.
     static void SubmitIndirect(Shader* shader, const Material& material, const ChunkGeometryPool& pool);
 
+    // Same as above, for the CPU voxel color split-sharpness path's SplitChunkGeometryPool - see
+    // that class and SetVoxelSplitMode's own comment.
+    static void SubmitIndirect(Shader* shader, const Material& material, const SplitChunkGeometryPool& pool);
+
     // Occlusion culling - see OcclusionQuery.h. Typical use: BeginOcclusionQuery/EndOcclusionQuery
     // around a cheap proxy draw (DrawOcclusionProxyBox), then in a *later frame* (never the same one -
     // see OcclusionQuery::GetLastIssuedFrame()) BeginConditionalRender/EndConditionalRender around the
@@ -176,15 +188,25 @@ public:
     static void SetLight(const LightSettings& light);
     static void SetPointLights(const std::vector<PointLightGPU>& lights);
 
-    // [0,1], default 0 (unchanged behavior): how much of a vertex-colored (u_UseVertexColor) mesh's
-    // fragment color comes from a flat, uninterpolated-per-triangle sample of the baked vertex color
-    // instead of the normal smoothly-interpolated one. Voxel terrain bakes one color per voxel
-    // material (Stone/Dirt/Grass/...), but GPU color interpolation blends between two different
-    // materials' colors across any triangle whose vertices don't all share one - most visible on
-    // Marching Cubes terrain, where a triangle can straddle e.g. a Grass cell and a neighboring Dirt
-    // cell. Raising this toward 1 trades that smooth-but-misleading blend for a crisper, more
-    // Blocky-like material edge. Only affects vertex-colored draws - see cube.frag.
-    static void SetVoxelColorFlatness(float flatness);
+    // [0,1], default 0 (unchanged behavior/zero cost): how sharply a marching-cubes terrain
+    // triangle's fragment color splits between its two dominant vertex colors instead of smoothly
+    // interpolating across the whole triangle. 0 = today's plain smooth blend; 1 = a true hard edge
+    // at the 50%-barycentric-weight boundary; in between = the same hard edge with a feathered
+    // transition band that narrows as this rises. Only takes effect on draws using a split-capable
+    // shader (cube_split.frag/cube_gpu_split.frag) - see SetVoxelSplitMode.
+    static void SetVoxelSplitSharpness(float sharpness);
+
+    // Which split implementation is active - see VoxelSplitMode's own comment. Purely informational
+    // bookkeeping the caller (MechtrixLayer et al) uses to decide which shader/geometry pool pairing
+    // to draw with this frame; Renderer itself doesn't branch on it.
+    static void SetVoxelSplitMode(VoxelSplitMode mode);
+    static VoxelSplitMode GetVoxelSplitMode();
+
+    // True if a fragment-shader-barycentric extension (GL_ARB/NV/EXT_fragment_shader_barycentric)
+    // was found during Init()'s one-time extension scan - gates whether GpuSplit mode/its shader may
+    // ever be selected/compiled at all (see cube_gpu_split.frag - compiling it without real support
+    // fails outright).
+    static bool IsBarycentricExtensionSupported();
 
     static bool DebugEnabled; // Global toggle
 };

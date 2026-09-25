@@ -9,12 +9,15 @@
 #include "Texture.h"
 #include "OcclusionQuery.h"
 #include "ChunkGeometryPool.h"
+#include "SplitChunkGeometryPool.h"
 
 #include "Wankel/Core/Time.h"
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <cstring>
 
 namespace Wankel {
 
@@ -41,7 +44,9 @@ struct RendererData {
 
     FogSettings Fog;
     LightSettings Light;
-    float VoxelColorFlatness = 0.0f; // see Renderer::SetVoxelColorFlatness
+    float VoxelSplitSharpness = 0.0f; // see Renderer::SetVoxelSplitSharpness
+    VoxelSplitMode SplitMode = VoxelSplitMode::Off; // see Renderer::SetVoxelSplitMode
+    bool BarycentricSupported = false; // see Renderer::IsBarycentricExtensionSupported, set in Init()
     std::array<PointLightGPU, kMaxPointLights> PointLights;
     int PointLightCount = 0;
 
@@ -175,6 +180,31 @@ void Renderer::Init() {
     glGenBuffers(1, &s_Data.InstanceVBO);
     glBindBuffer(GL_ARRAY_BUFFER, s_Data.InstanceVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * kMaxInstancesPerDraw, nullptr, GL_DYNAMIC_DRAW);
+
+    // One-time fragment-shader-barycentric extension scan (glGetStringi is core GL >=3.0, already
+    // loaded regardless of glad's zero-extensions generation config - see IsBarycentricExtensionSupported's
+    // own comment). ARB is checked first since it's the realistic candidate on this project's Mesa/
+    // Intel iris dev hardware; NV/EXT are the original/GLES-oriented variants, checked as a fallback
+    // in case either happens to be present instead.
+    static constexpr const char* kBarycentricExtensions[] = {
+        "GL_ARB_fragment_shader_barycentric",
+        "GL_NV_fragment_shader_barycentric",
+        "GL_EXT_fragment_shader_barycentric",
+    };
+    GLint extensionCount = 0;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &extensionCount);
+    for (GLint i = 0; i < extensionCount && !s_Data.BarycentricSupported; i++) {
+        const char* ext = (const char*)glGetStringi(GL_EXTENSIONS, (GLuint)i);
+        if (!ext)
+            continue;
+        for (const char* candidate : kBarycentricExtensions) {
+            if (std::strcmp(ext, candidate) == 0) {
+                s_Data.BarycentricSupported = true;
+                WK_CORE_INFO("Renderer::Init - found {0}, GPU voxel color split mode available", candidate);
+                break;
+            }
+        }
+    }
 }
 
 
@@ -329,7 +359,10 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
         shader->SetVec3("u_FogWindDir", s_Data.Fog.WindDir);
         shader->SetFloat("u_FogWindSpeed", s_Data.Fog.WindSpeed);
 
-        shader->SetFloat("u_VoxelColorFlatness", s_Data.VoxelColorFlatness);
+        // Harmless no-op uniform on a shader that doesn't declare it (e.g. cube.frag) - see
+        // SetVoxelSplitSharpness's own comment; only split-capable shaders (cube_split.frag/
+        // cube_gpu_split.frag) actually read this.
+        shader->SetFloat("u_VoxelSplitSharpness", s_Data.VoxelSplitSharpness);
 
         s_Data.LastSubmitShader = shader;
         s_Data.LastMaterialValid = false; // this program hasn't seen a material upload yet this frame
@@ -418,6 +451,20 @@ void Renderer::SubmitIndirect(Shader* shader, const Material& material, const Ch
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, pool.GetTransformSSBO()); // binding=0, matches chunk.vert
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, pool.GetIndirectBuffer());
     pool.Bind(); // VAO wired to the pool's combined vertex/index/instance buffers
+
+    glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, (GLsizei)commandCount, 0);
+}
+
+void Renderer::SubmitIndirect(Shader* shader, const Material& material, const SplitChunkGeometryPool& pool) {
+    uint32_t commandCount = pool.GetLastUploadedCommandCount();
+    if (commandCount == 0)
+        return;
+
+    UploadSharedDrawState(shader, material, /*useVertexColor=*/true);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, pool.GetTransformSSBO()); // binding=0, matches chunk_split.vert
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, pool.GetIndirectBuffer());
+    pool.Bind();
 
     glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, (GLsizei)commandCount, 0);
 }
@@ -718,8 +765,20 @@ void Renderer::SetLight(const LightSettings& light) {
     s_Data.Light = light;
 }
 
-void Renderer::SetVoxelColorFlatness(float flatness) {
-    s_Data.VoxelColorFlatness = flatness;
+void Renderer::SetVoxelSplitSharpness(float sharpness) {
+    s_Data.VoxelSplitSharpness = sharpness;
+}
+
+void Renderer::SetVoxelSplitMode(VoxelSplitMode mode) {
+    s_Data.SplitMode = mode;
+}
+
+VoxelSplitMode Renderer::GetVoxelSplitMode() {
+    return s_Data.SplitMode;
+}
+
+bool Renderer::IsBarycentricExtensionSupported() {
+    return s_Data.BarycentricSupported;
 }
 
 void Renderer::SetPointLights(const std::vector<PointLightGPU>& lights) {

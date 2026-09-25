@@ -21,6 +21,17 @@ struct Vertex {
     glm::vec3 Normal {0.0f, 1.0f, 0.0f};
 };
 
+// Vertex plus ColorOther, for the CPU voxel color split-sharpness path - see SplitQuantizedVertex
+// in QuantizedVertex.h for the full rationale. Only marching-cubes terrain meshers ever produce
+// these; every other Vertex-producing code path (PLY/glTF loaders, procedural geometry) is
+// unaffected.
+struct SplitVertex {
+    glm::vec3 Position {0.0f};
+    glm::vec4 Color {1.0f};
+    glm::vec3 Normal {0.0f, 1.0f, 0.0f};
+    glm::vec4 ColorOther {1.0f};
+};
+
 class Mesh {
 public:
     Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);

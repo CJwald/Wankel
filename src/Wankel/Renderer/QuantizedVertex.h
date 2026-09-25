@@ -60,4 +60,41 @@ inline std::vector<QuantizedVertex> BuildQuantizedVertices(const std::vector<Ver
     return packed;
 }
 
+// QuantizedVertex plus one extra baked-per-corner attribute (ColorOther) for the CPU voxel color
+// split-sharpness path (see chunk_split.vert/cube_split.frag) - a de-indexed triangle's 3 corners
+// all carry the same ColorOther value (the "flat trick": since GLSL flat reads an arbitrary
+// provoking vertex, baking an identical value at every corner makes that choice not matter),
+// letting the fragment shader recover the real barycentric weight between the two dominant colors
+// from existing v_Color/v_ColorFlat + this one new value, with no true per-fragment barycentric
+// coordinates needed. Never used unless CPU split mode is actually enabled - QuantizedVertex and
+// BuildQuantizedVertices above are untouched, so that path's cost is zero when this isn't in use.
+#pragma pack(push, 1)
+struct SplitQuantizedVertex {
+    uint16_t Position[3];  // offset 0, 6 bytes
+    uint16_t Padding = 0;  // offset 6, 2 bytes - pushes Color to offset 8 (4-byte aligned)
+    glm::vec4 Color;       // offset 8, 16 bytes
+    uint32_t PackedNormal; // offset 24, 4 bytes
+    glm::vec4 ColorOther;  // offset 28, 16 bytes
+};
+#pragma pack(pop)
+static_assert(sizeof(SplitQuantizedVertex) == 44,
+             "SplitQuantizedVertex must be tightly packed - GPU stride depends on this");
+
+inline std::vector<SplitQuantizedVertex> BuildSplitQuantizedVertices(const std::vector<SplitVertex>& vertices,
+                                                                      const glm::vec3& min, const glm::vec3& extent) {
+    std::vector<SplitQuantizedVertex> packed;
+    packed.reserve(vertices.size());
+    for (const SplitVertex& v : vertices) {
+        SplitQuantizedVertex qv;
+        qv.Position[0] = QuantizeComponent(v.Position.x, min.x, extent.x);
+        qv.Position[1] = QuantizeComponent(v.Position.y, min.y, extent.y);
+        qv.Position[2] = QuantizeComponent(v.Position.z, min.z, extent.z);
+        qv.Color = v.Color;
+        qv.PackedNormal = PackNormal(v.Normal);
+        qv.ColorOther = v.ColorOther;
+        packed.push_back(qv);
+    }
+    return packed;
+}
+
 } // namespace Wankel
