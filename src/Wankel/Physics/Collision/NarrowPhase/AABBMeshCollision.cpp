@@ -2,6 +2,7 @@
 #include "AABBMeshCollision.h"
 
 #include <limits>
+#include <vector>
 #include <algorithm>
 #include <cmath>
 
@@ -96,8 +97,11 @@ CollisionManifold AABBvsMesh(const AABB& aabb, const glm::vec3& meshOrigin, cons
     float bestPenetration = 0.0f;
     glm::vec3 bestNormal {0.0f, 1.0f, 0.0f};
 
-    size_t triCount = mesh.GetTriangleCount();
-    for (size_t i = 0; i < triCount; i++) {
+    // Only triangles whose bounds overlap the box can intersect it - skip the rest of the mesh.
+    thread_local std::vector<uint32_t> candidates;
+    candidates.clear();
+    mesh.QueryTriangles(AABB {aabb.Min - meshOrigin, aabb.Max - meshOrigin}, candidates);
+    for (uint32_t i : candidates) {
         glm::vec3 a, b, c;
         mesh.GetTriangle(i, a, b, c);
         a += meshOrigin;

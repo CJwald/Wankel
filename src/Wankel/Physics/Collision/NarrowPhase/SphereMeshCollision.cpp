@@ -3,6 +3,7 @@
 #include "Triangle.h"
 
 #include <limits>
+#include <vector>
 
 namespace Wankel {
 
@@ -21,8 +22,11 @@ CollisionManifold SpherevsMesh(const Sphere& sphere, const glm::vec3& meshOrigin
     float bestDist2 = std::numeric_limits<float>::max();
     glm::vec3 bestClosestPoint {0.0f};
 
-    size_t triCount = mesh.GetTriangleCount();
-    for (size_t i = 0; i < triCount; i++) {
+    // Only triangles near the sphere can be within Radius of it - skip the rest of the mesh.
+    thread_local std::vector<uint32_t> candidates;
+    candidates.clear();
+    mesh.QueryTriangles(AABB {sphereBounds.Min - meshOrigin, sphereBounds.Max - meshOrigin}, candidates);
+    for (uint32_t i : candidates) {
         glm::vec3 a, b, c;
         mesh.GetTriangle(i, a, b, c);
         a += meshOrigin;

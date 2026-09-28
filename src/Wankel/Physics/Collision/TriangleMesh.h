@@ -13,10 +13,9 @@ namespace Wankel {
 // which eagerly creates a VAO/VBO/IBO). Flat positions+indices input
 // matches what a future MarchingCubes::Generate (Terrain/MarchingCubes.h,
 // not yet implemented) would produce, without coupling to that type.
-// No BVH - brute-force per-triangle iteration is the narrow-phase's job,
-// justified by expected voxel-chunk-sized triangle counts (low thousands
-// at most); LocalBounds() gives narrow-phase functions an O(1) whole-mesh
-// reject before any per-triangle work.
+// A uniform bin grid over LocalBounds (built once, in the ctor) lets
+// narrow-phase/raycast code visit only the triangles near a query box
+// instead of the whole mesh - LocalBounds() is still the O(1) whole-mesh reject.
 class TriangleMesh {
 public:
     TriangleMesh(std::vector<glm::vec3> positions, std::vector<uint32_t> indices);
@@ -26,10 +25,22 @@ public:
 
     const AABB& LocalBounds() const { return m_LocalBounds; }
 
+    // Appends (to a caller-cleared `out`) every triangle index whose bounds overlap localBox, given in
+    // this mesh's local space - deduped, ascending. Superset of the triangles actually touching the box.
+    void QueryTriangles(const AABB& localBox, std::vector<uint32_t>& out) const;
+
 private:
+    void BuildGrid();
+    glm::ivec3 CellOf(const glm::vec3& localPoint) const;
+
     std::vector<glm::vec3> m_Positions;
     std::vector<uint32_t> m_Indices;
     AABB m_LocalBounds;
+
+    glm::ivec3 m_GridDims {0};
+    glm::vec3 m_InvCellSize {0.0f};
+    std::vector<uint32_t> m_CellStart;     // CSR offsets into m_CellTriangles, one per cell plus a terminator
+    std::vector<uint32_t> m_CellTriangles; // triangle indices, grouped by cell
 };
 
 } // namespace Wankel

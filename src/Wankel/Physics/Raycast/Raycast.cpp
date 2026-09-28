@@ -363,8 +363,17 @@ bool RaycastMesh(Scene& scene, const Ray& ray, RaycastHit& outHit, float maxDist
         if (!IntersectRayAABB(ray, worldBounds, boundsT, boundsNormal) || boundsT > closest)
             continue;
 
-        size_t triCount = collider.Mesh->GetTriangleCount();
-        for (size_t i = 0; i < triCount; i++) {
+        // Only triangles near the ray's segment through this mesh can be hit - the segment can't run past
+        // the mesh's far side, at most its bounds diagonal beyond where the ray enters.
+        const AABB& localBounds = collider.Mesh->LocalBounds();
+        float segmentEnd = glm::min(closest, glm::max(boundsT, 0.0f) + glm::length(localBounds.Max - localBounds.Min));
+        glm::vec3 segA = ray.Origin - origin;
+        glm::vec3 segB = segA + dir * segmentEnd;
+        thread_local std::vector<uint32_t> candidates;
+        candidates.clear();
+        collider.Mesh->QueryTriangles(AABB {glm::min(segA, segB), glm::max(segA, segB)}, candidates);
+
+        for (uint32_t i : candidates) {
             glm::vec3 p0, p1, p2;
             collider.Mesh->GetTriangle(i, p0, p1, p2);
             p0 += origin;
