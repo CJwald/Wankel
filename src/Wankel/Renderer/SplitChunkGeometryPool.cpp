@@ -32,6 +32,14 @@ SplitChunkGeometryPool::SplitChunkGeometryPool(size_t vertexCapacityBytes, size_
     glEnableVertexAttribArray(5);
     glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(SplitQuantizedVertex),
                           (void*)offsetof(SplitQuantizedVertex, ColorOther));
+    // Locations 6-9: terrain material weights and their baked "other" counterpart, 4 slots each.
+    for (GLuint i = 0; i < 4; i++) {
+        size_t base = i < 2 ? offsetof(SplitQuantizedVertex, MaterialWeights)
+                            : offsetof(SplitQuantizedVertex, MaterialWeightsOther);
+        glEnableVertexAttribArray(6 + i);
+        glVertexAttribPointer(6 + i, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(SplitQuantizedVertex),
+                              (void*)(base + (i % 2) * 4));
+    }
 
     // COMBINED PER-INSTANCE BUFFER (locations 3-4) - identical role/layout to ChunkGeometryPool's,
     // see that class for the full comment.

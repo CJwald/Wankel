@@ -31,6 +31,13 @@ ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCap
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, sizeof(QuantizedVertex),
                           (void*)offsetof(QuantizedVertex, PackedNormal));
+    // Locations 6-7: terrain material slot weights 0-3 / 4-7 (see TerrainMaterialWeights).
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
+                          (void*)offsetof(QuantizedVertex, MaterialWeights));
+    glEnableVertexAttribArray(7);
+    glVertexAttribPointer(7, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
+                          (void*)(offsetof(QuantizedVertex, MaterialWeights) + 4));
 
     // COMBINED PER-INSTANCE BUFFER (locations 3-4) - one (WorldOffset, ChunkIndex) pair per
     // surviving instance this frame, rewritten wholesale each frame via UploadFrameData - see

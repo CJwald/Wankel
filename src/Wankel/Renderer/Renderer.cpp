@@ -10,6 +10,7 @@
 #include "OcclusionQuery.h"
 #include "ChunkGeometryPool.h"
 #include "SplitChunkGeometryPool.h"
+#include "TerrainMaterial.h"
 
 #include "Wankel/Core/Time.h"
 
@@ -205,6 +206,8 @@ void Renderer::Init() {
             }
         }
     }
+
+    TerrainMaterials::Init();
 }
 
 
@@ -235,6 +238,8 @@ void Renderer::Shutdown() {
     glDeleteVertexArrays(1, &s_Data.OcclusionBoxVAO);
 
     glDeleteBuffers(1, &s_Data.InstanceVBO);
+
+    TerrainMaterials::Shutdown();
 }
 
 
@@ -363,6 +368,7 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
         // SetVoxelSplitSharpness's own comment; only split-capable shaders (cube_split.frag/
         // cube_gpu_split.frag) actually read this.
         shader->SetFloat("u_VoxelSplitSharpness", s_Data.VoxelSplitSharpness);
+        TerrainMaterials::UploadUniforms(shader);
 
         s_Data.LastSubmitShader = shader;
         s_Data.LastMaterialValid = false; // this program hasn't seen a material upload yet this frame
@@ -373,6 +379,8 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
     // shader's first use this frame. Gates whether the fragment shader multiplies Vertex::Color into
     // the surface color.
     shader->SetInt("u_UseVertexColor", useVertexColor ? 1 : 0);
+    if (useVertexColor)
+        TerrainMaterials::BindTextures();
 
     if (!s_Data.LastMaterialValid || !(material == s_Data.LastMaterial)) {
         shader->SetVec3("u_Albedo", material.Albedo);
