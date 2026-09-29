@@ -11,6 +11,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <filesystem>
+
 namespace Wankel {
 
 //
@@ -29,11 +31,15 @@ void ImGuiLayer::OnAttach() {
     ImGui::StyleColorsDark();
     ApplyImGuiTheme();
 
-    // Default font first (merge target), then the icon glyphs Icons.h defines, merged in from
-    // NotoEmoji (OFL-licensed monochrome emoji font - see fonts/OFL.txt) at a size matching the
-    // default font. Only this narrow range is loaded, not the font's full repertoire, to keep the
-    // atlas small - see docs/IMGUIRefactor.md Phase 8.
-    io.Fonts->AddFontDefault();
+    // JetBrains Mono (OFL, see fonts/JetBrainsMono-OFL.txt) first as the merge target, falling back to
+    // ImGui's built-in font if it's missing; then the icon glyphs Icons.h defines, merged in from
+    // NotoEmoji (OFL - see fonts/OFL.txt). Only that narrow range is loaded, to keep the atlas small.
+    constexpr float kUiFontSize = 14.0f;
+    if (!std::filesystem::exists("WankelFonts/JetBrainsMono-Regular.ttf") ||
+        !io.Fonts->AddFontFromFileTTF("WankelFonts/JetBrainsMono-Regular.ttf", kUiFontSize)) {
+        WK_CORE_WARNING("ImGuiLayer: WankelFonts/JetBrainsMono-Regular.ttf not found, using ImGui's default font");
+        io.Fonts->AddFontDefault();
+    }
 
     static const ImWchar kIconGlyphRanges[] = {
         0x23ED,  0x23ED,  // Step
@@ -45,9 +51,8 @@ void ImGuiLayer::OnAttach() {
     ImFontConfig iconFontConfig;
     iconFontConfig.MergeMode = true;
     iconFontConfig.PixelSnapH = true;
-    // 0.0f = implicit reference size, so icons scale with the default font instead of a fixed size -
-    // ImGui asserts if a MergeMode font requests an explicit size against an implicitly-sized target
-    // (AddFontDefault() above), see imgui_draw.cpp's AddFont() sizing compatibility table.
+    // 0.0f = inherit the merge target's size, so icons match it instead of a fixed size - ImGui asserts if a
+    // MergeMode font requests an explicit size against an implicitly-sized target (the AddFontDefault() fallback).
     io.Fonts->AddFontFromFileTTF("WankelFonts/NotoEmoji.ttf", 0.0f, &iconFontConfig, kIconGlyphRanges);
 
     Application& app = Application::Get();
