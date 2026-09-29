@@ -1,5 +1,5 @@
 #include "wkpch.h"
-#include "ChunkGeometryPool.h"
+#include "SplitChunkGeometryPool.h"
 
 #include "VertexArray.h"
 
@@ -7,42 +7,42 @@
 
 namespace Wankel {
 
-ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes, uint32_t maxChunks)
-    : m_MaxChunks(maxChunks), m_MaxIndirectCommands(maxChunks),
-      // Headroom over 1 instance/chunk for tile-repeat copies of the same chunk - matches the
-      // spirit of Renderer's own kMaxInstancesPerDraw, just sized for the whole frame's total
-      // instead of one chunk's own instance count.
-      m_MaxIndirectInstances(maxChunks * 8), m_VertexAllocator(vertexCapacityBytes),
-      m_IndexAllocator(indexCapacityBytes), m_SlotAllocator(maxChunks) {
+SplitChunkGeometryPool::SplitChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes,
+                                               uint32_t maxChunks)
+    : m_MaxChunks(maxChunks), m_MaxIndirectCommands(maxChunks), m_MaxIndirectInstances(maxChunks * 8),
+      m_VertexAllocator(vertexCapacityBytes), m_IndexAllocator(indexCapacityBytes), m_SlotAllocator(maxChunks) {
     glGenVertexArrays(1, &m_VAO);
     VertexArray::BindID(m_VAO);
 
-    // COMBINED VERTEX BUFFER - QuantizedVertex layout, must match Mesh's quantizing constructor
-    // exactly (locations 0-2) so a chunk's data means the same thing whether it lands here or in a
-    // standalone Mesh (pool-exhaustion fallback).
+    // COMBINED VERTEX BUFFER - SplitQuantizedVertex layout (locations 0-2 match ChunkGeometryPool's
+    // QuantizedVertex layout exactly, plus location 5 for the extra ColorOther attribute - see that
+    // struct's own comment).
     glGenBuffers(1, &m_VertexVBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VertexVBO);
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)vertexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(QuantizedVertex),
-                          (void*)offsetof(QuantizedVertex, Position));
+    glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(SplitQuantizedVertex),
+                          (void*)offsetof(SplitQuantizedVertex, Position));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(QuantizedVertex), (void*)offsetof(QuantizedVertex, Color));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(SplitQuantizedVertex),
+                          (void*)offsetof(SplitQuantizedVertex, Color));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, sizeof(QuantizedVertex),
-                          (void*)offsetof(QuantizedVertex, PackedNormal));
-    // Locations 6-7: terrain material slot weights 0-3 / 4-7 (see TerrainMaterialWeights).
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
-                          (void*)offsetof(QuantizedVertex, MaterialWeights));
-    glEnableVertexAttribArray(7);
-    glVertexAttribPointer(7, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
-                          (void*)(offsetof(QuantizedVertex, MaterialWeights) + 4));
+    glVertexAttribPointer(2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, sizeof(SplitQuantizedVertex),
+                          (void*)offsetof(SplitQuantizedVertex, PackedNormal));
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(SplitQuantizedVertex),
+                          (void*)offsetof(SplitQuantizedVertex, ColorOther));
+    // Locations 6-9: terrain material weights and their baked "other" counterpart, 4 slots each.
+    for (GLuint i = 0; i < 4; i++) {
+        size_t base = i < 2 ? offsetof(SplitQuantizedVertex, MaterialWeights)
+                            : offsetof(SplitQuantizedVertex, MaterialWeightsOther);
+        glEnableVertexAttribArray(6 + i);
+        glVertexAttribPointer(6 + i, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(SplitQuantizedVertex),
+                              (void*)(base + (i % 2) * 4));
+    }
 
-    // COMBINED PER-INSTANCE BUFFER (locations 3-4) - one (WorldOffset, ChunkIndex) pair per
-    // surviving instance this frame, rewritten wholesale each frame via UploadFrameData - see
-    // chunk.vert's aInstanceOffset/aChunkIndex and this class's own header comment on the "manual
-    // chunk index" addressing scheme (avoids needing gl_DrawID/GL 4.6).
+    // COMBINED PER-INSTANCE BUFFER (locations 3-4) - identical role/layout to ChunkGeometryPool's,
+    // see that class for the full comment.
     glGenBuffers(1, &m_InstanceVBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)((size_t)m_MaxIndirectInstances * sizeof(ChunkInstanceEntry)), nullptr,
@@ -52,30 +52,21 @@ ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCap
                           (void*)offsetof(ChunkInstanceEntry, WorldOffset));
     glVertexAttribDivisor(3, 1);
     glEnableVertexAttribArray(4);
-    // Integer attribute (glVertexAttribIPointer, not the float-converting glVertexAttribPointer) -
-    // aChunkIndex is read as a true GLSL uint in chunk.vert, not a normalized/converted float.
     glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT, sizeof(ChunkInstanceEntry),
                            (void*)offsetof(ChunkInstanceEntry, ChunkIndex));
     glVertexAttribDivisor(4, 1);
 
-    // COMBINED INDEX BUFFER - element array buffer binding is captured into the VAO's own state at
-    // bind time, same as the vertex attribute bindings above; no further action needed at draw time
-    // beyond binding this VAO.
     glGenBuffers(1, &m_IndexIBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexIBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)indexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
 
     VertexArray::BindID(0);
 
-    // PER-CHUNK TRANSFORM SSBO - one ChunkTransformGPU slot per chunk, indexed by aChunkIndex.
-    // Written once per chunk on generate/evict (SetTransform), not every frame - chunks are static.
     glGenBuffers(1, &m_TransformSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_TransformSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)((size_t)maxChunks * sizeof(ChunkTransformGPU)), nullptr,
                 GL_DYNAMIC_DRAW);
 
-    // PER-FRAME INDIRECT COMMAND BUFFER - one DrawElementsIndirectCommand per visible chunk this
-    // frame, rewritten wholesale each frame via UploadFrameData.
     glGenBuffers(1, &m_IndirectBuffer);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_IndirectBuffer);
     glBufferData(GL_DRAW_INDIRECT_BUFFER,
@@ -83,7 +74,7 @@ ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCap
                 GL_DYNAMIC_DRAW);
 }
 
-ChunkGeometryPool::~ChunkGeometryPool() {
+SplitChunkGeometryPool::~SplitChunkGeometryPool() {
     glDeleteBuffers(1, &m_IndirectBuffer);
     glDeleteBuffers(1, &m_TransformSSBO);
     glDeleteBuffers(1, &m_IndexIBO);
@@ -92,10 +83,10 @@ ChunkGeometryPool::~ChunkGeometryPool() {
     glDeleteVertexArrays(1, &m_VAO);
 }
 
-ChunkGeometryHandle ChunkGeometryPool::Allocate(uint32_t vertexCount, uint32_t indexCount) {
+ChunkGeometryHandle SplitChunkGeometryPool::Allocate(uint32_t vertexCount, uint32_t indexCount) {
     ChunkGeometryHandle handle;
 
-    size_t vertexBytes = (size_t)vertexCount * sizeof(QuantizedVertex);
+    size_t vertexBytes = (size_t)vertexCount * sizeof(SplitQuantizedVertex);
     size_t indexBytes = (size_t)indexCount * sizeof(uint32_t);
 
     size_t vertexOffset = m_VertexAllocator.Alloc(vertexBytes);
@@ -116,7 +107,7 @@ ChunkGeometryHandle ChunkGeometryPool::Allocate(uint32_t vertexCount, uint32_t i
     }
 
     handle.Valid = true;
-    handle.VertexBase = (uint32_t)(vertexOffset / sizeof(QuantizedVertex));
+    handle.VertexBase = (uint32_t)(vertexOffset / sizeof(SplitQuantizedVertex));
     handle.VertexCount = vertexCount;
     handle.FirstIndex = (uint32_t)(indexOffset / sizeof(uint32_t));
     handle.IndexCount = indexCount;
@@ -125,32 +116,30 @@ ChunkGeometryHandle ChunkGeometryPool::Allocate(uint32_t vertexCount, uint32_t i
     return handle;
 }
 
-void ChunkGeometryPool::Free(const ChunkGeometryHandle& handle) {
+void SplitChunkGeometryPool::Free(const ChunkGeometryHandle& handle) {
     if (!handle.Valid)
         return;
 
-    m_VertexAllocator.Free((size_t)handle.VertexBase * sizeof(QuantizedVertex),
-                           (size_t)handle.VertexCount * sizeof(QuantizedVertex));
+    m_VertexAllocator.Free((size_t)handle.VertexBase * sizeof(SplitQuantizedVertex),
+                           (size_t)handle.VertexCount * sizeof(SplitQuantizedVertex));
     m_IndexAllocator.Free((size_t)handle.FirstIndex * sizeof(uint32_t), (size_t)handle.IndexCount * sizeof(uint32_t));
     m_SlotAllocator.Free(handle.ChunkSlot, 1);
     m_LiveChunks--;
 }
 
-void ChunkGeometryPool::Write(const ChunkGeometryHandle& handle, const QuantizedVertex* vertices,
-                              uint32_t vertexCount, const uint32_t* indices, uint32_t indexCount,
-                              const glm::mat4& model, const glm::mat4& normalMatrix) {
+void SplitChunkGeometryPool::Write(const ChunkGeometryHandle& handle, const SplitQuantizedVertex* vertices,
+                                   uint32_t vertexCount, const uint32_t* indices, uint32_t indexCount,
+                                   const glm::mat4& model, const glm::mat4& normalMatrix) {
     if (!handle.Valid)
         return;
 
-    // Bind the pool's own VAO first: the GL_ELEMENT_ARRAY_BUFFER bind below is captured into
-    // whichever VAO is current, so without this an upload here (e.g. a chunk remesh from a voxel
-    // edit) would rebind the element buffer of whatever mesh VAO happened to be bound - including
-    // one a Mesh built moments earlier the same frame - and that mesh then draws with these indices.
+    // See ChunkGeometryPool::Write's own comment on why the VAO must be (re)bound before touching
+    // GL_ELEMENT_ARRAY_BUFFER - same reasoning applies here.
     VertexArray::BindID(m_VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_VertexVBO);
-    glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)((size_t)handle.VertexBase * sizeof(QuantizedVertex)),
-                    (GLsizeiptr)((size_t)vertexCount * sizeof(QuantizedVertex)), vertices);
+    glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)((size_t)handle.VertexBase * sizeof(SplitQuantizedVertex)),
+                    (GLsizeiptr)((size_t)vertexCount * sizeof(SplitQuantizedVertex)), vertices);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexIBO);
     glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (GLintptr)((size_t)handle.FirstIndex * sizeof(uint32_t)),
@@ -159,25 +148,25 @@ void ChunkGeometryPool::Write(const ChunkGeometryHandle& handle, const Quantized
     SetTransform(handle.ChunkSlot, model, normalMatrix);
 }
 
-void ChunkGeometryPool::SetTransform(uint32_t chunkSlot, const glm::mat4& model, const glm::mat4& normalMatrix) {
+void SplitChunkGeometryPool::SetTransform(uint32_t chunkSlot, const glm::mat4& model, const glm::mat4& normalMatrix) {
     ChunkTransformGPU t {model, normalMatrix};
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_TransformSSBO);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, (GLintptr)((size_t)chunkSlot * sizeof(ChunkTransformGPU)),
                     sizeof(ChunkTransformGPU), &t);
 }
 
-void ChunkGeometryPool::UploadFrameData(const std::vector<DrawElementsIndirectCommand>& commands,
-                                        const std::vector<ChunkInstanceEntry>& instances) {
+void SplitChunkGeometryPool::UploadFrameData(const std::vector<DrawElementsIndirectCommand>& commands,
+                                             const std::vector<ChunkInstanceEntry>& instances) {
     uint32_t commandCount = (uint32_t)commands.size();
     if (commandCount > m_MaxIndirectCommands) {
-        WK_CORE_WARNING("ChunkGeometryPool::UploadFrameData - {0} commands submitted, truncating to capacity ({1})",
+        WK_CORE_WARNING("SplitChunkGeometryPool::UploadFrameData - {0} commands submitted, truncating to capacity ({1})",
                         commandCount, m_MaxIndirectCommands);
         commandCount = m_MaxIndirectCommands;
     }
 
     uint32_t instanceCount = (uint32_t)instances.size();
     if (instanceCount > m_MaxIndirectInstances) {
-        WK_CORE_WARNING("ChunkGeometryPool::UploadFrameData - {0} instances submitted, truncating to capacity ({1})",
+        WK_CORE_WARNING("SplitChunkGeometryPool::UploadFrameData - {0} instances submitted, truncating to capacity ({1})",
                         instanceCount, m_MaxIndirectInstances);
         instanceCount = m_MaxIndirectInstances;
     }
@@ -197,7 +186,7 @@ void ChunkGeometryPool::UploadFrameData(const std::vector<DrawElementsIndirectCo
     m_LastCommandCount = commandCount;
 }
 
-void ChunkGeometryPool::Bind() const {
+void SplitChunkGeometryPool::Bind() const {
     VertexArray::BindID(m_VAO);
 }
 

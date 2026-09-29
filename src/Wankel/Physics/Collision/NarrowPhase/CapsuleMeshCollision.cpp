@@ -3,6 +3,7 @@
 #include "Triangle.h"
 
 #include <limits>
+#include <vector>
 
 namespace Wankel {
 
@@ -26,8 +27,11 @@ CollisionManifold CapsulevsMesh(const Capsule& capsule, const glm::vec3& meshOri
 
     constexpr int kIterations = 4;
 
-    size_t triCount = mesh.GetTriangleCount();
-    for (size_t i = 0; i < triCount; i++) {
+    // Only triangles near the capsule can be within Radius of it - skip the rest of the mesh.
+    thread_local std::vector<uint32_t> candidates;
+    candidates.clear();
+    mesh.QueryTriangles(AABB {segMin - meshOrigin, segMax - meshOrigin}, candidates);
+    for (uint32_t i : candidates) {
         glm::vec3 a, b, c;
         mesh.GetTriangle(i, a, b, c);
         a += meshOrigin;

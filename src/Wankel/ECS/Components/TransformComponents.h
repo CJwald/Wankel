@@ -12,6 +12,10 @@ struct Transform {
     glm::quat LocalOrientation {1, 0, 0, 0};
     glm::vec3 LocalScale {1.0f};
 
+    // ANIMATED LOCAL OFFSET - composed after LocalOrientation into LocalTransform, so children inherit it
+    glm::vec3 AnimationPosition {0.0f};
+    glm::quat AnimationRotation {1, 0, 0, 0};
+
     // VISUAL OFFSET
     glm::vec3 VisualPosition {0.0f};
     glm::quat VisualRotation {1, 0, 0, 0};

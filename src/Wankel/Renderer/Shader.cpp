@@ -1,6 +1,7 @@
 #include "Shader.h"
 #include <glad/gl.h>
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -16,6 +17,36 @@ static std::string ReadFile(const std::string& filepath) {
     std::stringstream ss;
     ss << in.rdbuf();
     return ss.str();
+}
+
+// Expands `#include "path"` lines, resolved against the including file's directory, then the working directory.
+static std::string ReadShaderSource(const std::string& filepath, int depth = 0) {
+    constexpr int kMaxIncludeDepth = 8;
+    std::string source = ReadFile(filepath);
+    if (depth >= kMaxIncludeDepth)
+        throw std::runtime_error("Shader include depth exceeded at: " + filepath);
+
+    std::istringstream lines(source);
+    std::ostringstream out;
+    std::string line;
+    while (std::getline(lines, line)) {
+        size_t firstChar = line.find_first_not_of(" \t");
+        if (firstChar == std::string::npos || line.compare(firstChar, 8, "#include") != 0) {
+            out << line << '\n';
+            continue;
+        }
+
+        size_t open = line.find('"', firstChar);
+        size_t close = open == std::string::npos ? std::string::npos : line.find('"', open + 1);
+        if (close == std::string::npos)
+            throw std::runtime_error(std::string("Malformed #include in ").append(filepath).append(": ").append(line));
+
+        std::filesystem::path includeName = line.substr(open + 1, close - open - 1);
+        std::filesystem::path relative = std::filesystem::path(filepath).parent_path() / includeName;
+        out << ReadShaderSource(std::filesystem::exists(relative) ? relative.string() : includeName.string(), depth + 1)
+            << '\n';
+    }
+    return out.str();
 }
 
 namespace Wankel {
@@ -40,8 +71,8 @@ static unsigned int CompileShader(unsigned int type, const std::string& src) {
 Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcFile) {
     unsigned int program = glCreateProgram();
 
-    std::string vertexSrc = ReadFile(vertexSrcFile);
-    std::string fragmentSrc = ReadFile(fragmentSrcFile);
+    std::string vertexSrc = ReadShaderSource(vertexSrcFile);
+    std::string fragmentSrc = ReadShaderSource(fragmentSrcFile);
 
     unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
     unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
@@ -57,6 +88,7 @@ Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcF
         glGetProgramInfoLog(program, 512, nullptr, info);
         WK_CORE_ERROR("Shader link error ({0}, {1}):\n{2}", vertexSrcFile, fragmentSrcFile, info);
     }
+    m_LinkSucceeded = linkResult != 0;
 
     glValidateProgram(program);
 

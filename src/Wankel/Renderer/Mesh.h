@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Wankel/Renderer/Renderer.h" // Material
+#include "Wankel/Renderer/TerrainMaterial.h"
 
 #include <vector>
 #include <glm/glm.hpp>
@@ -19,6 +20,20 @@ struct Vertex {
     // aggregate-init call sites (e.g. Geometry::CubeVertices) keep compiling
     // unchanged and just pick up this default via C++ aggregate-init rules.
     glm::vec3 Normal {0.0f, 1.0f, 0.0f};
+    TerrainMaterialWeights MaterialWeights {}; // terrain only - see TerrainMaterialWeights
+};
+
+// Vertex plus ColorOther, for the CPU voxel color split-sharpness path - see SplitQuantizedVertex
+// in QuantizedVertex.h for the full rationale. Only marching-cubes terrain meshers ever produce
+// these; every other Vertex-producing code path (PLY/glTF loaders, procedural geometry) is
+// unaffected.
+struct SplitVertex {
+    glm::vec3 Position {0.0f};
+    glm::vec4 Color {1.0f};
+    glm::vec3 Normal {0.0f, 1.0f, 0.0f};
+    glm::vec4 ColorOther {1.0f};
+    TerrainMaterialWeights MaterialWeights {};
+    TerrainMaterialWeights MaterialWeightsOther {}; // same "flat trick" as ColorOther
 };
 
 class Mesh {

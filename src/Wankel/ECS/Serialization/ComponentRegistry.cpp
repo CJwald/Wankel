@@ -30,10 +30,15 @@ ComponentEntry MakeEntry(const char* key) {
 
 const std::vector<ComponentEntry>& GetComponentTable() {
     static const std::vector<ComponentEntry> table = {
-        MakeEntry<Transform>("Transform"),         MakeEntry<SphereCollider>("SphereCollider"),
-        MakeEntry<AABBCollider>("AABBCollider"),   MakeEntry<CapsuleCollider>("CapsuleCollider"),
-        MakeEntry<MeshAnimation>("MeshAnimation"), MakeEntry<PlayerController>("PlayerController"),
-        MakeEntry<Rigidbody>("Rigidbody"),         MakeEntry<Movement>("Movement"),
+        MakeEntry<Transform>("Transform"),
+        MakeEntry<SphereCollider>("SphereCollider"),
+        MakeEntry<AABBCollider>("AABBCollider"),
+        MakeEntry<CapsuleCollider>("CapsuleCollider"),
+        MakeEntry<MeshAnimation>("MeshAnimation"),
+        MakeEntry<TransformAnimation>("TransformAnimation"),
+        MakeEntry<PlayerController>("PlayerController"),
+        MakeEntry<Rigidbody>("Rigidbody"),
+        MakeEntry<Movement>("Movement"),
         MakeEntry<MeshRenderer>("MeshRenderer"),
     };
     return table;

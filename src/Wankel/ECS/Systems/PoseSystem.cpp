@@ -33,15 +33,18 @@ void PoseSystem::Update(Scene& scene, float dt) {
         const Pose& target = poseSet.Poses[poseSet.Current];
 
         if (poseChanged) {
-            // Swap this pose's sway tuning onto the entity's live MeshAnimation, if it has one -
-            // tuning only (see MotionLink::CopyTuning), so the spring keeps moving continuously
-            // instead of popping to rest.
-            if (auto* meshAnim = registry.try_get<MeshAnimation>(entity)) {
-                for (int in = 0; in < MeshAnimation::AxisCount; in++)
-                    for (int out = 0; out < MeshAnimation::AxisCount; out++)
-                        meshAnim->Links[in][out].CopyTuning(target.Animation.Links[in][out]);
-                meshAnim->RotationOrigin = target.Animation.RotationOrigin;
-            }
+            // Swap this pose's sway tuning onto the entity's live Mesh/TransformAnimation, if it has one -
+            // tuning only (see MotionLink::CopyTuning), so the spring keeps moving instead of popping to rest.
+            auto applyTuning = [&](ProceduralMotion& live) {
+                for (int in = 0; in < ProceduralMotion::AxisCount; in++)
+                    for (int out = 0; out < ProceduralMotion::AxisCount; out++)
+                        live.Links[in][out].CopyTuning(target.Animation.Links[in][out]);
+                live.RotationOrigin = target.Animation.RotationOrigin;
+            };
+            if (auto* meshAnim = registry.try_get<MeshAnimation>(entity))
+                applyTuning(*meshAnim);
+            if (auto* transformAnim = registry.try_get<TransformAnimation>(entity))
+                applyTuning(*transformAnim);
         }
 
         poseSet.Elapsed += dt;

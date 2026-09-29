@@ -6,6 +6,7 @@
 #include "Wankel/ECS/Systems/PlayerControllerSystem.h"
 #include "Wankel/ECS/Systems/RotationPivotSystem.h"
 #include "Wankel/ECS/Systems/PoseSystem.h"
+#include "Wankel/ECS/Systems/TransformAnimationSystem.h"
 #include "Wankel/ECS/Systems/TransformSystem.h"
 #include "Wankel/ECS/Systems/KinematicsSystem.h"
 #include "Wankel/ECS/Systems/ProceduralAnimationSystem.h"
@@ -26,6 +27,7 @@ struct SceneSystemTimings {
     float RotationPivotMs = 0.0f;
     float PoseMs = 0.0f;
     float PhysicsMs = 0.0f;
+    float TransformAnimationMs = 0.0f;
     float TransformMs = 0.0f;
     float KinematicsMs = 0.0f;
     float ProceduralAnimationMs = 0.0f;
@@ -35,6 +37,8 @@ struct SceneSystemTimings {
 
 class Scene {
 public:
+    Scene();
+
     Entity CreateEntity() { return Entity(m_Registry.create(), &m_Registry); }
 
     // Creates an entity with the Tag/Transform/Kinematics/Parent quintet that's
@@ -101,6 +105,7 @@ private:
     PlayerControllerSystem m_PlayerControllerSystem;
     RotationPivotSystem m_RotationPivotSystem;
     PoseSystem m_PoseSystem;
+    TransformAnimationSystem m_TransformAnimationSystem;
     TransformSystem m_TransformSystem;
     KinematicsSystem m_KinematicsSystem;
     ProceduralAnimationSystem m_ProceduralAnimationSystem;
