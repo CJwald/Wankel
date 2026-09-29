@@ -44,6 +44,9 @@ Application::~Application() {
     JobSystem::Shutdown();
     AssetManager::Clear();
     if (!m_Spec.Headless) {
+        // While m_Window's GL context still exists - Renderer's statics (e.g. terrain texture arrays)
+        // would otherwise be freed by static destructors after it's gone, crashing on exit.
+        Renderer::Shutdown();
         AudioSystem::Shutdown();
         InputSystem::Shutdown();
     }
