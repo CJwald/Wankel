@@ -18,7 +18,8 @@ struct Pose {
     float EaseExponent = 2.0f; // only meaningful for EaseIn/EaseOut
     float Duration = 0.0f;     // seconds to transition INTO this pose; 0 = instant snap
 
-    MeshAnimation Animation; // this pose's sway tuning - applied to the entity's live MeshAnimation on activation
+    // This pose's sway tuning - applied to the entity's live Mesh/TransformAnimation on activation.
+    ProceduralMotion Animation;
 };
 
 struct PoseSet {

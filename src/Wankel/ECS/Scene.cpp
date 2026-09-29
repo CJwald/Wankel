@@ -22,7 +22,19 @@ void Smooth(float& average, float sample) {
     average += (sample - average) * kTimingSmoothing;
 }
 
+// A removed TransformAnimation would otherwise leave its last offset baked into the entity's pose.
+void ClearAnimationOffset(entt::registry& registry, entt::entity entity) {
+    if (auto* tc = registry.try_get<Transform>(entity)) {
+        tc->AnimationPosition = glm::vec3(0.0f);
+        tc->AnimationRotation = glm::quat(1, 0, 0, 0);
+    }
+}
+
 } // namespace
+
+Scene::Scene() {
+    m_Registry.on_destroy<TransformAnimation>().connect<&ClearAnimationOffset>();
+}
 
 Entity Scene::CreateChild(Entity parent, const std::string& name) {
     Entity child = CreateEntity();
@@ -67,6 +79,12 @@ void Scene::OnUpdate(float dt, Camera& camera) {
     auto t2 = std::chrono::high_resolution_clock::now();
     m_PhysicsSystem.Update(*this, dt);
     Smooth(m_SystemTimings.PhysicsMs, ElapsedMs(t2));
+
+    // Right before the hierarchy pass that consumes its offsets - animated parts and their children
+    // resolve this frame's pose together, with no one-frame lag.
+    auto tTransformAnimation = std::chrono::high_resolution_clock::now();
+    m_TransformAnimationSystem.Update(*this, dt);
+    Smooth(m_SystemTimings.TransformAnimationMs, ElapsedMs(tTransformAnimation));
 
     auto t3 = std::chrono::high_resolution_clock::now();
     m_TransformSystem.Update(*this);

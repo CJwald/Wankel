@@ -103,10 +103,10 @@ void Deserialize(const json& json, CapsuleCollider& collider) {
     collider.Friction = json.at("Friction").get<float>();
 }
 
-json Serialize(const MeshAnimation& animation) {
+json Serialize(const ProceduralMotion& animation) {
     json links = json::array();
-    for (int from = 0; from < MeshAnimation::AxisCount; from++) {
-        for (int to = 0; to < MeshAnimation::AxisCount; to++) {
+    for (int from = 0; from < ProceduralMotion::AxisCount; from++) {
+        for (int to = 0; to < ProceduralMotion::AxisCount; to++) {
             const MotionLink& link = animation.Links[from][to];
             if (!link.Enabled)
                 continue;
@@ -132,14 +132,14 @@ json Serialize(const MeshAnimation& animation) {
     };
 }
 
-void Deserialize(const json& json, MeshAnimation& animation) {
-    animation = {}; // clear any previously-enabled links before applying the saved set
+void Deserialize(const json& json, ProceduralMotion& animation) {
+    animation = ProceduralMotion {}; // clear any previously-enabled links before applying the saved set
 
     for (const auto& linkJson : json.at("Links")) {
         MotionAxis from = MotionAxisFromName(linkJson.at("From").get<std::string>());
         MotionAxis to = MotionAxisFromName(linkJson.at("To").get<std::string>());
         if (from == MotionAxis::Count || to == MotionAxis::Count) {
-            WK_CORE_WARNING("MeshAnimation::Deserialize: unknown axis name in saved link, skipping");
+            WK_CORE_WARNING("ProceduralMotion::Deserialize: unknown axis name in saved link, skipping");
             continue;
         }
 

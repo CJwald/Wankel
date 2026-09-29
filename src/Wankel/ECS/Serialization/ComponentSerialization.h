@@ -15,7 +15,7 @@ struct Transform;
 struct SphereCollider;
 struct AABBCollider;
 struct CapsuleCollider;
-struct MeshAnimation;
+struct ProceduralMotion;
 struct PlayerController;
 struct Rigidbody;
 struct Movement;
@@ -39,9 +39,9 @@ void Deserialize(const nlohmann::json& json, CapsuleCollider& collider);
 
 // Only enabled Links[][] slots are written, each as {From, To, <MotionLink::CopyTuning fields>}, plus
 // PositionOffset/RotationOffset/RotationOrigin. Spring/Output (per-link runtime state) and Initialized
-// are skipped.
-nlohmann::json Serialize(const MeshAnimation& animation);
-void Deserialize(const nlohmann::json& json, MeshAnimation& animation);
+// are skipped. Shared by MeshAnimation, TransformAnimation and Pose::Animation.
+nlohmann::json Serialize(const ProceduralMotion& animation);
+void Deserialize(const nlohmann::json& json, ProceduralMotion& animation);
 
 // Tuning fields only - skips Boost/LookDeltaX/LookDeltaY/RollInput/MoveInput/Yaw/Pitch/Roll/
 // Orientation/BodyOrientation/R3PressedLastFrame (all per-frame input/camera state).
