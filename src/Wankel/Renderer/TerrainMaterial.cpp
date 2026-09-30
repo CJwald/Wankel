@@ -15,73 +15,90 @@
 #include <stb_image_resize2.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <vector>
 
 namespace Wankel {
 
 namespace {
 
-constexpr uint32_t kAlbedoUnit = 1;
-constexpr uint32_t kNormalUnit = 2;
-constexpr uint32_t kRoughnessUnit = 3;
+// Five arrays, one per packing: scalar channels share RGBA8/RG8 layers so they cost one fetch, not four.
+enum class ArrayKind : uint8_t { BaseColor, Normal, Surface, OpacityMask, Emissive, Count };
+constexpr int kArrayCount = (int)ArrayKind::Count;
 
-enum class MapKind : uint8_t { Albedo, Normal, Roughness };
+struct ArrayInfo {
+    const char* Uniform;
+    uint32_t Unit;
+    TextureArrayFormat Format;
+    uint32_t Maps; // TerrainMap bits stored in this array - a slot needs a layer only if it has one of them
+};
+
+constexpr uint32_t kSurfaceMaps = TerrainMap_AO | TerrainMap_Roughness | TerrainMap_Metallic | TerrainMap_Height;
+constexpr uint32_t kOpacityMaskMaps = TerrainMap_Opacity | TerrainMap_Mask;
+
+constexpr ArrayInfo kArrays[kArrayCount] = {
+    {"u_TerrainBaseColor", 1, TextureArrayFormat::SRGB8, TerrainMap_BaseColor},
+    {"u_TerrainNormal", 2, TextureArrayFormat::RGB8, TerrainMap_Normal},
+    {"u_TerrainSurface", 3, TextureArrayFormat::RGBA8, kSurfaceMaps}, // AO, roughness, metallic, height
+    {"u_TerrainOpacityMask", 4, TextureArrayFormat::RG8, kOpacityMaskMaps},
+    {"u_TerrainEmissive", 5, TextureArrayFormat::SRGB8, TerrainMap_Emissive},
+};
+
+struct MapInfo {
+    TerrainMap Bit;
+    const char* Suffix; // file naming convention: <name>_<Suffix>.png
+    std::string TerrainMaterialDesc::* Path;
+    int Channels;
+    bool Srgb;
+};
+
+const MapInfo kMaps[] = {
+    {TerrainMap_BaseColor, "basecolor", &TerrainMaterialDesc::BaseColorPath, 3, true},
+    {TerrainMap_Normal, "normal", &TerrainMaterialDesc::NormalPath, 3, false},
+    {TerrainMap_Roughness, "roughness", &TerrainMaterialDesc::RoughnessPath, 1, false},
+    {TerrainMap_Metallic, "metallic", &TerrainMaterialDesc::MetallicPath, 1, false},
+    {TerrainMap_Height, "height", &TerrainMaterialDesc::HeightPath, 1, false},
+    {TerrainMap_AO, "ao", &TerrainMaterialDesc::AOPath, 1, false},
+    {TerrainMap_Emissive, "emissive", &TerrainMaterialDesc::EmissivePath, 3, true},
+    {TerrainMap_Opacity, "opacity", &TerrainMaterialDesc::OpacityPath, 1, false},
+    {TerrainMap_Mask, "mask", &TerrainMaterialDesc::MaskPath, 1, false},
+};
 
 struct TerrainMaterialsData {
     std::array<TerrainMaterialDesc, kMaxTerrainMaterialSlots> Descs {};
     std::array<bool, kMaxTerrainMaterialSlots> Active {};
+    std::array<uint32_t, kMaxTerrainMaterialSlots> Maps {}; // TerrainMap bits of the maps that loaded
     uint32_t Resolution = 2048;
     float TriplanarSharpness = 4.0f;
     float TriplanarFaceNormal = 1.0f;
-    Scope<TextureArray> AlbedoArray;
-    Scope<TextureArray> NormalArray;
-    Scope<TextureArray> RoughnessArray;
+    bool Dirty = true; // arrays rebuilt lazily on the next BindTextures, so registering N slots loads once
+    std::array<Scope<TextureArray>, kArrayCount> Arrays;
 };
 
 TerrainMaterialsData s_Data;
 
 // Uniform names built once - UploadUniforms runs every frame per terrain shader.
 struct SlotUniformNames {
-    std::string Tint, Roughness, Metallic, Scale, NormalStrength, Active;
+    std::string BaseColorTint, Roughness, Metallic, Emissive, EmissiveStrength, Opacity, Scale, NormalStrength,
+        HeightScale, Maps, Active;
 };
 
 const std::array<SlotUniformNames, kMaxTerrainMaterialSlots>& GetSlotUniformNames() {
     static const std::array<SlotUniformNames, kMaxTerrainMaterialSlots> names = [] {
         std::array<SlotUniformNames, kMaxTerrainMaterialSlots> result;
         for (uint32_t i = 0; i < kMaxTerrainMaterialSlots; i++) {
-            std::string prefix = "u_TerrainSlots[" + std::to_string(i) + "].";
-            result[i] = {prefix + "Tint",  prefix + "Roughness",      prefix + "Metallic",
-                         prefix + "Scale", prefix + "NormalStrength", prefix + "Active"};
+            std::string p = "u_TerrainSlots[" + std::to_string(i) + "].";
+            result[i] = {p + "BaseColorTint",    p + "Roughness", p + "Metallic", p + "Emissive",
+                         p + "EmissiveStrength", p + "Opacity",   p + "Scale",    p + "NormalStrength",
+                         p + "HeightScale",      p + "Maps",      p + "Active"};
         }
         return result;
     }();
     return names;
 }
 
-int ChannelsFor(MapKind kind) {
-    return kind == MapKind::Roughness ? 1 : 3;
-}
-
-std::vector<uint8_t> MakeFallbackMap(MapKind kind, uint32_t size) {
-    size_t texels = (size_t)size * size;
-    if (kind == MapKind::Roughness)
-        return std::vector<uint8_t>(texels, 255);
-
-    std::vector<uint8_t> pixels(texels * 3);
-    const uint8_t fill[3] = {255, 255, 255};
-    const uint8_t flatNormal[3] = {128, 128, 255};
-    const uint8_t* texel = kind == MapKind::Normal ? flatNormal : fill;
-    for (size_t i = 0; i < texels; i++)
-        std::copy(texel, texel + 3, pixels.begin() + (std::ptrdiff_t)(i * 3));
-    return pixels;
-}
-
-// Empty result means the file failed to load; an empty path returns the fallback map instead.
-std::vector<uint8_t> LoadMap(const std::string& path, MapKind kind, uint32_t size) {
-    if (path.empty())
-        return MakeFallbackMap(kind, size);
-
-    int channels = ChannelsFor(kind);
+// One map at size x size, `channels` bytes per texel; empty on failure. Color data resizes in sRGB space.
+std::vector<uint8_t> LoadMap(const std::string& path, int channels, bool srgb, uint32_t size) {
     int width = 0, height = 0, fileChannels = 0;
 
     // Bottom-up rows so image +Y matches UV +V - keeps the OpenGL-convention normal map's green channel correct.
@@ -96,7 +113,7 @@ std::vector<uint8_t> LoadMap(const std::string& path, MapKind kind, uint32_t siz
 
     std::vector<uint8_t> pixels((size_t)size * size * channels);
     auto layout = channels == 1 ? STBIR_1CHANNEL : STBIR_RGB;
-    if (kind == MapKind::Albedo)
+    if (srgb)
         stbir_resize_uint8_srgb(source, width, height, 0, pixels.data(), (int)size, (int)size, 0, layout);
     else
         stbir_resize_uint8_linear(source, width, height, 0, pixels.data(), (int)size, (int)size, 0, layout);
@@ -105,85 +122,107 @@ std::vector<uint8_t> LoadMap(const std::string& path, MapKind kind, uint32_t siz
     return pixels;
 }
 
-TextureArray* ArrayFor(MapKind kind) {
-    switch (kind) {
-        case MapKind::Albedo:
-            return s_Data.AlbedoArray.get();
-        case MapKind::Normal:
-            return s_Data.NormalArray.get();
-        case MapKind::Roughness:
-        default:
-            return s_Data.RoughnessArray.get();
+// Interleaves single-channel maps into one multi-channel layer; a missing channel gets its default value.
+std::vector<uint8_t> PackChannels(const std::vector<const std::vector<uint8_t>*>& channels,
+                                  const std::vector<uint8_t>& defaults, uint32_t size) {
+    size_t texels = (size_t)size * size;
+    size_t count = channels.size();
+    std::vector<uint8_t> packed(texels * count);
+    for (size_t c = 0; c < count; c++) {
+        const std::vector<uint8_t>* src = channels[c];
+        for (size_t t = 0; t < texels; t++)
+            packed[t * count + c] = src && !src->empty() ? (*src)[t] : defaults[c];
+    }
+    return packed;
+}
+
+// Each slot's layer for every array it uses, built from whichever of its maps exist.
+void UploadSlot(uint32_t slot, uint32_t size) {
+    const TerrainMaterialDesc& desc = s_Data.Descs[slot];
+    uint32_t maps = s_Data.Maps[slot];
+
+    std::vector<uint8_t> loaded[std::size(kMaps)];
+    for (size_t m = 0; m < std::size(kMaps); m++) {
+        if (!(maps & kMaps[m].Bit))
+            continue;
+        loaded[m] = LoadMap(desc.*kMaps[m].Path, kMaps[m].Channels, kMaps[m].Srgb, size);
+        if (loaded[m].empty())
+            maps &= ~kMaps[m].Bit; // readable at SetSlot but not now - fall back to its default
+    }
+    s_Data.Maps[slot] = maps;
+    auto mapPixels = [&](TerrainMap bit) -> const std::vector<uint8_t>* {
+        for (size_t m = 0; m < std::size(kMaps); m++)
+            if (kMaps[m].Bit == bit)
+                return &loaded[m];
+        return nullptr;
+    };
+    auto setLayer = [&](ArrayKind kind, const std::vector<uint8_t>& pixels) {
+        TextureArray& array = *s_Data.Arrays[(int)kind];
+        if (slot < array.GetLayerCount() &&
+            pixels.size() == (size_t)size * size * TextureArrayChannels(array.GetFormat()))
+            array.SetLayer(slot, pixels.data());
+    };
+
+    if (maps & TerrainMap_BaseColor)
+        setLayer(ArrayKind::BaseColor, *mapPixels(TerrainMap_BaseColor));
+    if (maps & TerrainMap_Normal)
+        setLayer(ArrayKind::Normal, *mapPixels(TerrainMap_Normal));
+    if (maps & TerrainMap_Emissive)
+        setLayer(ArrayKind::Emissive, *mapPixels(TerrainMap_Emissive));
+    if (maps & kSurfaceMaps) {
+        // Defaults only ever read for channels whose map is missing - the shader ignores those anyway.
+        setLayer(ArrayKind::Surface, PackChannels({mapPixels(TerrainMap_AO), mapPixels(TerrainMap_Roughness),
+                                                   mapPixels(TerrainMap_Metallic), mapPixels(TerrainMap_Height)},
+                                                  {255, 255, 0, 128}, size));
+    }
+    if (maps & kOpacityMaskMaps) {
+        setLayer(ArrayKind::OpacityMask,
+                 PackChannels({mapPixels(TerrainMap_Opacity), mapPixels(TerrainMap_Mask)}, {255, 0}, size));
     }
 }
 
-const std::string& PathFor(const TerrainMaterialDesc& desc, MapKind kind) {
-    switch (kind) {
-        case MapKind::Albedo:
-            return desc.AlbedoPath;
-        case MapKind::Normal:
-            return desc.NormalPath;
-        case MapKind::Roughness:
-        default:
-            return desc.RoughnessPath;
+void RebuildArrays() {
+    s_Data.Dirty = false;
+
+    // Each array holds layers 0..highest slot using it; an array no slot uses is a 1x1 placeholder.
+    for (int a = 0; a < kArrayCount; a++) {
+        uint32_t layers = 0;
+        for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
+            if (s_Data.Active[slot] && (s_Data.Maps[slot] & kArrays[a].Maps))
+                layers = slot + 1;
+        uint32_t size = layers > 0 ? s_Data.Resolution : 1;
+        s_Data.Arrays[a] = CreateScope<TextureArray>(size, std::max(layers, 1u), kArrays[a].Format);
     }
-}
 
-constexpr MapKind kMapKinds[] = {MapKind::Albedo, MapKind::Normal, MapKind::Roughness};
+    for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
+        if (s_Data.Active[slot])
+            UploadSlot(slot, s_Data.Resolution);
 
-bool AnySlotActive() {
-    return std::any_of(s_Data.Active.begin(), s_Data.Active.end(), [](bool a) { return a; });
-}
-
-// Inactive slots get fallback maps - never sampled (their weights are always 0), but keeps every layer defined.
-bool UploadSlot(uint32_t slot, const TerrainMaterialDesc& desc, bool active) {
-    uint32_t size = s_Data.AlbedoArray->GetSize();
-    std::vector<uint8_t> maps[3];
-    for (int k = 0; k < 3; k++) {
-        maps[k] =
-            active ? LoadMap(PathFor(desc, kMapKinds[k]), kMapKinds[k], size) : MakeFallbackMap(kMapKinds[k], size);
-        if (maps[k].empty())
-            return false;
-    }
-    for (int k = 0; k < 3; k++)
-        ArrayFor(kMapKinds[k])->SetLayer(slot, maps[k].data());
-    return true;
-}
-
-void GenerateAllMips() {
-    for (MapKind kind : kMapKinds)
-        ArrayFor(kind)->GenerateMips();
+    for (const Scope<TextureArray>& array : s_Data.Arrays)
+        array->GenerateMips();
 }
 
 } // namespace
+
+TerrainMaterialDesc TerrainMaterialDesc::FromDirectory(const std::string& dir, const std::string& name) {
+    TerrainMaterialDesc desc;
+    for (const MapInfo& map : kMaps) {
+        std::filesystem::path path = std::filesystem::path(dir) / (name + "_" + map.Suffix + ".png");
+        if (std::filesystem::exists(path))
+            desc.*map.Path = path.string();
+    }
+    return desc;
+}
 
 void TerrainMaterials::Init() {
     RebuildArrays();
 }
 
 void TerrainMaterials::Shutdown() {
-    s_Data.AlbedoArray.reset();
-    s_Data.NormalArray.reset();
-    s_Data.RoughnessArray.reset();
+    for (Scope<TextureArray>& array : s_Data.Arrays)
+        array.reset();
     s_Data.Active.fill(false);
-}
-
-void TerrainMaterials::RebuildArrays() {
-    // No active slot -> 1x1 layers, so an untextured app pays no VRAM for this system.
-    uint32_t size = AnySlotActive() ? s_Data.Resolution : 1;
-    s_Data.AlbedoArray = CreateScope<TextureArray>(size, kMaxTerrainMaterialSlots, TextureArrayFormat::RGB8);
-    s_Data.NormalArray = CreateScope<TextureArray>(size, kMaxTerrainMaterialSlots, TextureArrayFormat::RGB8);
-    s_Data.RoughnessArray = CreateScope<TextureArray>(size, kMaxTerrainMaterialSlots, TextureArrayFormat::R8);
-
-    for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++) {
-        if (s_Data.Active[slot] && !UploadSlot(slot, s_Data.Descs[slot], true)) {
-            WK_CORE_ERROR("TerrainMaterials - slot {0} failed to reload, falling back to flat maps", slot);
-            UploadSlot(slot, s_Data.Descs[slot], false);
-        } else if (!s_Data.Active[slot]) {
-            UploadSlot(slot, s_Data.Descs[slot], false);
-        }
-    }
-    GenerateAllMips();
+    s_Data.Maps.fill(0);
 }
 
 bool TerrainMaterials::SetSlot(uint32_t slot, const TerrainMaterialDesc& desc) {
@@ -192,47 +231,45 @@ bool TerrainMaterials::SetSlot(uint32_t slot, const TerrainMaterialDesc& desc) {
         return false;
     }
 
-    bool needsResize = !s_Data.AlbedoArray || s_Data.AlbedoArray->GetSize() != s_Data.Resolution;
-    s_Data.Descs[slot] = desc;
-
-    if (needsResize) {
-        // Validate this slot's files first so a bad path doesn't cost a full-resolution rebuild.
-        for (MapKind kind : kMapKinds) {
-            const std::string& path = PathFor(desc, kind);
-            int w = 0, h = 0, n = 0;
-            if (!path.empty() && !stbi_info(path.c_str(), &w, &h, &n)) {
-                WK_CORE_ERROR("TerrainMaterials - failed to read '{0}': {1}", path, stbi_failure_reason());
-                s_Data.Active[slot] = false;
-                return false;
-            }
+    // Header-only probe now so the slot's maps are known immediately; pixels load on the next rebuild.
+    bool allLoaded = true;
+    uint32_t maps = 0;
+    for (const MapInfo& map : kMaps) {
+        const std::string& path = desc.*map.Path;
+        if (path.empty())
+            continue;
+        int w = 0, h = 0, n = 0;
+        if (stbi_info(path.c_str(), &w, &h, &n)) {
+            maps |= map.Bit;
+        } else {
+            WK_CORE_ERROR("TerrainMaterials - can't read '{0}' ({1}), using the {2} default instead", path,
+                          stbi_failure_reason(), map.Suffix);
+            allLoaded = false;
         }
-        s_Data.Active[slot] = true;
-        RebuildArrays();
-        return s_Data.Active[slot];
     }
 
-    s_Data.Active[slot] = UploadSlot(slot, desc, true);
-    if (!s_Data.Active[slot])
-        UploadSlot(slot, desc, false);
-    GenerateAllMips();
-    return s_Data.Active[slot];
+    s_Data.Descs[slot] = desc;
+    s_Data.Maps[slot] = maps;
+    s_Data.Active[slot] = true;
+    s_Data.Dirty = true;
+    return allLoaded;
 }
 
 void TerrainMaterials::ClearSlot(uint32_t slot) {
     if (slot >= kMaxTerrainMaterialSlots || !s_Data.Active[slot])
         return;
     s_Data.Active[slot] = false;
+    s_Data.Maps[slot] = 0;
     s_Data.Descs[slot] = {};
-    if (AnySlotActive()) {
-        UploadSlot(slot, s_Data.Descs[slot], false);
-        GenerateAllMips();
-    } else {
-        RebuildArrays();
-    }
+    s_Data.Dirty = true;
 }
 
 bool TerrainMaterials::IsSlotActive(uint32_t slot) {
     return slot < kMaxTerrainMaterialSlots && s_Data.Active[slot];
+}
+
+uint32_t TerrainMaterials::GetSlotMaps(uint32_t slot) {
+    return slot < kMaxTerrainMaterialSlots ? s_Data.Maps[slot] : 0;
 }
 
 const TerrainMaterialDesc& TerrainMaterials::GetSlotDesc(uint32_t slot) {
@@ -243,11 +280,15 @@ void TerrainMaterials::SetSlotParams(uint32_t slot, const TerrainMaterialDesc& p
     if (slot >= kMaxTerrainMaterialSlots)
         return;
     TerrainMaterialDesc& desc = s_Data.Descs[slot];
-    desc.Tint = params.Tint;
+    desc.BaseColorTint = params.BaseColorTint;
     desc.Roughness = params.Roughness;
     desc.Metallic = params.Metallic;
+    desc.EmissiveColor = params.EmissiveColor;
+    desc.EmissiveStrength = params.EmissiveStrength;
+    desc.Opacity = params.Opacity;
     desc.TextureScale = params.TextureScale;
     desc.NormalStrength = params.NormalStrength;
+    desc.HeightScale = params.HeightScale;
 }
 
 void TerrainMaterials::SetResolution(uint32_t resolution) {
@@ -255,8 +296,7 @@ void TerrainMaterials::SetResolution(uint32_t resolution) {
     if (resolution == s_Data.Resolution)
         return;
     s_Data.Resolution = resolution;
-    if (AnySlotActive())
-        RebuildArrays();
+    s_Data.Dirty = true;
 }
 
 uint32_t TerrainMaterials::GetResolution() {
@@ -280,29 +320,32 @@ float TerrainMaterials::GetTriplanarFaceNormal() {
 }
 
 void TerrainMaterials::BindTextures() {
-    if (!s_Data.AlbedoArray)
-        return;
-    s_Data.AlbedoArray->Bind(kAlbedoUnit);
-    s_Data.NormalArray->Bind(kNormalUnit);
-    s_Data.RoughnessArray->Bind(kRoughnessUnit);
+    if (s_Data.Dirty)
+        RebuildArrays();
+    for (int a = 0; a < kArrayCount; a++)
+        s_Data.Arrays[a]->Bind(kArrays[a].Unit);
     glActiveTexture(GL_TEXTURE0); // every other texture user assumes unit 0 is active
 }
 
 void TerrainMaterials::UploadUniforms(Shader* shader) {
-    shader->SetInt("u_TerrainAlbedo", (int)kAlbedoUnit);
-    shader->SetInt("u_TerrainNormal", (int)kNormalUnit);
-    shader->SetInt("u_TerrainRoughness", (int)kRoughnessUnit);
+    for (const ArrayInfo& array : kArrays)
+        shader->SetInt(array.Uniform, (int)array.Unit);
     shader->SetFloat("u_TriplanarSharpness", s_Data.TriplanarSharpness);
     shader->SetFloat("u_TriplanarFaceNormal", s_Data.TriplanarFaceNormal);
 
     const auto& names = GetSlotUniformNames();
     for (uint32_t i = 0; i < kMaxTerrainMaterialSlots; i++) {
         const TerrainMaterialDesc& desc = s_Data.Descs[i];
-        shader->SetVec3(names[i].Tint, desc.Tint);
+        shader->SetVec3(names[i].BaseColorTint, desc.BaseColorTint);
         shader->SetFloat(names[i].Roughness, desc.Roughness);
         shader->SetFloat(names[i].Metallic, desc.Metallic);
+        shader->SetVec3(names[i].Emissive, desc.EmissiveColor);
+        shader->SetFloat(names[i].EmissiveStrength, desc.EmissiveStrength);
+        shader->SetFloat(names[i].Opacity, desc.Opacity);
         shader->SetFloat(names[i].Scale, desc.TextureScale);
         shader->SetFloat(names[i].NormalStrength, desc.NormalStrength);
+        shader->SetFloat(names[i].HeightScale, desc.HeightScale);
+        shader->SetInt(names[i].Maps, (int)s_Data.Maps[i]);
         shader->SetInt(names[i].Active, s_Data.Active[i] ? 1 : 0);
     }
 }
