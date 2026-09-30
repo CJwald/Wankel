@@ -10,8 +10,9 @@ namespace Wankel {
 
 class Shader;
 
-// Fixed by the vertex format: one normalized byte per slot, split across two ubyte4 attributes.
-constexpr uint32_t kMaxTerrainMaterialSlots = 8;
+// Fixed by the vertex format: one normalized byte per slot, split across four ubyte4 attributes.
+constexpr uint32_t kMaxTerrainMaterialSlots = 16;
+constexpr uint32_t kTerrainMaterialWeightVec4s = kMaxTerrainMaterialSlots / 4; // vertex attributes per weight set
 
 // One bit per texture channel - which maps a slot actually loaded, so the shader samples only those.
 enum TerrainMap : uint16_t {
@@ -80,6 +81,10 @@ public:
 
     // Loads the slot's maps at the current resolution; returns false (slot left inactive) on failure.
     static bool SetSlot(uint32_t slot, const TerrainMaterialDesc& desc);
+    // Samples sourceSlot's textures (no extra texture memory) with this slot's own scalar params, e.g. one
+    // greyscale map tinted differently per slot. Texture paths in `params` are ignored. Clearing the
+    // source clears every slot sharing it; re-setting it via SetSlot keeps them sharing its new maps.
+    static bool SetSlotShared(uint32_t slot, uint32_t sourceSlot, const TerrainMaterialDesc& params);
     static void ClearSlot(uint32_t slot);
     static bool IsSlotActive(uint32_t slot);
     static uint32_t GetSlotMaps(uint32_t slot); // TerrainMap bits of the maps that loaded

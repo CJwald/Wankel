@@ -68,6 +68,12 @@ struct TerrainMaterialsData {
     std::array<TerrainMaterialDesc, kMaxTerrainMaterialSlots> Descs {};
     std::array<bool, kMaxTerrainMaterialSlots> Active {};
     std::array<uint32_t, kMaxTerrainMaterialSlots> Maps {}; // TerrainMap bits of the maps that loaded
+    // Source slot whose texture layer this slot samples (SetSlotShared), or -1 when it owns its own layer.
+    std::array<int32_t, kMaxTerrainMaterialSlots> SharedFrom = [] {
+        std::array<int32_t, kMaxTerrainMaterialSlots> none;
+        none.fill(-1);
+        return none;
+    }();
     uint32_t Resolution = 2048;
     float TriplanarSharpness = 4.0f;
     float TriplanarFaceNormal = 1.0f;
@@ -80,7 +86,7 @@ TerrainMaterialsData s_Data;
 // Uniform names built once - UploadUniforms runs every frame per terrain shader.
 struct SlotUniformNames {
     std::string BaseColorTint, Roughness, Metallic, Emissive, EmissiveStrength, Opacity, Scale, NormalStrength,
-        HeightScale, Maps, Active;
+        HeightScale, Maps, Active, Layer;
 };
 
 const std::array<SlotUniformNames, kMaxTerrainMaterialSlots>& GetSlotUniformNames() {
@@ -90,7 +96,7 @@ const std::array<SlotUniformNames, kMaxTerrainMaterialSlots>& GetSlotUniformName
             std::string p = "u_TerrainSlots[" + std::to_string(i) + "].";
             result[i] = {p + "BaseColorTint",    p + "Roughness", p + "Metallic", p + "Emissive",
                          p + "EmissiveStrength", p + "Opacity",   p + "Scale",    p + "NormalStrength",
-                         p + "HeightScale",      p + "Maps",      p + "Active"};
+                         p + "HeightScale",      p + "Maps",      p + "Active",   p + "Layer"};
         }
         return result;
     }();
@@ -184,19 +190,27 @@ void UploadSlot(uint32_t slot, uint32_t size) {
 void RebuildArrays() {
     s_Data.Dirty = false;
 
-    // Each array holds layers 0..highest slot using it; an array no slot uses is a 1x1 placeholder.
+    // Each array holds layers 0..highest owning slot using it (sharers sample their source's layer); an
+    // array no slot uses is a 1x1 placeholder.
+    auto ownsLayer = [](uint32_t slot) {
+        return s_Data.Active[slot] && s_Data.SharedFrom[slot] < 0;
+    };
     for (int a = 0; a < kArrayCount; a++) {
         uint32_t layers = 0;
         for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
-            if (s_Data.Active[slot] && (s_Data.Maps[slot] & kArrays[a].Maps))
+            if (ownsLayer(slot) && (s_Data.Maps[slot] & kArrays[a].Maps))
                 layers = slot + 1;
         uint32_t size = layers > 0 ? s_Data.Resolution : 1;
         s_Data.Arrays[a] = CreateScope<TextureArray>(size, std::max(layers, 1u), kArrays[a].Format);
     }
 
     for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
-        if (s_Data.Active[slot])
+        if (ownsLayer(slot))
             UploadSlot(slot, s_Data.Resolution);
+    // UploadSlot may have dropped maps that failed to load - sharers follow their source.
+    for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
+        if (s_Data.Active[slot] && s_Data.SharedFrom[slot] >= 0)
+            s_Data.Maps[slot] = s_Data.Maps[s_Data.SharedFrom[slot]];
 
     for (const Scope<TextureArray>& array : s_Data.Arrays)
         array->GenerateMips();
@@ -214,6 +228,22 @@ TerrainMaterialDesc TerrainMaterialDesc::FromDirectory(const std::string& dir, c
     return desc;
 }
 
+namespace {
+
+// Deactivates every slot sampling `source`'s layer - they'd otherwise read a missing layer.
+void ClearSharersOf(uint32_t source) {
+    for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++) {
+        if (s_Data.SharedFrom[slot] != (int32_t)source)
+            continue;
+        s_Data.Active[slot] = false;
+        s_Data.Maps[slot] = 0;
+        s_Data.Descs[slot] = {};
+        s_Data.SharedFrom[slot] = -1;
+    }
+}
+
+} // namespace
+
 void TerrainMaterials::Init() {
     RebuildArrays();
 }
@@ -223,6 +253,7 @@ void TerrainMaterials::Shutdown() {
         array.reset();
     s_Data.Active.fill(false);
     s_Data.Maps.fill(0);
+    s_Data.SharedFrom.fill(-1);
 }
 
 bool TerrainMaterials::SetSlot(uint32_t slot, const TerrainMaterialDesc& desc) {
@@ -248,20 +279,53 @@ bool TerrainMaterials::SetSlot(uint32_t slot, const TerrainMaterialDesc& desc) {
         }
     }
 
+    // Any slots already sharing this one keep doing so - RebuildArrays re-mirrors their maps.
     s_Data.Descs[slot] = desc;
     s_Data.Maps[slot] = maps;
     s_Data.Active[slot] = true;
+    s_Data.SharedFrom[slot] = -1;
     s_Data.Dirty = true;
     return allLoaded;
+}
+
+bool TerrainMaterials::SetSlotShared(uint32_t slot, uint32_t sourceSlot, const TerrainMaterialDesc& params) {
+    if (slot >= kMaxTerrainMaterialSlots || sourceSlot >= kMaxTerrainMaterialSlots || slot == sourceSlot) {
+        WK_CORE_ERROR("TerrainMaterials::SetSlotShared - invalid slot {0} / source {1}", slot, sourceSlot);
+        return false;
+    }
+    if (!s_Data.Active[sourceSlot] || s_Data.SharedFrom[sourceSlot] >= 0) {
+        WK_CORE_ERROR("TerrainMaterials::SetSlotShared - source slot {0} must be an active SetSlot slot", sourceSlot);
+        return false;
+    }
+
+    if (s_Data.Active[slot] && s_Data.SharedFrom[slot] < 0) {
+        ClearSharersOf(slot);
+        s_Data.Dirty = true; // its own layer goes away
+    }
+
+    // Keep the source's paths so the slot's desc still describes what it actually samples.
+    TerrainMaterialDesc desc = params;
+    for (const MapInfo& map : kMaps)
+        desc.*map.Path = s_Data.Descs[sourceSlot].*map.Path;
+
+    s_Data.Descs[slot] = desc;
+    s_Data.Maps[slot] = s_Data.Maps[sourceSlot];
+    s_Data.Active[slot] = true;
+    s_Data.SharedFrom[slot] = (int32_t)sourceSlot;
+    return true;
 }
 
 void TerrainMaterials::ClearSlot(uint32_t slot) {
     if (slot >= kMaxTerrainMaterialSlots || !s_Data.Active[slot])
         return;
+    if (s_Data.SharedFrom[slot] < 0) {
+        ClearSharersOf(slot);
+        s_Data.Dirty = true;
+    }
     s_Data.Active[slot] = false;
     s_Data.Maps[slot] = 0;
     s_Data.Descs[slot] = {};
-    s_Data.Dirty = true;
+    s_Data.SharedFrom[slot] = -1;
 }
 
 bool TerrainMaterials::IsSlotActive(uint32_t slot) {
@@ -347,6 +411,7 @@ void TerrainMaterials::UploadUniforms(Shader* shader) {
         shader->SetFloat(names[i].HeightScale, desc.HeightScale);
         shader->SetInt(names[i].Maps, (int)s_Data.Maps[i]);
         shader->SetInt(names[i].Active, s_Data.Active[i] ? 1 : 0);
+        shader->SetInt(names[i].Layer, s_Data.SharedFrom[i] >= 0 ? s_Data.SharedFrom[i] : (int)i);
     }
 }
 

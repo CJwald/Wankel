@@ -33,10 +33,10 @@ struct QuantizedVertex {
     uint16_t Padding = 0;  // offset 6, 2 bytes - pushes Color to offset 8 (4-byte aligned)
     glm::vec4 Color;       // offset 8, 16 bytes
     uint32_t PackedNormal; // offset 24, 4 bytes (4-byte aligned)
-    std::array<uint8_t, kMaxTerrainMaterialSlots> MaterialWeights; // offset 28, 8 bytes - two ubyte4 attributes
+    std::array<uint8_t, kMaxTerrainMaterialSlots> MaterialWeights; // offset 28, 16 bytes - four ubyte4 attributes
 };
 #pragma pack(pop)
-static_assert(sizeof(QuantizedVertex) == 36, "QuantizedVertex must be tightly packed - GPU stride depends on this");
+static_assert(sizeof(QuantizedVertex) == 44, "QuantizedVertex must be tightly packed - GPU stride depends on this");
 
 inline uint16_t QuantizeComponent(float value, float min, float extent) {
     float t = extent > 1e-8f ? glm::clamp((value - min) / extent, 0.0f, 1.0f) : 0.0f;
@@ -78,12 +78,12 @@ struct SplitQuantizedVertex {
     glm::vec4 Color;       // offset 8, 16 bytes
     uint32_t PackedNormal; // offset 24, 4 bytes
     glm::vec4 ColorOther;  // offset 28, 16 bytes
-    std::array<uint8_t, kMaxTerrainMaterialSlots> MaterialWeights;      // offset 44, 8 bytes
-    std::array<uint8_t, kMaxTerrainMaterialSlots> MaterialWeightsOther; // offset 52, 8 bytes
+    std::array<uint8_t, kMaxTerrainMaterialSlots> MaterialWeights;      // offset 44, 16 bytes
+    std::array<uint8_t, kMaxTerrainMaterialSlots> MaterialWeightsOther; // offset 60, 16 bytes
 };
 #pragma pack(pop)
-static_assert(sizeof(SplitQuantizedVertex) == 60,
-             "SplitQuantizedVertex must be tightly packed - GPU stride depends on this");
+static_assert(sizeof(SplitQuantizedVertex) == 76,
+              "SplitQuantizedVertex must be tightly packed - GPU stride depends on this");
 
 inline std::vector<SplitQuantizedVertex> BuildSplitQuantizedVertices(const std::vector<SplitVertex>& vertices,
                                                                       const glm::vec3& min, const glm::vec3& extent) {
