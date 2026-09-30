@@ -4,7 +4,11 @@
 
 namespace Wankel {
 
-enum class TextureArrayFormat : uint8_t { R8, RGB8 };
+// SRGB8 = color data (base color, emissive) - the GPU decodes it to linear on sampling; the rest are linear data.
+enum class TextureArrayFormat : uint8_t { R8, RG8, RGB8, RGBA8, SRGB8 };
+
+// Bytes per texel of pixels passed to SetLayer.
+uint32_t TextureArrayChannels(TextureArrayFormat format);
 
 // GL_TEXTURE_2D_ARRAY wrapper: square layers, repeat wrap, trilinear mipmapped filtering.
 class TextureArray {

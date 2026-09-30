@@ -11,14 +11,52 @@ namespace Wankel {
 namespace {
 
 GLenum ExternalFormat(TextureArrayFormat format) {
-    return format == TextureArrayFormat::R8 ? GL_RED : GL_RGB;
+    switch (format) {
+        case TextureArrayFormat::R8:
+            return GL_RED;
+        case TextureArrayFormat::RG8:
+            return GL_RG;
+        case TextureArrayFormat::RGBA8:
+            return GL_RGBA;
+        case TextureArrayFormat::RGB8:
+        case TextureArrayFormat::SRGB8:
+        default:
+            return GL_RGB;
+    }
 }
 
 GLenum InternalFormat(TextureArrayFormat format) {
-    return format == TextureArrayFormat::R8 ? GL_R8 : GL_RGB8;
+    switch (format) {
+        case TextureArrayFormat::R8:
+            return GL_R8;
+        case TextureArrayFormat::RG8:
+            return GL_RG8;
+        case TextureArrayFormat::RGBA8:
+            return GL_RGBA8;
+        case TextureArrayFormat::SRGB8:
+            return GL_SRGB8;
+        case TextureArrayFormat::RGB8:
+        default:
+            return GL_RGB8;
+    }
 }
 
 } // namespace
+
+uint32_t TextureArrayChannels(TextureArrayFormat format) {
+    switch (format) {
+        case TextureArrayFormat::R8:
+            return 1;
+        case TextureArrayFormat::RG8:
+            return 2;
+        case TextureArrayFormat::RGBA8:
+            return 4;
+        case TextureArrayFormat::RGB8:
+        case TextureArrayFormat::SRGB8:
+        default:
+            return 3;
+    }
+}
 
 TextureArray::TextureArray(uint32_t size, uint32_t layers, TextureArrayFormat format)
     : m_Size(size), m_Layers(layers), m_Format(format) {
