@@ -16,6 +16,7 @@ class Font;
 class OcclusionQuery;
 class ChunkGeometryPool;
 class SplitChunkGeometryPool;
+class ShadowMap;
 
 // Off = today's smooth-interpolated vertex color (see u_VoxelSplitSharpness), zero extra cost.
 // CpuSplit = de-indexed split-capable chunk mesh (SplitChunkGeometryPool) + the WA-recovery shader
@@ -44,7 +45,35 @@ struct LightSettings {
     glm::vec3 Color = {1.0f, 0.98f, 0.92f};
 
     float Ambient = 0.25f;
-    float Specular = 0.35f;
+    float Specular = 0.35f; // scales total direct (diffuse + specular) light, not just specular
+    glm::vec3 AmbientColor = {1.0f, 0.98f, 0.92f};
+};
+
+// Optional directional-light shadow + sky-occlusion inputs for shaders including WankelShaders/shadows.glsl
+// (see Renderer::SetShadows). Both maps are ShadowMap depth textures rendered via BeginShadowPass. All
+// distances are world units; *DepthRange is each map's far-near span, used to turn them into depth units.
+struct ShadowSettings {
+    bool SunEnabled = false;
+    glm::mat4 SunViewProj {1.0f};
+    uint32_t SunTexture = 0;
+    float SunDepthRange = 1.0f;
+    float DepthBias = 0.05f;
+    float NormalBias = 0.15f;
+    float PcfRadius = 1.0f; // texels between PCF taps
+    float Strength = 1.0f;  // 0 = shadows have no effect
+
+    // Top-down depth of the highest surface per XZ: fragments well below it get no sky light (caves).
+    bool SkyEnabled = false;
+    glm::mat4 SkyViewProj {1.0f};
+    uint32_t SkyTexture = 0;
+    float SkyDepthRange = 1.0f;
+    float SkyFadeDepth = 6.0f;    // depth below the surface over which sky light fades out
+    float SkySoftness = 2.0f;     // texels between blur taps
+    float SkyNormalOffset = 1.5f; // pushes lookups out along the surface normal so open cliff faces stay lit
+    float CaveAmbient = 0.05f;    // fraction of ambient that remains with no sky visibility
+
+    // > 0: shading lookups wrap world Y into [-WorldHalfY, WorldHalfY), for vertically tiled worlds.
+    float WorldHalfY = 0.0f;
 };
 
 // GPU-ready snapshot of one point light: world position (read from the owning
@@ -187,6 +216,14 @@ public:
     static void SetFog(const FogSettings& fog);
     static void SetLight(const LightSettings& light);
     static void SetPointLights(const std::vector<PointLightGPU>& lights);
+    static void SetShadows(const ShadowSettings& shadows);
+
+    // Redirects subsequent Submit*/SubmitIndirect draws into `target`'s depth buffer using view/proj in
+    // place of the scene camera (pass depth-only shaders). EndShadowPass restores the camera, viewport and
+    // framebuffer. cullFrontFaces renders back faces only - fewer self-shadowing artifacts on closed meshes.
+    static void BeginShadowPass(const ShadowMap& target, const glm::mat4& view, const glm::mat4& proj,
+                                bool cullFrontFaces = false, float slopeBias = 2.0f);
+    static void EndShadowPass();
 
     // [0,1], default 0 (unchanged behavior/zero cost): how sharply a marching-cubes terrain
     // triangle's fragment color splits between its two dominant vertex colors instead of smoothly

@@ -10,6 +10,7 @@
 #include "OcclusionQuery.h"
 #include "ChunkGeometryPool.h"
 #include "SplitChunkGeometryPool.h"
+#include "ShadowMap.h"
 #include "TerrainMaterial.h"
 
 #include "Wankel/Core/Time.h"
@@ -88,7 +89,19 @@ struct RendererData {
     Shader* LastSubmitShader = nullptr;
     Material LastMaterial {};
     bool LastMaterialValid = false;
+
+    ShadowSettings Shadows;
+    // 1x1 compare-mode depth textures bound when a map is off, so shadows.glsl's samplers never alias
+    // a 2D color texture on another unit (a GL draw-time error) - same reason as TerrainMaterials.
+    uint32_t PlaceholderShadowTexture = 0;
+    bool InShadowPass = false;
+    glm::mat4 SavedView {1.0f};
+    glm::mat4 SavedProjection {1.0f};
+    int SavedViewport[4] = {0, 0, 0, 0};
 };
+
+constexpr uint32_t kSunShadowUnit = 6; // after TerrainMaterials' units 1-5
+constexpr uint32_t kSkyShadowUnit = 7;
 
 
 static RendererData s_Data;
@@ -208,6 +221,16 @@ void Renderer::Init() {
     }
 
     TerrainMaterials::Init();
+
+    glGenTextures(1, &s_Data.PlaceholderShadowTexture);
+    glBindTexture(GL_TEXTURE_2D, s_Data.PlaceholderShadowTexture);
+    const float farDepth = 1.0f;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, &farDepth);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 
@@ -238,6 +261,8 @@ void Renderer::Shutdown() {
     glDeleteVertexArrays(1, &s_Data.OcclusionBoxVAO);
 
     glDeleteBuffers(1, &s_Data.InstanceVBO);
+    glDeleteTextures(1, &s_Data.PlaceholderShadowTexture);
+    s_Data.PlaceholderShadowTexture = 0;
 
     TerrainMaterials::Shutdown();
 }
@@ -325,6 +350,37 @@ void Renderer::EndScene() {
 
 namespace {
 
+// shadows.glsl inputs - see ShadowSettings. Textures are left alone during a shadow pass, whose own target
+// must not be bound for sampling while it's being written.
+void UploadShadowUniforms(Shader* shader) {
+    const ShadowSettings& sh = s_Data.Shadows;
+    shader->SetInt("u_SunShadowMap", (int)kSunShadowUnit);
+    shader->SetInt("u_SkyShadowMap", (int)kSkyShadowUnit);
+    shader->SetInt("u_SunShadowEnabled", sh.SunEnabled && sh.SunTexture ? 1 : 0);
+    shader->SetMat4("u_SunViewProj", sh.SunViewProj);
+    shader->SetFloat("u_SunDepthRange", sh.SunDepthRange);
+    shader->SetFloat("u_ShadowDepthBias", sh.DepthBias);
+    shader->SetFloat("u_ShadowNormalBias", sh.NormalBias);
+    shader->SetFloat("u_ShadowPcfRadius", sh.PcfRadius);
+    shader->SetFloat("u_ShadowStrength", sh.Strength);
+    shader->SetInt("u_SkyOcclusionEnabled", sh.SkyEnabled && sh.SkyTexture ? 1 : 0);
+    shader->SetMat4("u_SkyViewProj", sh.SkyViewProj);
+    shader->SetFloat("u_SkyDepthRange", sh.SkyDepthRange);
+    shader->SetFloat("u_SkyFadeDepth", sh.SkyFadeDepth);
+    shader->SetFloat("u_SkySoftness", sh.SkySoftness);
+    shader->SetFloat("u_SkyNormalOffset", sh.SkyNormalOffset);
+    shader->SetFloat("u_CaveAmbient", sh.CaveAmbient);
+    shader->SetFloat("u_WorldHalfY", sh.WorldHalfY);
+
+    if (s_Data.InShadowPass)
+        return;
+    glActiveTexture(GL_TEXTURE0 + kSunShadowUnit);
+    glBindTexture(GL_TEXTURE_2D, sh.SunEnabled && sh.SunTexture ? sh.SunTexture : s_Data.PlaceholderShadowTexture);
+    glActiveTexture(GL_TEXTURE0 + kSkyShadowUnit);
+    glBindTexture(GL_TEXTURE_2D, sh.SkyEnabled && sh.SkyTexture ? sh.SkyTexture : s_Data.PlaceholderShadowTexture);
+    glActiveTexture(GL_TEXTURE0); // every other texture user assumes unit 0 is active
+}
+
 // Shared by every draw path (Submit/SubmitInstanced/SubmitIndirect): shader bind + frame-constant
 // uniform dedup (view/projection/camera/light/fog/time) + material dedup. Frame-constant uniforms
 // only need re-uploading to a given shader once per frame, not once per draw - re-set them only the
@@ -343,6 +399,8 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
         shader->SetVec3("u_LightColor", s_Data.Light.Color);
         shader->SetFloat("u_AmbientStrength", s_Data.Light.Ambient);
         shader->SetFloat("u_SpecularStrength", s_Data.Light.Specular);
+        shader->SetVec3("u_AmbientColor", s_Data.Light.AmbientColor);
+        UploadShadowUniforms(shader);
 
         shader->SetInt("u_PointLightCount", s_Data.PointLightCount);
         for (int i = 0; i < s_Data.PointLightCount; ++i) {
@@ -771,6 +829,46 @@ void Renderer::SetFog(const FogSettings& fog) {
 
 void Renderer::SetLight(const LightSettings& light) {
     s_Data.Light = light;
+}
+
+void Renderer::SetShadows(const ShadowSettings& shadows) {
+    s_Data.Shadows = shadows;
+    s_Data.LastSubmitShader = nullptr; // re-upload on each shader's next draw
+}
+
+void Renderer::BeginShadowPass(const ShadowMap& target, const glm::mat4& view, const glm::mat4& proj,
+                               bool cullFrontFaces, float slopeBias) {
+    if (!s_Data.InShadowPass) {
+        s_Data.SavedView = s_Data.View;
+        s_Data.SavedProjection = s_Data.Projection;
+        glGetIntegerv(GL_VIEWPORT, s_Data.SavedViewport);
+    }
+    s_Data.InShadowPass = true;
+    s_Data.View = view;
+    s_Data.Projection = proj;
+    s_Data.LastSubmitShader = nullptr;
+    s_Data.LastMaterialValid = false;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, target.GetFramebufferID());
+    glViewport(0, 0, (GLsizei)target.GetResolution(), (GLsizei)target.GetResolution());
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glCullFace(cullFrontFaces ? GL_FRONT : GL_BACK);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(slopeBias, 1.0f);
+}
+
+void Renderer::EndShadowPass() {
+    if (!s_Data.InShadowPass)
+        return;
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glCullFace(GL_BACK);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(s_Data.SavedViewport[0], s_Data.SavedViewport[1], s_Data.SavedViewport[2], s_Data.SavedViewport[3]);
+    s_Data.View = s_Data.SavedView;
+    s_Data.Projection = s_Data.SavedProjection;
+    s_Data.InShadowPass = false;
+    s_Data.LastSubmitShader = nullptr;
+    s_Data.LastMaterialValid = false;
 }
 
 void Renderer::SetVoxelSplitSharpness(float sharpness) {
