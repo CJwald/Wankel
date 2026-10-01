@@ -31,6 +31,7 @@ public:
                 continue;
 
             size_t offset = m_FreeList[i].Offset;
+            m_Used += size;
             if (m_FreeList[i].Size == size) {
                 m_FreeList.erase(m_FreeList.begin() + (long)i);
             } else {
@@ -48,6 +49,7 @@ public:
     void Free(size_t offset, size_t size) {
         if (size == 0)
             return;
+        m_Used -= size;
 
         // Insert in offset order, then coalesce with an adjacent neighbor on either side - keeps
         // the free list from fragmenting into many small blocks under sustained alloc/free churn
@@ -68,7 +70,18 @@ public:
         }
     }
 
+    // Extends the range to newCapacity (no-op if not larger); existing offsets stay valid.
+    void Grow(size_t newCapacity) {
+        if (newCapacity <= m_Capacity)
+            return;
+        size_t oldCapacity = m_Capacity;
+        m_Capacity = newCapacity;
+        Free(oldCapacity, newCapacity - oldCapacity);
+        m_Used += newCapacity - oldCapacity; // Free counted it as a release
+    }
+
     size_t GetCapacity() const { return m_Capacity; }
+    size_t GetUsed() const { return m_Used; }
 
 private:
     struct Block {
@@ -77,6 +90,7 @@ private:
     };
 
     size_t m_Capacity;
+    size_t m_Used = 0;
     std::vector<Block> m_FreeList;
 };
 

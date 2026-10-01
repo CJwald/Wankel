@@ -53,18 +53,25 @@ struct ChunkGeometryHandle {
 class Shader;
 struct Material;
 
+// Grows `allocator`'s GL buffer to fit `needed` more bytes (doubling, clamped to maxBytes), copying the
+// existing contents; false if already at maxBytes. `buffer` gets a new ID, so any VAO binding to it must
+// be re-specified by the caller.
+bool GrowPoolBuffer(uint32_t& buffer, ByteRangeAllocator& allocator, size_t needed, size_t maxBytes, const char* label);
+
 // Combined vertex/index/transform storage for many voxel chunks, batched into a single
 // glMultiDrawElementsIndirect call per frame instead of one Submit()/SubmitInstanced per chunk -
 // see docs/TODO.md's "Open" item on cross-chunk draw-call batching. Vertex data must already be in
 // QuantizedVertex GPU format - this class is otherwise format-agnostic, it has no knowledge of
 // voxels/marching cubes.
 //
-// Sub-allocation only, no growth: if the pool runs out of vertex/index/slot capacity, Allocate()
-// returns an invalid handle and the caller should fall back to a standalone Wankel::Mesh for that
-// one chunk instead - simpler and safer than buffer growth/compaction for a first version.
+// The vertex/index buffers grow on demand (doubling, existing offsets kept) up to maxVertexBytes/
+// maxIndexBytes; past that, or with no free chunk slot, Allocate() returns an invalid handle and the
+// caller should fall back to a standalone Wankel::Mesh for that one chunk.
 class ChunkGeometryPool {
 public:
-    ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes, uint32_t maxChunks);
+    // max*Bytes of 0 = never grow past the initial capacity.
+    ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes, uint32_t maxChunks,
+                      size_t maxVertexBytes = 0, size_t maxIndexBytes = 0);
     ~ChunkGeometryPool();
 
     ChunkGeometryPool(const ChunkGeometryPool&) = delete;
@@ -97,6 +104,10 @@ public:
 
     uint32_t GetLastUploadedCommandCount() const { return m_LastCommandCount; }
     uint32_t GetLiveChunkCount() const { return m_LiveChunks; }
+    size_t GetVertexBytesUsed() const { return m_VertexAllocator.GetUsed(); }
+    size_t GetVertexBytesCapacity() const { return m_VertexAllocator.GetCapacity(); }
+    size_t GetIndexBytesUsed() const { return m_IndexAllocator.GetUsed(); }
+    size_t GetIndexBytesCapacity() const { return m_IndexAllocator.GetCapacity(); }
 
     // For Renderer::SubmitIndirect - binds the VAO wired to this pool's combined vertex/index/
     // instance buffers.
@@ -105,6 +116,12 @@ public:
     uint32_t GetIndirectBuffer() const { return m_IndirectBuffer; }
 
 private:
+    // (Re)points the VAO's vertex attributes and element buffer at m_VertexVBO/m_IndexIBO.
+    void BindVertexLayout();
+    // Grows a buffer to fit `needed` more bytes (doubling, up to its max); false if already at the max.
+    bool GrowVertex(size_t needed);
+    bool GrowIndex(size_t needed);
+
     uint32_t m_VAO = 0;
     uint32_t m_VertexVBO = 0;
     uint32_t m_IndexIBO = 0;
@@ -117,6 +134,8 @@ private:
     uint32_t m_MaxIndirectCommands = 0;
     uint32_t m_MaxIndirectInstances = 0;
     uint32_t m_LastCommandCount = 0;
+    size_t m_MaxVertexBytes = 0;
+    size_t m_MaxIndexBytes = 0;
 
     ByteRangeAllocator m_VertexAllocator;
     ByteRangeAllocator m_IndexAllocator;

@@ -5,38 +5,53 @@
 
 #include <glad/gl.h>
 
+#include <algorithm>
+
 namespace Wankel {
 
-ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes, uint32_t maxChunks)
+bool GrowPoolBuffer(uint32_t& buffer, ByteRangeAllocator& allocator, size_t needed, size_t maxBytes,
+                    const char* label) {
+    size_t capacity = allocator.GetCapacity();
+    size_t grownBytes = std::min(std::max(capacity * 2, capacity + needed), maxBytes);
+    if (grownBytes <= capacity)
+        return false;
+
+    uint32_t grown = 0;
+    glGenBuffers(1, &grown);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, grown);
+    glBufferData(GL_COPY_WRITE_BUFFER, (GLsizeiptr)grownBytes, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_COPY_READ_BUFFER, buffer);
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, (GLsizeiptr)capacity);
+    glBindBuffer(GL_COPY_READ_BUFFER, 0);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+    glDeleteBuffers(1, &buffer);
+    buffer = grown;
+    allocator.Grow(grownBytes);
+
+    WK_CORE_INFO("{0} grown {1} -> {2} MB", label, capacity >> 20, grownBytes >> 20);
+    return true;
+}
+
+ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes, uint32_t maxChunks,
+                                     size_t maxVertexBytes, size_t maxIndexBytes)
     : m_MaxChunks(maxChunks), m_MaxIndirectCommands(maxChunks),
       // Headroom over 1 instance/chunk for tile-repeat copies of the same chunk - matches the
       // spirit of Renderer's own kMaxInstancesPerDraw, just sized for the whole frame's total
       // instead of one chunk's own instance count.
-      m_MaxIndirectInstances(maxChunks * 8), m_VertexAllocator(vertexCapacityBytes),
+      m_MaxIndirectInstances(maxChunks * 8), m_MaxVertexBytes(std::max(maxVertexBytes, vertexCapacityBytes)),
+      m_MaxIndexBytes(std::max(maxIndexBytes, indexCapacityBytes)), m_VertexAllocator(vertexCapacityBytes),
       m_IndexAllocator(indexCapacityBytes), m_SlotAllocator(maxChunks) {
     glGenVertexArrays(1, &m_VAO);
-    VertexArray::BindID(m_VAO);
 
-    // COMBINED VERTEX BUFFER - QuantizedVertex layout, must match Mesh's quantizing constructor
-    // exactly (locations 0-2) so a chunk's data means the same thing whether it lands here or in a
-    // standalone Mesh (pool-exhaustion fallback).
     glGenBuffers(1, &m_VertexVBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VertexVBO);
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)vertexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(QuantizedVertex),
-                          (void*)offsetof(QuantizedVertex, Position));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(QuantizedVertex), (void*)offsetof(QuantizedVertex, Color));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, sizeof(QuantizedVertex),
-                          (void*)offsetof(QuantizedVertex, PackedNormal));
-    // Locations 6-9: terrain material slot weights, 4 slots each (see TerrainMaterialWeights).
-    for (GLuint i = 0; i < kTerrainMaterialWeightVec4s; i++) {
-        glEnableVertexAttribArray(6 + i);
-        glVertexAttribPointer(6 + i, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
-                              (void*)(offsetof(QuantizedVertex, MaterialWeights) + i * 4));
-    }
+    glGenBuffers(1, &m_IndexIBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_IndexIBO);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)indexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
+    BindVertexLayout();
+
+    VertexArray::BindID(m_VAO);
 
     // COMBINED PER-INSTANCE BUFFER (locations 3-4) - one (WorldOffset, ChunkIndex) pair per
     // surviving instance this frame, rewritten wholesale each frame via UploadFrameData - see
@@ -57,13 +72,6 @@ ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCap
                            (void*)offsetof(ChunkInstanceEntry, ChunkIndex));
     glVertexAttribDivisor(4, 1);
 
-    // COMBINED INDEX BUFFER - element array buffer binding is captured into the VAO's own state at
-    // bind time, same as the vertex attribute bindings above; no further action needed at draw time
-    // beyond binding this VAO.
-    glGenBuffers(1, &m_IndexIBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexIBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)indexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
-
     VertexArray::BindID(0);
 
     // PER-CHUNK TRANSFORM SSBO - one ChunkTransformGPU slot per chunk, indexed by aChunkIndex.
@@ -82,6 +90,48 @@ ChunkGeometryPool::ChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCap
                 GL_DYNAMIC_DRAW);
 }
 
+void ChunkGeometryPool::BindVertexLayout() {
+    VertexArray::BindID(m_VAO);
+
+    // COMBINED VERTEX BUFFER - QuantizedVertex layout, must match Mesh's quantizing constructor
+    // exactly (locations 0-2) so a chunk's data means the same thing whether it lands here or in a
+    // standalone Mesh (pool-exhaustion fallback).
+    glBindBuffer(GL_ARRAY_BUFFER, m_VertexVBO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(QuantizedVertex),
+                          (void*)offsetof(QuantizedVertex, Position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(QuantizedVertex), (void*)offsetof(QuantizedVertex, Color));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, sizeof(QuantizedVertex),
+                          (void*)offsetof(QuantizedVertex, PackedNormal));
+    // Locations 6-9: terrain material slot weights, 4 slots each (see TerrainMaterialWeights).
+    for (GLuint i = 0; i < kTerrainMaterialWeightVec4s; i++) {
+        glEnableVertexAttribArray(6 + i);
+        glVertexAttribPointer(6 + i, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
+                              (void*)(offsetof(QuantizedVertex, MaterialWeights) + i * 4));
+    }
+
+    // COMBINED INDEX BUFFER - the element array binding is captured into the VAO's own state.
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexIBO);
+
+    VertexArray::BindID(0);
+}
+
+bool ChunkGeometryPool::GrowVertex(size_t needed) {
+    if (!GrowPoolBuffer(m_VertexVBO, m_VertexAllocator, needed, m_MaxVertexBytes, "ChunkGeometryPool vertex buffer"))
+        return false;
+    BindVertexLayout();
+    return true;
+}
+
+bool ChunkGeometryPool::GrowIndex(size_t needed) {
+    if (!GrowPoolBuffer(m_IndexIBO, m_IndexAllocator, needed, m_MaxIndexBytes, "ChunkGeometryPool index buffer"))
+        return false;
+    BindVertexLayout();
+    return true;
+}
+
 ChunkGeometryPool::~ChunkGeometryPool() {
     glDeleteBuffers(1, &m_IndirectBuffer);
     glDeleteBuffers(1, &m_TransformSSBO);
@@ -98,10 +148,14 @@ ChunkGeometryHandle ChunkGeometryPool::Allocate(uint32_t vertexCount, uint32_t i
     size_t indexBytes = (size_t)indexCount * sizeof(uint32_t);
 
     size_t vertexOffset = m_VertexAllocator.Alloc(vertexBytes);
+    if (vertexOffset == ByteRangeAllocator::kFailed && GrowVertex(vertexBytes))
+        vertexOffset = m_VertexAllocator.Alloc(vertexBytes);
     if (vertexOffset == ByteRangeAllocator::kFailed)
         return handle;
 
     size_t indexOffset = m_IndexAllocator.Alloc(indexBytes);
+    if (indexOffset == ByteRangeAllocator::kFailed && GrowIndex(indexBytes))
+        indexOffset = m_IndexAllocator.Alloc(indexBytes);
     if (indexOffset == ByteRangeAllocator::kFailed) {
         m_VertexAllocator.Free(vertexOffset, vertexBytes);
         return handle;
