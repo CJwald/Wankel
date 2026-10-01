@@ -5,21 +5,64 @@
 
 #include <glad/gl.h>
 
+#include <algorithm>
+
 namespace Wankel {
 
 SplitChunkGeometryPool::SplitChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes,
-                                               uint32_t maxChunks)
+                                               uint32_t maxChunks, size_t maxVertexBytes, size_t maxIndexBytes)
     : m_MaxChunks(maxChunks), m_MaxIndirectCommands(maxChunks), m_MaxIndirectInstances(maxChunks * 8),
-      m_VertexAllocator(vertexCapacityBytes), m_IndexAllocator(indexCapacityBytes), m_SlotAllocator(maxChunks) {
+      m_MaxVertexBytes(std::max(maxVertexBytes, vertexCapacityBytes)),
+      m_MaxIndexBytes(std::max(maxIndexBytes, indexCapacityBytes)), m_VertexAllocator(vertexCapacityBytes),
+      m_IndexAllocator(indexCapacityBytes), m_SlotAllocator(maxChunks) {
     glGenVertexArrays(1, &m_VAO);
+
+    glGenBuffers(1, &m_VertexVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VertexVBO);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)vertexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &m_IndexIBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_IndexIBO);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)indexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
+    BindVertexLayout();
+
+    VertexArray::BindID(m_VAO);
+
+    // COMBINED PER-INSTANCE BUFFER (locations 3-4) - identical role/layout to ChunkGeometryPool's,
+    // see that class for the full comment.
+    glGenBuffers(1, &m_InstanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)((size_t)m_MaxIndirectInstances * sizeof(ChunkInstanceEntry)), nullptr,
+                GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ChunkInstanceEntry),
+                          (void*)offsetof(ChunkInstanceEntry, WorldOffset));
+    glVertexAttribDivisor(3, 1);
+    glEnableVertexAttribArray(4);
+    glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT, sizeof(ChunkInstanceEntry),
+                           (void*)offsetof(ChunkInstanceEntry, ChunkIndex));
+    glVertexAttribDivisor(4, 1);
+
+    VertexArray::BindID(0);
+
+    glGenBuffers(1, &m_TransformSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_TransformSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)((size_t)maxChunks * sizeof(ChunkTransformGPU)), nullptr,
+                GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &m_IndirectBuffer);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_IndirectBuffer);
+    glBufferData(GL_DRAW_INDIRECT_BUFFER,
+                (GLsizeiptr)((size_t)m_MaxIndirectCommands * sizeof(DrawElementsIndirectCommand)), nullptr,
+                GL_DYNAMIC_DRAW);
+}
+
+void SplitChunkGeometryPool::BindVertexLayout() {
     VertexArray::BindID(m_VAO);
 
     // COMBINED VERTEX BUFFER - SplitQuantizedVertex layout (locations 0-2 match ChunkGeometryPool's
     // QuantizedVertex layout exactly, plus location 5 for the extra ColorOther attribute - see that
     // struct's own comment).
-    glGenBuffers(1, &m_VertexVBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VertexVBO);
-    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)vertexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(SplitQuantizedVertex),
                           (void*)offsetof(SplitQuantizedVertex, Position));
@@ -41,37 +84,24 @@ SplitChunkGeometryPool::SplitChunkGeometryPool(size_t vertexCapacityBytes, size_
                               (void*)(base + (i % kTerrainMaterialWeightVec4s) * 4));
     }
 
-    // COMBINED PER-INSTANCE BUFFER (locations 3-4) - identical role/layout to ChunkGeometryPool's,
-    // see that class for the full comment.
-    glGenBuffers(1, &m_InstanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)((size_t)m_MaxIndirectInstances * sizeof(ChunkInstanceEntry)), nullptr,
-                GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ChunkInstanceEntry),
-                          (void*)offsetof(ChunkInstanceEntry, WorldOffset));
-    glVertexAttribDivisor(3, 1);
-    glEnableVertexAttribArray(4);
-    glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT, sizeof(ChunkInstanceEntry),
-                           (void*)offsetof(ChunkInstanceEntry, ChunkIndex));
-    glVertexAttribDivisor(4, 1);
-
-    glGenBuffers(1, &m_IndexIBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexIBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)indexCapacityBytes, nullptr, GL_DYNAMIC_DRAW);
 
     VertexArray::BindID(0);
+}
 
-    glGenBuffers(1, &m_TransformSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_TransformSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)((size_t)maxChunks * sizeof(ChunkTransformGPU)), nullptr,
-                GL_DYNAMIC_DRAW);
+bool SplitChunkGeometryPool::GrowVertex(size_t needed) {
+    if (!GrowPoolBuffer(m_VertexVBO, m_VertexAllocator, needed, m_MaxVertexBytes,
+                        "SplitChunkGeometryPool vertex buffer"))
+        return false;
+    BindVertexLayout();
+    return true;
+}
 
-    glGenBuffers(1, &m_IndirectBuffer);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_IndirectBuffer);
-    glBufferData(GL_DRAW_INDIRECT_BUFFER,
-                (GLsizeiptr)((size_t)m_MaxIndirectCommands * sizeof(DrawElementsIndirectCommand)), nullptr,
-                GL_DYNAMIC_DRAW);
+bool SplitChunkGeometryPool::GrowIndex(size_t needed) {
+    if (!GrowPoolBuffer(m_IndexIBO, m_IndexAllocator, needed, m_MaxIndexBytes, "SplitChunkGeometryPool index buffer"))
+        return false;
+    BindVertexLayout();
+    return true;
 }
 
 SplitChunkGeometryPool::~SplitChunkGeometryPool() {
@@ -90,10 +120,14 @@ ChunkGeometryHandle SplitChunkGeometryPool::Allocate(uint32_t vertexCount, uint3
     size_t indexBytes = (size_t)indexCount * sizeof(uint32_t);
 
     size_t vertexOffset = m_VertexAllocator.Alloc(vertexBytes);
+    if (vertexOffset == ByteRangeAllocator::kFailed && GrowVertex(vertexBytes))
+        vertexOffset = m_VertexAllocator.Alloc(vertexBytes);
     if (vertexOffset == ByteRangeAllocator::kFailed)
         return handle;
 
     size_t indexOffset = m_IndexAllocator.Alloc(indexBytes);
+    if (indexOffset == ByteRangeAllocator::kFailed && GrowIndex(indexBytes))
+        indexOffset = m_IndexAllocator.Alloc(indexBytes);
     if (indexOffset == ByteRangeAllocator::kFailed) {
         m_VertexAllocator.Free(vertexOffset, vertexBytes);
         return handle;

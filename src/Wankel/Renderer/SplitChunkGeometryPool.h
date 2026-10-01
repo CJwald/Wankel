@@ -19,7 +19,9 @@ namespace Wankel {
 // actually selected (see VoxelWorld::EnsureSplitGeometryPool).
 class SplitChunkGeometryPool {
 public:
-    SplitChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes, uint32_t maxChunks);
+    // Same growth behavior as ChunkGeometryPool (max*Bytes of 0 = never grow).
+    SplitChunkGeometryPool(size_t vertexCapacityBytes, size_t indexCapacityBytes, uint32_t maxChunks,
+                           size_t maxVertexBytes = 0, size_t maxIndexBytes = 0);
     ~SplitChunkGeometryPool();
 
     SplitChunkGeometryPool(const SplitChunkGeometryPool&) = delete;
@@ -38,12 +40,21 @@ public:
 
     uint32_t GetLastUploadedCommandCount() const { return m_LastCommandCount; }
     uint32_t GetLiveChunkCount() const { return m_LiveChunks; }
+    size_t GetVertexBytesUsed() const { return m_VertexAllocator.GetUsed(); }
+    size_t GetVertexBytesCapacity() const { return m_VertexAllocator.GetCapacity(); }
+    size_t GetIndexBytesUsed() const { return m_IndexAllocator.GetUsed(); }
+    size_t GetIndexBytesCapacity() const { return m_IndexAllocator.GetCapacity(); }
 
     void Bind() const;
     uint32_t GetTransformSSBO() const { return m_TransformSSBO; }
     uint32_t GetIndirectBuffer() const { return m_IndirectBuffer; }
 
 private:
+    // See ChunkGeometryPool's identically named members.
+    void BindVertexLayout();
+    bool GrowVertex(size_t needed);
+    bool GrowIndex(size_t needed);
+
     uint32_t m_VAO = 0;
     uint32_t m_VertexVBO = 0;
     uint32_t m_IndexIBO = 0;
@@ -56,6 +67,8 @@ private:
     uint32_t m_MaxIndirectCommands = 0;
     uint32_t m_MaxIndirectInstances = 0;
     uint32_t m_LastCommandCount = 0;
+    size_t m_MaxVertexBytes = 0;
+    size_t m_MaxIndexBytes = 0;
 
     ByteRangeAllocator m_VertexAllocator;
     ByteRangeAllocator m_IndexAllocator;
