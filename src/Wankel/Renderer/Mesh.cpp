@@ -46,13 +46,6 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     m_VertexBuffer->Bind();
     m_VertexArray->AddVertexBuffer(*m_VertexBuffer);
 
-    // Explicit locations 6-7 (matching ChunkGeometryPool) - AddVertexBuffer's sequential numbering would land on 3.
-    for (GLuint i = 0; i < 2; i++) {
-        glEnableVertexAttribArray(6 + i);
-        glVertexAttribPointer(6 + i, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
-                              (void*)(offsetof(QuantizedVertex, MaterialWeights) + i * 4));
-    }
-
     m_VertexArray->SetIndexBuffer(*m_IndexBuffer);
 }
 
@@ -79,6 +72,13 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
 
     m_VertexBuffer->Bind();
     m_VertexArray->AddVertexBuffer(*m_VertexBuffer);
+
+    // Explicit locations 6-9 (matching ChunkGeometryPool) - AddVertexBuffer's sequential numbering would land on 3.
+    for (GLuint i = 0; i < kTerrainMaterialWeightVec4s; i++) {
+        glEnableVertexAttribArray(6 + i);
+        glVertexAttribPointer(6 + i, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(QuantizedVertex),
+                              (void*)(offsetof(QuantizedVertex, MaterialWeights) + i * 4));
+    }
 
     m_VertexArray->SetIndexBuffer(*m_IndexBuffer);
 }

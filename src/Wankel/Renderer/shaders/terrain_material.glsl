@@ -1,5 +1,6 @@
 // Triplanar PBR terrain materials (Wankel::TerrainMaterials) - #include from a terrain fragment shader.
-#define TERRAIN_MATERIAL_SLOTS 8
+#define TERRAIN_MATERIAL_SLOTS 16
+#define TERRAIN_WEIGHT_VEC4S 4 // per-vertex slot weights, 4 slots per vec4 (Wankel::kTerrainMaterialWeightVec4s)
 
 // Must match Wankel::TerrainMap.
 #define TERRAIN_MAP_BASECOLOR 1
@@ -27,6 +28,7 @@ struct TerrainSlot {
     float HeightScale;
     int Maps; // TERRAIN_MAP_* bits of the maps that loaded - only those are sampled
     int Active;
+    int Layer; // texture array layer - its own slot index, or the source slot's when shared
 };
 
 uniform sampler2DArray u_TerrainBaseColor;   // sRGB storage - sampled values are already linear
@@ -65,16 +67,18 @@ vec4 SampleTriplanar(sampler2DArray tex, TriplanarCoords c, vec3 blend) {
 
 // Textured vertices bake Color=0 + a one-hot slot weight, so vertexColor + sum(w * base color) is exactly the
 // plain vertex-color blend with that material's color swapped for its texture; every other channel blends
-// from its untextured default the same way. w0/w1 = slots 0-3 / 4-7; viewDir = surface to camera, normalized.
-TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughness, float baseMetallic, vec4 w0,
-                                     vec4 w1, vec3 worldPos, vec3 viewDir) {
+// from its untextured default the same way. weights[k] = slots 4k..4k+3; viewDir = surface to camera, normalized.
+TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughness, float baseMetallic,
+                                     vec4 weights[TERRAIN_WEIGHT_VEC4S], vec3 worldPos, vec3 viewDir) {
     TerrainSurface surface = TerrainSurface(vertexColor, N, baseRoughness, baseMetallic, 1.0, vec3(0.0), 1.0, 0.0, 0.5);
 
     // Derivatives before any per-fragment branch - they're undefined in divergent control flow.
     vec3 dPdx = dFdx(worldPos);
     vec3 dPdy = dFdy(worldPos);
 
-    float total = dot(w0, vec4(1.0)) + dot(w1, vec4(1.0));
+    float total = 0.0;
+    for (int k = 0; k < TERRAIN_WEIGHT_VEC4S; k++)
+        total += dot(weights[k], vec4(1.0));
     if (total < 1e-3)
         return surface;
     total = min(total, 1.0);
@@ -98,13 +102,13 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
     float roughnessSum = 0.0, metallicSum = 0.0, aoSum = 0.0, heightSum = 0.0, opacitySum = 0.0, maskSum = 0.0;
 
     for (int i = 0; i < TERRAIN_MATERIAL_SLOTS; i++) {
-        float w = i < 4 ? w0[i] : w1[i - 4];
+        float w = weights[i / 4][i % 4];
         if (w < 1e-3 || u_TerrainSlots[i].Active == 0)
             continue;
 
         TerrainSlot slot = u_TerrainSlots[i];
         int maps = slot.Maps;
-        float layer = float(i);
+        float layer = float(slot.Layer);
         vec3 p = worldPos * slot.Scale;
         vec3 gx = dPdx * slot.Scale;
         vec3 gy = dPdy * slot.Scale;
