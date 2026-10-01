@@ -1,6 +1,7 @@
 #include "wkpch.h"
 #include "Wankel/Particles/ParticleRenderer.h"
 
+#include "Wankel/Assets/AssetManager.h"
 #include "Wankel/Particles/Particle.h"
 #include "Wankel/Particles/ParticleEffect.h"
 #include "Wankel/Renderer/Buffer.h"
@@ -19,9 +20,40 @@
 
 namespace Wankel {
 
+namespace {
+
+// Atlas sub-rect (y from the image top) + flipbook frame -> GL UV rect (u0, v0, du, dv), v measured from the
+// bottom since textures load flipped (Texture::LoadFromFile).
+glm::vec4 FrameUVRect(const ParticleMaterial& material, const Particle& p, float t) {
+    glm::vec4 atlas = material.AtlasRect;
+    const ParticleFlipbook& fb = material.Flipbook;
+    if (!fb.Enabled)
+        return {atlas.x, 1.0f - atlas.y - atlas.w, atlas.z, atlas.w};
+
+    uint32_t frames = fb.FrameCount;
+    uint32_t frame;
+    if (fb.FramesPerSecond > 0.0f) {
+        frame = (uint32_t)(p.Age * fb.FramesPerSecond);
+        frame = fb.Loop ? frame % frames : std::min(frame, frames - 1);
+    } else {
+        frame = std::min((uint32_t)(t * (float)frames), frames - 1);
+    }
+    if (fb.RandomStartFrame)
+        frame = (frame + (uint32_t)(p.Seed * (float)frames)) % frames;
+
+    float cellW = atlas.z / (float)fb.Columns;
+    float cellH = atlas.w / (float)fb.Rows;
+    uint32_t col = frame % fb.Columns;
+    uint32_t row = frame / fb.Columns;
+    float top = atlas.y + (float)row * cellH;
+    return {atlas.x + (float)col * cellW, 1.0f - top - cellH, cellW, cellH};
+}
+
+} // namespace
+
 ParticleRenderer::ParticleRenderer(uint32_t maxParticles) : m_MaxParticles(maxParticles) {
-    // UNIT QUAD (locations 0-1) - shared by every billboard, expanded to face the camera in
-    // particle.vert. Interleaved as [corner.xy, uv.xy].
+    // UNIT QUAD (locations 0-1) - shared by every particle, expanded in particle.vert. Interleaved as
+    // [corner.xy, uv.xy]; corner.x is the long axis for the velocity-aligned modes.
     const float quad[] = {
         -0.5f, -0.5f, 0.0f, 0.0f, //
         0.5f,  -0.5f, 1.0f, 0.0f, //
@@ -38,25 +70,27 @@ ParticleRenderer::ParticleRenderer(uint32_t maxParticles) : m_MaxParticles(maxPa
     m_QuadVBO->SetLayout(layout);
     m_VAO->AddVertexBuffer(*m_QuadVBO); // also binds the VAO - the instance attribs below record into it
 
-    // PER-INSTANCE BUFFER (locations 2-5) - one InstanceData per live particle, refilled each frame.
-    // Set up by hand because VertexBufferLayout/VertexArray have no glVertexAttribDivisor path (same
-    // reason Renderer::SubmitInstanced and ChunkGeometryPool wire their instance attribs directly).
+    // PER-INSTANCE BUFFER (locations 2-7) - set up by hand because VertexBufferLayout/VertexArray have no
+    // glVertexAttribDivisor path (same reason Renderer::SubmitInstanced and ChunkGeometryPool do).
     glGenBuffers(1, &m_InstanceVBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)((size_t)maxParticles * sizeof(InstanceData)), nullptr, GL_DYNAMIC_DRAW);
 
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (void*)offsetof(InstanceData, Center));
-    glVertexAttribDivisor(2, 1);
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (void*)offsetof(InstanceData, Size));
-    glVertexAttribDivisor(3, 1);
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (void*)offsetof(InstanceData, Color));
-    glVertexAttribDivisor(4, 1);
-    glEnableVertexAttribArray(5);
-    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (void*)offsetof(InstanceData, Rotation));
-    glVertexAttribDivisor(5, 1);
+    struct Attribute {
+        GLuint Location;
+        GLint Components;
+        size_t Offset;
+    };
+    const Attribute attributes[] = {
+        {2, 3, offsetof(InstanceData, Center)},   {3, 1, offsetof(InstanceData, Size)},
+        {4, 3, offsetof(InstanceData, Velocity)}, {5, 1, offsetof(InstanceData, Rotation)},
+        {6, 4, offsetof(InstanceData, Color)},    {7, 4, offsetof(InstanceData, UVRect)},
+    };
+    for (const Attribute& a : attributes) {
+        glEnableVertexAttribArray(a.Location);
+        glVertexAttribPointer(a.Location, a.Components, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (void*)a.Offset);
+        glVertexAttribDivisor(a.Location, 1);
+    }
 
     m_QuadIBO = CreateScope<IndexBuffer>(indices, 6);
     m_VAO->SetIndexBuffer(*m_QuadIBO);
@@ -65,93 +99,147 @@ ParticleRenderer::ParticleRenderer(uint32_t maxParticles) : m_MaxParticles(maxPa
 
     m_Shader = CreateScope<Shader>("WankelShaders/particle.vert", "WankelShaders/particle.frag");
 
-    // BUILT-IN SOFT SPRITE - a radial alpha falloff, R8 (all the engine's Texture supports today).
-    // Per-particle rgba comes from the instance color; this only shapes the alpha. A real RGBA/atlas
-    // texture path is future work (ParticleEffect::TexturePath).
+    // BUILT-IN SOFT SPRITE - white with a radial smoothstep alpha falloff, so a layer with no texture still
+    // gets its rgba purely from the color gradient.
     constexpr uint32_t kSize = 64;
-    std::vector<uint8_t> pixels(static_cast<size_t>(kSize) * kSize);
+    std::vector<uint8_t> pixels(static_cast<size_t>(kSize) * kSize * 4);
     for (uint32_t y = 0; y < kSize; y++) {
         for (uint32_t x = 0; x < kSize; x++) {
             float dx = ((float)x + 0.5f) / kSize * 2.0f - 1.0f;
             float dy = ((float)y + 0.5f) / kSize * 2.0f - 1.0f;
-            float d = std::sqrt(dx * dx + dy * dy);
-            float a = glm::clamp(1.0f - d, 0.0f, 1.0f);
+            float a = glm::clamp(1.0f - std::sqrt(dx * dx + dy * dy), 0.0f, 1.0f);
             a = a * a * (3.0f - 2.0f * a); // smoothstep
-            pixels[static_cast<size_t>(y) * kSize + x] = (uint8_t)(a * 255.0f);
+            uint8_t* px = &pixels[(static_cast<size_t>(y) * kSize + x) * 4];
+            px[0] = px[1] = px[2] = 255;
+            px[3] = (uint8_t)(a * 255.0f);
         }
     }
-    m_Sprite = CreateScope<Texture>(pixels.data(), kSize, kSize);
+    m_DefaultSprite = CreateScope<Texture>(pixels.data(), kSize, kSize, TextureFormat::RGBA8, true);
 }
 
 ParticleRenderer::~ParticleRenderer() {
     glDeleteBuffers(1, &m_InstanceVBO);
-    // m_VAO / m_QuadVBO / m_QuadIBO / m_Shader / m_Sprite free their own GL objects (Scope / RAII).
+    // m_VAO / m_QuadVBO / m_QuadIBO / m_Shader / m_DefaultSprite free their own GL objects (Scope / RAII).
 }
 
-void ParticleRenderer::Render(const Particle* particles, uint32_t count, const Camera& camera) {
-    m_AlphaInstances.clear();
-    m_AdditiveInstances.clear();
+ParticleRenderer::FrameStats ParticleRenderer::Render(const Particle* particles, uint32_t count,
+                                                      const std::vector<ParticleSystem::LayerSlot>& slots,
+                                                      const Camera& camera) {
+    FrameStats stats;
+    m_AlphaItems.clear();
+    m_AdditiveItems.clear();
 
+    const glm::vec3 camPos = camera.GetPosition();
     for (uint32_t i = 0; i < count; i++) {
         const Particle& p = particles[i];
+        const ParticleLayer* layer = slots[p.LayerSlot].Layer();
+        if (!layer)
+            continue;
         float t = p.Lifetime > 0.0f ? glm::clamp(p.Age / p.Lifetime, 0.0f, 1.0f) : 1.0f;
+        const ParticleAppearance& look = layer->Appearance;
 
-        InstanceData d;
-        d.Center = p.Position;
-        d.Size = glm::mix(p.StartSize, p.EndSize, t);
-        d.Color = glm::mix(p.StartColor, p.EndColor, t);
-        d.Rotation = p.Rotation;
+        DrawItem item;
+        item.Slot = p.LayerSlot;
+        item.Data.Center = p.Position;
+        item.Data.Size = p.Size * look.SizeOverLife.Evaluate(t);
+        item.Data.Velocity = p.Velocity;
+        item.Data.Rotation = p.Rotation;
+        item.Data.Color = look.ColorOverLife.Evaluate(t);
+        item.Data.Color.a *= look.AlphaOverLife.Evaluate(t);
+        item.Data.UVRect = FrameUVRect(layer->Material, p, t);
 
-        if (p.Blend == (uint8_t)ParticleBlend::Additive)
-            m_AdditiveInstances.push_back(d);
-        else
-            m_AlphaInstances.push_back(d);
+        if (layer->Material.Blend == ParticleBlend::Additive) {
+            m_AdditiveItems.push_back(item);
+        } else {
+            glm::vec3 d = p.Position - camPos;
+            item.SortKey = glm::dot(d, d);
+            m_AlphaItems.push_back(item);
+        }
     }
 
-    if (m_AlphaInstances.empty() && m_AdditiveInstances.empty())
-        return;
+    stats.AlphaParticles = (uint32_t)m_AlphaItems.size();
+    stats.AdditiveParticles = (uint32_t)m_AdditiveItems.size();
+    if (m_AlphaItems.empty() && m_AdditiveItems.empty())
+        return stats;
 
-    // Coarse back-to-front sort so the standard alpha blend composites sanely; additive is
-    // order-independent so it's left unsorted.
-    const glm::vec3 camPos = camera.GetPosition();
-    std::sort(m_AlphaInstances.begin(), m_AlphaInstances.end(), [&](const InstanceData& a, const InstanceData& b) {
-        return glm::dot(a.Center - camPos, a.Center - camPos) > glm::dot(b.Center - camPos, b.Center - camPos);
-    });
+    // Alpha: back-to-front so the standard blend composites sanely, then split wherever the layer changes.
+    // Additive: order-independent, so just grouped by layer to minimize draw calls.
+    std::sort(m_AlphaItems.begin(), m_AlphaItems.end(),
+              [](const DrawItem& a, const DrawItem& b) { return a.SortKey > b.SortKey; });
+    std::sort(m_AdditiveItems.begin(), m_AdditiveItems.end(),
+              [](const DrawItem& a, const DrawItem& b) { return a.Slot < b.Slot; });
+
+    m_Instances.clear();
+    m_Runs.clear();
+    BuildRuns(m_AlphaItems, false);
+    BuildRuns(m_AdditiveItems, true);
+
+    uint32_t total = std::min((uint32_t)m_Instances.size(), m_MaxParticles);
+    glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)((size_t)total * sizeof(InstanceData)), m_Instances.data());
 
     m_Shader->Bind();
     m_Shader->SetMat4("u_ViewProjection", camera.GetProjectionMatrix() * camera.GetViewMatrix());
     m_Shader->SetVec3("u_CameraRight", camera.GetRight());
     m_Shader->SetVec3("u_CameraUp", camera.GetUp());
-    m_Shader->SetInt("u_Sprite", 0);
-    m_Sprite->Bind(0);
+    m_Shader->SetVec3("u_CameraPos", camPos);
+    m_Shader->SetInt("u_Texture", 0);
     m_VAO->Bind();
 
     // Particles test against the depth buffer (world geometry occludes them) but don't write it -
     // they're only coarsely sorted and would otherwise carve holes in each other. Blend func is
     // restored to the engine-wide default (Renderer::Init) afterward.
+    // Flat quads - never cull them, whichever way a velocity-aligned one ends up wound.
+    GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
     glDepthMask(GL_FALSE);
-    DrawBin(m_AlphaInstances, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    DrawBin(m_AdditiveInstances, GL_SRC_ALPHA, GL_ONE);
+    for (const Run& run : m_Runs) {
+        if (run.First >= total)
+            break;
+        DrawRun(run, slots);
+        stats.DrawCalls++;
+    }
     glDepthMask(GL_TRUE);
+    if (cullWasEnabled)
+        glEnable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    return stats;
 }
 
-void ParticleRenderer::DrawBin(const std::vector<InstanceData>& bin, uint32_t glSrcFactor, uint32_t glDstFactor) {
-    if (bin.empty())
-        return;
-
-    uint32_t n = (uint32_t)bin.size();
-    if (n > m_MaxParticles) {
-        WK_CORE_WARNING("ParticleRenderer::DrawBin - {0} instances submitted, truncating to capacity ({1})", n,
-                        m_MaxParticles);
-        n = m_MaxParticles;
+void ParticleRenderer::BuildRuns(std::vector<DrawItem>& items, bool additive) {
+    for (const DrawItem& item : items) {
+        if (m_Runs.empty() || m_Runs.back().Slot != item.Slot || m_Runs.back().Additive != additive)
+            m_Runs.push_back({item.Slot, (uint32_t)m_Instances.size(), 0, additive});
+        m_Runs.back().Count++;
+        m_Instances.push_back(item.Data);
     }
+}
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_InstanceVBO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)((size_t)n * sizeof(InstanceData)), bin.data());
+void ParticleRenderer::DrawRun(const Run& run, const std::vector<ParticleSystem::LayerSlot>& slots) {
+    const ParticleLayer* layer = slots[run.Slot].Layer();
+    if (!layer)
+        return;
+    const ParticleMaterial& material = layer->Material;
+    const ParticleAppearance& look = layer->Appearance;
 
-    glBlendFunc(glSrcFactor, glDstFactor);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, (GLsizei)n);
+    Ref<Texture> texture = material.TexturePath.empty() ? nullptr : AssetManager::GetTexture(material.TexturePath);
+    if (texture)
+        texture->Bind(0);
+    else
+        m_DefaultSprite->Bind(0);
+
+    m_Shader->SetInt("u_Orientation", (int)look.Orientation);
+    m_Shader->SetFloat("u_Aspect", look.Aspect);
+    m_Shader->SetFloat("u_StretchFactor", look.StretchFactor);
+    m_Shader->SetFloat("u_Emissive", material.EmissiveStrength);
+
+    if (run.Additive)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    else
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    uint32_t n = std::min(run.Count, m_MaxParticles - run.First);
+    glDrawElementsInstancedBaseInstance(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, (GLsizei)n, run.First);
 }
 
 } // namespace Wankel

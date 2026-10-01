@@ -1,9 +1,12 @@
 #pragma once
 
+#include "Wankel/Particles/ParticleCurve.h"
+
 #include <glm/glm.hpp>
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace Wankel {
 
@@ -19,51 +22,106 @@ enum class ParticleBlend : uint8_t {
     Additive // GL_SRC_ALPHA, GL_ONE - sparks, muzzle flash, fire
 };
 
-// Pure configuration for one kind of particle effect - no runtime state (that lives on the Particle
-// pool and the ParticleEmitter component). Same "one struct of tunable fields with in-class
-// defaults" shape as MotionLink/MeshAnimation. Each Min/Max pair is sampled per particle at spawn;
-// Min == Max just means "no variation".
-struct ParticleEffect {
-    // EMISSION
-    float SpawnRate = 0.0f; // particles/sec for continuous emission; 0 = burst-only (ParticleEmitter::Burst)
+enum class ParticleOrientation : uint8_t {
+    Billboard,        // camera-facing quad - smoke, fire, explosions
+    VelocityAligned,  // long axis along the velocity, length = Size * Aspect - sparks, debris
+    VelocityStretched // as VelocityAligned, plus speed * StretchFactor extra length - tracers, streaks
+};
+
+// How particles are born. Rate is continuous emission (needs a ParticleEmitter); BurstCount is what one
+// ParticleEmitter::Burst() / ParticleSystem::Play() spawns.
+struct ParticleEmission {
+    float Rate = 0.0f;       // particles/sec while the emitter is Enabled; 0 = burst-only
+    uint32_t BurstCount = 1; // particles per burst/play
+    float StartDelay = 0.0f; // seconds after a burst/play before this layer's burst fires
+
     EmitShape Shape = EmitShape::Cone;
     float ConeAngleDegrees = 25.0f;  // half-angle, for EmitShape::Cone
     glm::vec3 BoxHalfExtents {0.0f}; // for EmitShape::Box
+    glm::vec3 LocalOffset {0.0f};    // added to the emit origin, in world axes
 
-    // LIFETIME (seconds)
-    float LifetimeMin = 1.0f;
+    float LifetimeMin = 1.0f; // seconds
     float LifetimeMax = 1.0f;
-
-    // VELOCITY
-    float SpeedMin = 1.0f;
+    float SpeedMin = 1.0f; // along the emitted direction
     float SpeedMax = 2.0f;
-    glm::vec3 InheritVelocity {0.0f}; // added to every particle's initial velocity (emitter drift / wind)
+    float InheritVelocity = 0.0f;   // fraction of the emitter/caller velocity added to each particle
+    glm::vec3 AddedVelocity {0.0f}; // constant velocity added to every particle (drift / wind)
+};
 
-    // FORCES
+// How live particles move. Turbulence is a cheap deterministic noise force, not a fluid sim.
+struct ParticleMotion {
     glm::vec3 Gravity {0.0f}; // constant acceleration
     float Drag = 0.0f;        // fraction of speed shed per second
 
-    // SIZE (world units, full billboard width)
-    float StartSizeMin = 0.2f;
-    float StartSizeMax = 0.2f;
-    float EndSize = 0.2f;
+    float TurbulenceStrength = 0.0f;  // acceleration magnitude; 0 = off
+    float TurbulenceFrequency = 0.5f; // noise cycles per world unit
+    float TurbulenceScroll = 0.5f;    // noise field drift speed
+};
 
-    // ROTATION
-    float StartRotationJitter = 0.0f; // +/- this many radians of random initial roll
-    float AngularVelocityMin = 0.0f;
+// Size/color/rotation over a particle's life. Curves are sampled with normalized age t in [0,1].
+struct ParticleAppearance {
+    float SizeMin = 0.2f; // world units, full quad width; one random value per particle
+    float SizeMax = 0.2f;
+    ParticleCurve SizeOverLife = ParticleCurve::Constant(1.0f); // multiplies the per-particle size
+
+    ParticleGradient ColorOverLife = ParticleGradient::Linear({1, 1, 1, 1}, {1, 1, 1, 0});
+    ParticleCurve AlphaOverLife = ParticleCurve::Constant(1.0f); // multiplies the gradient's alpha
+
+    float StartRotationJitter = 0.0f; // +/- radians of random initial roll (billboards)
+    float AngularVelocityMin = 0.0f;  // radians/sec
     float AngularVelocityMax = 0.0f;
 
-    // COLOR / ALPHA - linear lerp from Start to End over the particle's life
-    glm::vec4 StartColor {1.0f};
-    glm::vec4 EndColor {1.0f, 1.0f, 1.0f, 0.0f};
+    ParticleOrientation Orientation = ParticleOrientation::Billboard;
+    float Aspect = 1.0f;        // length / width for the velocity-aligned modes
+    float StretchFactor = 0.0f; // extra length per unit of speed (VelocityStretched)
+};
 
-    // RENDER
+// Texture-sheet animation over a sub-rect of the texture, left-to-right then top-to-bottom.
+struct ParticleFlipbook {
+    bool Enabled = false;
+    uint32_t Columns = 1;
+    uint32_t Rows = 1;
+    uint32_t FrameCount = 1;
+    float FramesPerSecond = 0.0f; // 0 = play the frames once over the particle's whole life
+    bool Loop = false;            // with FramesPerSecond > 0: wrap instead of holding the last frame
+    bool RandomStartFrame = false;
+};
+
+struct ParticleMaterial {
+    std::string TexturePath;                      // empty = the built-in soft round sprite
+    glm::vec4 AtlasRect {0.0f, 0.0f, 1.0f, 1.0f}; // x, y, w, h in UV space, y measured from the image top
+    ParticleFlipbook Flipbook;
     ParticleBlend Blend = ParticleBlend::Alpha;
+    float EmissiveStrength = 1.0f; // multiplies rgb - above 1 for bright additive effects
+};
 
-    // Reserved for a future RGBA/atlas texture path - the renderer only has a built-in soft round
-    // sprite for now and asserts these are left at their defaults rather than silently ignoring them.
-    std::string TexturePath;
-    glm::vec4 AtlasRect {0.0f, 0.0f, 1.0f, 1.0f}; // x, y, w, h in UV space
+// One emitter's worth of particles: what a single "piece" of an effect (flash, smoke, sparks) is.
+struct ParticleLayer {
+    std::string Name = "Layer";
+    bool Enabled = true;
+    ParticleEmission Emission;
+    ParticleMotion Motion;
+    ParticleAppearance Appearance;
+    ParticleMaterial Material;
+
+    // Clamps ranges/counts into valid values (min <= max, positive lifetimes, sane flipbook dims) - call
+    // after loading or editing, so the simulation never has to defend against bad data per particle.
+    void Validate();
+};
+
+// A complete effect: a composite of layers (e.g. Explosion = flash + fireball + smoke + sparks), loaded
+// from a .particle file by ParticleLibrary or built in code. Shared via Ref - editing it updates every
+// emitter using it and even particles already in flight.
+struct ParticleEffect {
+    std::string Name = "Effect";
+    std::string SourcePath; // file it was loaded from (ParticleLibrary), empty for code-built effects
+    std::vector<ParticleLayer> Layers;
+    float Duration = 2.0f; // preview/loop length for the editor; gameplay ignores it
+
+    void Validate() {
+        for (ParticleLayer& layer : Layers)
+            layer.Validate();
+    }
 };
 
 } // namespace Wankel
