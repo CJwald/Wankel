@@ -53,6 +53,7 @@
 #include "Wankel/Particles/ParticleEffectLibrary.h"
 #include "Wankel/Particles/ParticleLibrary.h"
 #include "Wankel/Particles/ParticleSystem.h"
+#include "Wankel/Particles/Editor/ParticleEditor.h"
 #include "Wankel/ECS/Systems/ParticleEmitterSystem.h"
 
 // -----------------------------

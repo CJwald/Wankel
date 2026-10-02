@@ -874,8 +874,14 @@ uint32_t Renderer::CaptureSceneDepth() {
     int width = viewport[2], height = viewport[3];
     if (width <= 0 || height <= 0)
         return 0;
+    // Captures from whatever is bound: the screen, or a RenderTarget such as an editor preview.
+    GLint source = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &source);
 
-    if (!s_Data.SceneDepthTexture || width != s_Data.SceneDepthWidth || height != s_Data.SceneDepthHeight) {
+    // Grow-only, so alternating between the screen and a smaller preview target doesn't reallocate every frame.
+    if (!s_Data.SceneDepthTexture || width > s_Data.SceneDepthWidth || height > s_Data.SceneDepthHeight) {
+        int allocWidth = std::max(width, s_Data.SceneDepthWidth);
+        int allocHeight = std::max(height, s_Data.SceneDepthHeight);
         if (!s_Data.SceneDepthFBO)
             glGenFramebuffers(1, &s_Data.SceneDepthFBO);
         if (s_Data.SceneDepthTexture)
@@ -883,8 +889,8 @@ uint32_t Renderer::CaptureSceneDepth() {
         glGenTextures(1, &s_Data.SceneDepthTexture);
         glBindTexture(GL_TEXTURE_2D, s_Data.SceneDepthTexture);
         // Matches the default framebuffer's usual D24S8, which a depth blit requires.
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8,
-                     nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, allocWidth, allocHeight, 0, GL_DEPTH_STENCIL,
+                     GL_UNSIGNED_INT_24_8, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -893,30 +899,31 @@ uint32_t Renderer::CaptureSceneDepth() {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, s_Data.SceneDepthTexture, 0);
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)source);
         glBindTexture(GL_TEXTURE_2D, 0);
-        s_Data.SceneDepthWidth = width;
-        s_Data.SceneDepthHeight = height;
+        s_Data.SceneDepthWidth = allocWidth;
+        s_Data.SceneDepthHeight = allocHeight;
     }
 
     if (!s_Data.SceneDepthUseCopy) {
         while (glGetError() != GL_NO_ERROR) {
         } // so a stale error isn't mistaken for the blit failing
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)source);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, s_Data.SceneDepthFBO);
         glBlitFramebuffer(viewport[0], viewport[1], viewport[0] + width, viewport[1] + height, 0, 0, width, height,
                           GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)source);
         if (glGetError() != GL_NO_ERROR) {
             WK_CORE_WARNING("Renderer::CaptureSceneDepth - depth blit unsupported here, using a texture copy");
             s_Data.SceneDepthUseCopy = true;
         }
     }
     if (s_Data.SceneDepthUseCopy) {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)source);
         glBindTexture(GL_TEXTURE_2D, s_Data.SceneDepthTexture);
         glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);
         glBindTexture(GL_TEXTURE_2D, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)source);
     }
     return s_Data.SceneDepthTexture;
 }

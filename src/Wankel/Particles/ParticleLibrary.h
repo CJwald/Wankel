@@ -27,6 +27,9 @@ nlohmann::json ToJson(const ParticleEffect& effect);
 // Missing fields keep their defaults, so older/hand-written files stay loadable.
 ParticleEffect FromJson(const nlohmann::json& json);
 
+// Drops one path from the cache (e.g. after deleting its file), so a later Load doesn't return the stale effect.
+void Forget(const std::string& path);
+
 // Drops the cache (holders keep their Refs).
 void Clear();
 

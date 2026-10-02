@@ -36,7 +36,7 @@ struct ParticleCurve {
     }
 
     void Sort() {
-        std::sort(Keys.begin(), Keys.end(), [](const Key& a, const Key& b) { return a.Time < b.Time; });
+        std::stable_sort(Keys.begin(), Keys.end(), [](const Key& a, const Key& b) { return a.Time < b.Time; });
     }
 };
 
@@ -68,7 +68,7 @@ struct ParticleGradient {
     }
 
     void Sort() {
-        std::sort(Keys.begin(), Keys.end(), [](const Key& a, const Key& b) { return a.Time < b.Time; });
+        std::stable_sort(Keys.begin(), Keys.end(), [](const Key& a, const Key& b) { return a.Time < b.Time; });
     }
 };
 

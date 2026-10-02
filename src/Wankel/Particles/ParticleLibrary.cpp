@@ -1,6 +1,9 @@
 #include "wkpch.h"
 #include "Wankel/Particles/ParticleLibrary.h"
 
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <unordered_map>
@@ -12,6 +15,49 @@ using json = nlohmann::json;
 namespace {
 
 std::unordered_map<std::string, Ref<ParticleEffect>> s_Cache;
+
+bool IsInline(const json& j) {
+    if (!j.is_array())
+        return !j.is_object();
+    return std::all_of(j.begin(), j.end(), [](const json& e) { return !e.is_object() && IsInline(e); });
+}
+
+// Like dump(2), but keeps vectors/curve keys on one line and prints floats at float precision, not 0.60000002384.
+void Write(std::ostream& out, const json& j, int indent) {
+    if (j.is_number_float()) {
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.6g", j.get<double>());
+        out << buffer;
+        if (!std::strpbrk(buffer, ".eEn"))
+            out << ".0";
+    } else if (IsInline(j) && j.is_array()) {
+        out << '[';
+        for (size_t i = 0; i < j.size(); i++) {
+            if (i > 0)
+                out << ", ";
+            Write(out, j[i], indent);
+        }
+        out << ']';
+    } else if (j.is_array() || j.is_object()) {
+        bool object = j.is_object();
+        if (j.empty()) {
+            out << (object ? "{}" : "[]");
+            return;
+        }
+        out << (object ? "{\n" : "[\n");
+        size_t i = 0;
+        for (auto it = j.begin(); it != j.end(); ++it, ++i) {
+            out << std::string(indent + 2, ' ');
+            if (object)
+                out << json(it.key()).dump() << ": ";
+            Write(out, *it, indent + 2);
+            out << (i + 1 < j.size() ? ",\n" : "\n");
+        }
+        out << std::string(indent, ' ') << (object ? '}' : ']');
+    } else {
+        out << j.dump();
+    }
+}
 
 json Vec(const glm::vec3& v) {
     return json::array({v.x, v.y, v.z});
@@ -287,7 +333,8 @@ bool Save(const ParticleEffect& effect, const std::string& path) {
         WK_CORE_ERROR("ParticleLibrary - can't write '{0}'", path);
         return false;
     }
-    file << ToJson(effect).dump(2) << '\n';
+    Write(file, ToJson(effect), 0);
+    file << '\n';
     return (bool)file;
 }
 
@@ -301,6 +348,10 @@ bool Reload(const std::string& path) {
         return false;
     *it->second = std::move(fresh);
     return true;
+}
+
+void Forget(const std::string& path) {
+    s_Cache.erase(path);
 }
 
 void Clear() {
