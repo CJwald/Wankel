@@ -54,6 +54,13 @@ Ref<Texture> Texture::LoadFromFile(const std::string& path) {
     return texture;
 }
 
+void Texture::SetRepeat(bool repeat) {
+    GLint wrap = repeat ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+    glBindTexture(GL_TEXTURE_2D, m_ID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
+}
+
 void Texture::Bind(uint32_t slot) const {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, m_ID);

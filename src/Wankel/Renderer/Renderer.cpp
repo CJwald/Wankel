@@ -98,6 +98,13 @@ struct RendererData {
     glm::mat4 SavedView {1.0f};
     glm::mat4 SavedProjection {1.0f};
     int SavedViewport[4] = {0, 0, 0, 0};
+
+    // CaptureSceneDepth target - a depth texture the size of the viewport plus an FBO to blit into it.
+    uint32_t SceneDepthFBO = 0;
+    uint32_t SceneDepthTexture = 0;
+    int SceneDepthWidth = 0;
+    int SceneDepthHeight = 0;
+    bool SceneDepthUseCopy = false; // blit rejected (depth formats differ) - copy via glCopyTexSubImage2D
 };
 
 constexpr uint32_t kSunShadowUnit = 6; // after TerrainMaterials' units 1-5
@@ -262,6 +269,10 @@ void Renderer::Shutdown() {
 
     glDeleteBuffers(1, &s_Data.InstanceVBO);
     glDeleteTextures(1, &s_Data.PlaceholderShadowTexture);
+    glDeleteTextures(1, &s_Data.SceneDepthTexture);
+    glDeleteFramebuffers(1, &s_Data.SceneDepthFBO);
+    s_Data.SceneDepthTexture = 0;
+    s_Data.SceneDepthFBO = 0;
     s_Data.PlaceholderShadowTexture = 0;
 
     TerrainMaterials::Shutdown();
@@ -855,6 +866,59 @@ void Renderer::BeginShadowPass(const ShadowMap& target, const glm::mat4& view, c
     glCullFace(cullFrontFaces ? GL_FRONT : GL_BACK);
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(slopeBias, 1.0f);
+}
+
+uint32_t Renderer::CaptureSceneDepth() {
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    int width = viewport[2], height = viewport[3];
+    if (width <= 0 || height <= 0)
+        return 0;
+
+    if (!s_Data.SceneDepthTexture || width != s_Data.SceneDepthWidth || height != s_Data.SceneDepthHeight) {
+        if (!s_Data.SceneDepthFBO)
+            glGenFramebuffers(1, &s_Data.SceneDepthFBO);
+        if (s_Data.SceneDepthTexture)
+            glDeleteTextures(1, &s_Data.SceneDepthTexture);
+        glGenTextures(1, &s_Data.SceneDepthTexture);
+        glBindTexture(GL_TEXTURE_2D, s_Data.SceneDepthTexture);
+        // Matches the default framebuffer's usual D24S8, which a depth blit requires.
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8,
+                     nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindFramebuffer(GL_FRAMEBUFFER, s_Data.SceneDepthFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, s_Data.SceneDepthTexture, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        s_Data.SceneDepthWidth = width;
+        s_Data.SceneDepthHeight = height;
+    }
+
+    if (!s_Data.SceneDepthUseCopy) {
+        while (glGetError() != GL_NO_ERROR) {
+        } // so a stale error isn't mistaken for the blit failing
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, s_Data.SceneDepthFBO);
+        glBlitFramebuffer(viewport[0], viewport[1], viewport[0] + width, viewport[1] + height, 0, 0, width, height,
+                          GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        if (glGetError() != GL_NO_ERROR) {
+            WK_CORE_WARNING("Renderer::CaptureSceneDepth - depth blit unsupported here, using a texture copy");
+            s_Data.SceneDepthUseCopy = true;
+        }
+    }
+    if (s_Data.SceneDepthUseCopy) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, s_Data.SceneDepthTexture);
+        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    return s_Data.SceneDepthTexture;
 }
 
 void Renderer::EndShadowPass() {

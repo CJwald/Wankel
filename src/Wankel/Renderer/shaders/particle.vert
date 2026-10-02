@@ -11,6 +11,7 @@ layout(location = 4) in vec3 aVelocity;
 layout(location = 5) in float aRotation; // billboard roll, radians
 layout(location = 6) in vec4 aColor;
 layout(location = 7) in vec4 aUVRect; // u0, v0, du, dv
+layout(location = 8) in vec2 aExtra;  // erosion threshold, noise seed
 
 uniform mat4 u_ViewProjection;
 uniform vec3 u_CameraRight;
@@ -22,7 +23,10 @@ uniform int u_Orientation; // 0 Billboard, 1 VelocityAligned, 2 VelocityStretche
 uniform float u_Aspect;
 uniform float u_StretchFactor;
 
-out vec2 v_UV;
+out vec2 v_UV;      // texture-space UV (atlas cell / flipbook frame)
+out vec2 v_QuadUV;  // 0..1 across the quad, for noise lookups
+flat out vec4 v_UVRect;
+flat out vec2 v_Extra;
 out vec4 v_Color;
 
 void main() {
@@ -47,5 +51,8 @@ void main() {
 
     gl_Position = u_ViewProjection * vec4(world, 1.0);
     v_UV = aUVRect.xy + aUV * aUVRect.zw;
+    v_QuadUV = aUV;
+    v_UVRect = aUVRect;
+    v_Extra = aExtra;
     v_Color = aColor;
 }

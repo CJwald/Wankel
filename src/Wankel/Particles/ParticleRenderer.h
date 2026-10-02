@@ -38,11 +38,12 @@ public:
     ParticleRenderer& operator=(const ParticleRenderer&) = delete;
 
     // Saves/restores the GL blend func and depth-mask state it changes, matching the engine's other passes.
+    // `time` drives distortion scrolling (seconds, any monotonic clock).
     FrameStats Render(const Particle* particles, uint32_t count, const std::vector<ParticleSystem::LayerSlot>& slots,
-                      const Camera& camera);
+                      const Camera& camera, float time);
 
 private:
-    // One quad's per-instance data - field order/offsets must match particle.vert's location 2..7 attributes.
+    // One quad's per-instance data - field order/offsets must match particle.vert's location 2..8 attributes.
     struct InstanceData {
         glm::vec3 Center {0.0f};
         float Size = 0.0f;
@@ -50,6 +51,8 @@ private:
         float Rotation = 0.0f;
         glm::vec4 Color {0.0f};
         glm::vec4 UVRect {0.0f, 0.0f, 1.0f, 1.0f}; // u0, v0, du, dv
+        float ErosionThreshold = 0.0f;             // layer's ErosionOverLife at this particle's age
+        float Seed = 0.0f;                         // offsets the noise per particle
     };
 
     struct DrawItem {
@@ -78,6 +81,7 @@ private:
 
     Scope<Shader> m_Shader;
     Scope<Texture> m_DefaultSprite; // built-in soft round sprite, used when a layer has no TexturePath
+    Scope<Texture> m_Noise;         // tiling value noise for erosion/distortion
 
     // Reused across frames so a steady particle count does no per-frame heap traffic.
     std::vector<DrawItem> m_AlphaItems;

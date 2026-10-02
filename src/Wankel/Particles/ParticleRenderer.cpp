@@ -6,6 +6,7 @@
 #include "Wankel/Particles/ParticleEffect.h"
 #include "Wankel/Renderer/Buffer.h"
 #include "Wankel/Renderer/Camera.h"
+#include "Wankel/Renderer/Renderer.h"
 #include "Wankel/Renderer/IndexBuffer.h"
 #include "Wankel/Renderer/Shader.h"
 #include "Wankel/Renderer/Texture.h"
@@ -21,6 +22,34 @@
 namespace Wankel {
 
 namespace {
+
+// Tiling R8 value noise, two octaves - the erosion/distortion source. Generated once, so effects don't depend on
+// a noise asset being present.
+std::vector<uint8_t> TilingNoise(uint32_t size, uint32_t cells) {
+    auto hash = [](uint32_t x, uint32_t y) {
+        uint32_t h = x * 374761393u + y * 668265263u;
+        h = (h ^ (h >> 13)) * 1274126177u;
+        return (float)((h ^ (h >> 16)) & 0xFFFF) / 65535.0f;
+    };
+    auto valueNoise = [&](float x, float y, uint32_t period) {
+        uint32_t x0 = (uint32_t)x, y0 = (uint32_t)y;
+        float fx = x - (float)x0, fy = y - (float)y0;
+        fx = fx * fx * (3.0f - 2.0f * fx);
+        fy = fy * fy * (3.0f - 2.0f * fy);
+        float a = hash(x0 % period, y0 % period), b = hash((x0 + 1) % period, y0 % period);
+        float c = hash(x0 % period, (y0 + 1) % period), d = hash((x0 + 1) % period, (y0 + 1) % period);
+        return glm::mix(glm::mix(a, b, fx), glm::mix(c, d, fx), fy);
+    };
+    std::vector<uint8_t> pixels((size_t)size * size);
+    for (uint32_t y = 0; y < size; y++) {
+        for (uint32_t x = 0; x < size; x++) {
+            float u = (float)x / (float)size * (float)cells, v = (float)y / (float)size * (float)cells;
+            float n = valueNoise(u, v, cells) * 0.65f + valueNoise(u * 2.0f, v * 2.0f, cells * 2) * 0.35f;
+            pixels[(size_t)y * size + x] = (uint8_t)(glm::clamp(n, 0.0f, 1.0f) * 255.0f);
+        }
+    }
+    return pixels;
+}
 
 // Atlas sub-rect (y from the image top) + flipbook frame -> GL UV rect (u0, v0, du, dv), v measured from the
 // bottom since textures load flipped (Texture::LoadFromFile).
@@ -82,9 +111,13 @@ ParticleRenderer::ParticleRenderer(uint32_t maxParticles) : m_MaxParticles(maxPa
         size_t Offset;
     };
     const Attribute attributes[] = {
-        {2, 3, offsetof(InstanceData, Center)},   {3, 1, offsetof(InstanceData, Size)},
-        {4, 3, offsetof(InstanceData, Velocity)}, {5, 1, offsetof(InstanceData, Rotation)},
-        {6, 4, offsetof(InstanceData, Color)},    {7, 4, offsetof(InstanceData, UVRect)},
+        {2, 3, offsetof(InstanceData, Center)},
+        {3, 1, offsetof(InstanceData, Size)},
+        {4, 3, offsetof(InstanceData, Velocity)},
+        {5, 1, offsetof(InstanceData, Rotation)},
+        {6, 4, offsetof(InstanceData, Color)},
+        {7, 4, offsetof(InstanceData, UVRect)},
+        {8, 2, offsetof(InstanceData, ErosionThreshold)},
     };
     for (const Attribute& a : attributes) {
         glEnableVertexAttribArray(a.Location);
@@ -115,6 +148,11 @@ ParticleRenderer::ParticleRenderer(uint32_t maxParticles) : m_MaxParticles(maxPa
         }
     }
     m_DefaultSprite = CreateScope<Texture>(pixels.data(), kSize, kSize, TextureFormat::RGBA8, true);
+
+    constexpr uint32_t kNoiseSize = 128;
+    std::vector<uint8_t> noise = TilingNoise(kNoiseSize, 8);
+    m_Noise = CreateScope<Texture>(noise.data(), kNoiseSize, kNoiseSize, TextureFormat::R8, true);
+    m_Noise->SetRepeat(true);
 }
 
 ParticleRenderer::~ParticleRenderer() {
@@ -124,7 +162,7 @@ ParticleRenderer::~ParticleRenderer() {
 
 ParticleRenderer::FrameStats ParticleRenderer::Render(const Particle* particles, uint32_t count,
                                                       const std::vector<ParticleSystem::LayerSlot>& slots,
-                                                      const Camera& camera) {
+                                                      const Camera& camera, float time) {
     FrameStats stats;
     m_AlphaItems.clear();
     m_AdditiveItems.clear();
@@ -147,6 +185,8 @@ ParticleRenderer::FrameStats ParticleRenderer::Render(const Particle* particles,
         item.Data.Color = look.ColorOverLife.Evaluate(t);
         item.Data.Color.a *= look.AlphaOverLife.Evaluate(t);
         item.Data.UVRect = FrameUVRect(layer->Material, p, t);
+        item.Data.ErosionThreshold = layer->Material.Erosion ? layer->Material.ErosionOverLife.Evaluate(t) : 0.0f;
+        item.Data.Seed = p.Seed;
 
         if (layer->Material.Blend == ParticleBlend::Additive) {
             m_AdditiveItems.push_back(item);
@@ -184,6 +224,22 @@ ParticleRenderer::FrameStats ParticleRenderer::Render(const Particle* particles,
     m_Shader->SetVec3("u_CameraUp", camera.GetUp());
     m_Shader->SetVec3("u_CameraPos", camPos);
     m_Shader->SetInt("u_Texture", 0);
+    m_Shader->SetInt("u_Noise", 1);
+    m_Shader->SetInt("u_SceneDepth", 2);
+    m_Shader->SetFloat("u_Time", time);
+    m_Shader->SetVec3("u_NearFar", glm::vec3(camera.GetNearClip(), camera.GetFarClip(), 0.0f));
+    m_Noise->Bind(1);
+
+    // Scene depth only gets copied on frames where a visible layer actually wants soft particles.
+    bool anySoft = std::any_of(m_Runs.begin(), m_Runs.end(), [&](const Run& run) {
+        const ParticleLayer* layer = slots[run.Slot].Layer();
+        return layer && layer->Material.SoftParticles;
+    });
+    if (anySoft) {
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, Renderer::CaptureSceneDepth());
+        glActiveTexture(GL_TEXTURE0);
+    }
     m_VAO->Bind();
 
     // Particles test against the depth buffer (world geometry occludes them) but don't write it -
@@ -232,6 +288,13 @@ void ParticleRenderer::DrawRun(const Run& run, const std::vector<ParticleSystem:
     m_Shader->SetFloat("u_Aspect", look.Aspect);
     m_Shader->SetFloat("u_StretchFactor", look.StretchFactor);
     m_Shader->SetFloat("u_Emissive", material.EmissiveStrength);
+    m_Shader->SetInt("u_Soft", material.SoftParticles ? 1 : 0);
+    m_Shader->SetFloat("u_SoftDistance", material.SoftDistance);
+    m_Shader->SetInt("u_Erosion", material.Erosion ? 1 : 0);
+    m_Shader->SetFloat("u_ErosionSoftness", material.ErosionSoftness);
+    m_Shader->SetInt("u_Distortion", material.Distortion ? 1 : 0);
+    m_Shader->SetVec3("u_DistortionParams",
+                      glm::vec3(material.DistortionStrength, material.DistortionScale, material.DistortionScroll));
 
     if (run.Additive)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);

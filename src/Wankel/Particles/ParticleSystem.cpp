@@ -5,6 +5,7 @@
 #include "Wankel/Math/Random.h"
 #include "Wankel/Particles/ParticleEffect.h"
 #include "Wankel/Particles/ParticleRenderer.h"
+#include "Wankel/Renderer/Renderer.h"
 
 #include <glm/glm.hpp>
 
@@ -168,10 +169,29 @@ void ParticleSystem::Simulate(float dt) {
 }
 
 void ParticleSystem::Render(const Camera& camera) {
-    ParticleRenderer::FrameStats frame = m_Renderer->Render(m_Pool.data(), m_AliveCount, m_Slots, camera);
+    ParticleRenderer::FrameStats frame = m_Renderer->Render(m_Pool.data(), m_AliveCount, m_Slots, camera, m_Time);
     m_Stats.AlphaParticles = frame.AlphaParticles;
     m_Stats.AdditiveParticles = frame.AdditiveParticles;
     m_Stats.DrawCalls = frame.DrawCalls;
+}
+
+void ParticleSystem::SubmitDebugLines(const DebugOptions& options) const {
+    if (!options.Velocity && !options.Centers)
+        return;
+    std::vector<DebugLine> lines;
+    lines.reserve((size_t)m_AliveCount * (options.Centers ? 3 : 1));
+    for (uint32_t i = 0; i < m_AliveCount; i++) {
+        const Particle& p = m_Pool[i];
+        if (options.Velocity)
+            lines.push_back({p.Position, p.Position + p.Velocity * options.VelocityScale, {1.0f, 0.85f, 0.2f}});
+        if (options.Centers) {
+            constexpr float kCross = 0.02f;
+            const glm::vec3 color(0.3f, 0.8f, 1.0f);
+            lines.push_back({p.Position - glm::vec3(kCross, 0, 0), p.Position + glm::vec3(kCross, 0, 0), color});
+            lines.push_back({p.Position - glm::vec3(0, kCross, 0), p.Position + glm::vec3(0, kCross, 0), color});
+        }
+    }
+    Renderer::SubmitGameplayLines(lines);
 }
 
 void ParticleSystem::Clear() {

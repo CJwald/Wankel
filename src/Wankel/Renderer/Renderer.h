@@ -225,6 +225,11 @@ public:
                                 bool cullFrontFaces = false, float slopeBias = 2.0f);
     static void EndShadowPass();
 
+    // Copies the screen's depth buffer as it stands right now into a texture (recreated on resize) and
+    // returns its GL name - for effects that read scene depth, e.g. soft particles. Call mid-scene, after
+    // the opaque geometry it should see. Sample with texelFetch at gl_FragCoord.xy (no comparison mode).
+    static uint32_t CaptureSceneDepth();
+
     // [0,1], default 0 (unchanged behavior/zero cost): how sharply a marching-cubes terrain
     // triangle's fragment color splits between its two dominant vertex colors instead of smoothly
     // interpolating across the whole triangle. 0 = today's plain smooth blend; 1 = a true hard edge

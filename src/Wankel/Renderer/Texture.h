@@ -28,6 +28,9 @@ public:
 
     void Bind(uint32_t slot = 0) const;
 
+    // GL_REPEAT instead of the default clamp-to-edge, for tiling textures (e.g. noise).
+    void SetRepeat(bool repeat);
+
     uint32_t GetWidth() const { return m_Width; }
     uint32_t GetHeight() const { return m_Height; }
     uint32_t GetID() const { return m_ID; } // for ImGui::Image previews

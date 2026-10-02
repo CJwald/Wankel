@@ -73,6 +73,14 @@ public:
     uint32_t Capacity() const { return (uint32_t)m_Pool.size(); }
     const Stats& GetStats() const { return m_Stats; }
 
+    struct DebugOptions {
+        bool Velocity = false; // a line along each particle's velocity (VelocityScale seconds of travel)
+        bool Centers = false;  // a small cross at each particle
+        float VelocityScale = 0.05f;
+    };
+    // Debug lines for every live particle via Renderer::SubmitGameplayLines - call between BeginScene/EndScene.
+    void SubmitDebugLines(const DebugOptions& options) const;
+
 private:
     struct PendingBurst {
         Ref<ParticleEffect> Effect;

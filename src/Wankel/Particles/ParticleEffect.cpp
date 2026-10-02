@@ -43,6 +43,10 @@ void ParticleLayer::Validate() {
     fb.FrameCount = std::clamp(fb.FrameCount, 1u, fb.Columns * fb.Rows);
     fb.FramesPerSecond = std::max(fb.FramesPerSecond, 0.0f);
     Material.EmissiveStrength = std::max(Material.EmissiveStrength, 0.0f);
+    Material.SoftDistance = std::max(Material.SoftDistance, 0.01f);
+    Material.ErosionSoftness = std::clamp(Material.ErosionSoftness, 0.001f, 1.0f);
+    Material.ErosionOverLife.Sort();
+    Material.DistortionScale = std::max(Material.DistortionScale, 0.01f);
 }
 
 } // namespace Wankel

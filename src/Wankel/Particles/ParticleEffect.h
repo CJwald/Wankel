@@ -93,6 +93,19 @@ struct ParticleMaterial {
     ParticleFlipbook Flipbook;
     ParticleBlend Blend = ParticleBlend::Alpha;
     float EmissiveStrength = 1.0f; // multiplies rgb - above 1 for bright additive effects
+
+    // Optional shader features - each only costs anything for layers that enable it.
+    bool SoftParticles = false; // fade out where the quad intersects scene geometry
+    float SoftDistance = 0.5f;  // world units of depth over which that fade happens
+
+    bool Erosion = false; // noise-threshold dissolve: solid -> irregular breakup -> gone
+    ParticleCurve ErosionOverLife = ParticleCurve::Linear(0.0f, 1.0f); // threshold: 0 = intact, 1 = fully eroded
+    float ErosionSoftness = 0.1f;                                      // width of the dissolving edge
+
+    bool Distortion = false;          // animated noise UV wobble (heat haze, licking flames)
+    float DistortionStrength = 0.03f; // UV offset amplitude
+    float DistortionScale = 1.5f;     // noise tiles per quad
+    float DistortionScroll = 0.5f;    // noise scroll speed
 };
 
 // One emitter's worth of particles: what a single "piece" of an effect (flash, smoke, sparks) is.
