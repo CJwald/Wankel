@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <utility>
 #include <vector>
@@ -52,14 +53,17 @@ public:
 
     // One-shot: fires every enabled layer's BurstCount * times particles (after each layer's StartDelay)
     // from `origin` along unit `direction`. `velocity` is the source's own velocity, scaled per layer by
-    // Emission.InheritVelocity. For impacts/tracers that have no emitter entity.
+    // Emission.InheritVelocity. For impacts/tracers that have no emitter entity. maxTravel shortens each
+    // particle's lifetime so it covers at most that distance at its launch speed (a tracer stopping at its hit).
     void Play(const Ref<ParticleEffect>& effect, const glm::vec3& origin, const glm::vec3& direction,
-              const glm::vec3& velocity = glm::vec3(0.0f), uint32_t times = 1);
+              const glm::vec3& velocity = glm::vec3(0.0f), uint32_t times = 1,
+              float maxTravel = std::numeric_limits<float>::infinity());
 
     // Spawns `count` particles of one layer right now. Used by Play and ParticleEmitterSystem's continuous
     // emission; fewer are spawned (and counted as dropped) if the pool fills.
     void Emit(const Ref<ParticleEffect>& effect, uint32_t layerIndex, const glm::vec3& origin,
-              const glm::vec3& direction, const glm::vec3& velocity, uint32_t count);
+              const glm::vec3& direction, const glm::vec3& velocity, uint32_t count,
+              float maxTravel = std::numeric_limits<float>::infinity());
 
     // Integrates every live particle, fires due delayed bursts, and recycles expired particles.
     void Simulate(float dt);
@@ -88,6 +92,7 @@ private:
         glm::vec3 Origin {0.0f}, Direction {0.0f}, Velocity {0.0f};
         uint32_t Count = 0;
         float Delay = 0.0f;
+        float MaxTravel = std::numeric_limits<float>::infinity();
     };
 
     uint16_t AcquireSlot(const Ref<ParticleEffect>& effect, uint32_t layerIndex);
