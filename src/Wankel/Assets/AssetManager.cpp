@@ -6,6 +6,7 @@
 #include "Wankel/Renderer/Shader.h"
 #include "Wankel/Renderer/Font.h"
 #include "Wankel/Audio/AudioClip.h"
+#include "Wankel/Renderer/Texture.h"
 
 namespace Wankel {
 
@@ -13,6 +14,7 @@ std::unordered_map<std::string, Ref<Mesh>> AssetManager::s_Meshes;
 std::unordered_map<std::string, Ref<Shader>> AssetManager::s_Shaders;
 std::unordered_map<std::string, Ref<Font>> AssetManager::s_Fonts;
 std::unordered_map<std::string, Ref<AudioClip>> AssetManager::s_AudioClips;
+std::unordered_map<std::string, Ref<Texture>> AssetManager::s_Textures;
 
 Ref<Mesh> AssetManager::GetMesh(const std::string& path) {
     auto it = s_Meshes.find(path);
@@ -66,6 +68,16 @@ Ref<AudioClip> AssetManager::GetAudioClip(const std::string& path) {
     return clip;
 }
 
+Ref<Texture> AssetManager::GetTexture(const std::string& path) {
+    auto it = s_Textures.find(path);
+    if (it != s_Textures.end())
+        return it->second;
+
+    Ref<Texture> texture = Texture::LoadFromFile(path);
+    s_Textures[path] = texture;
+    return texture;
+}
+
 Ref<Mesh> AssetManager::GetOrCreateMesh(const std::string& key, const std::function<Ref<Mesh>()>& factory) {
     auto it = s_Meshes.find(key);
     if (it != s_Meshes.end())
@@ -90,6 +102,7 @@ void AssetManager::Clear() {
     s_Shaders.clear();
     s_Fonts.clear();
     s_AudioClips.clear();
+    s_Textures.clear();
 }
 
 } // namespace Wankel

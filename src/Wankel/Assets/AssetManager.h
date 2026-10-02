@@ -12,6 +12,7 @@ class Mesh;
 class Shader;
 class Font;
 class AudioClip;
+class Texture;
 
 // Path-keyed cache for engine assets. Every call site used to do its own
 // raw MeshLoader::Load/Font::Load/Shader construction with its own
@@ -38,6 +39,10 @@ public:
     // requests for the same sound, e.g. every time a weapon archetype spawns, shouldn't re-decode it).
     static Ref<AudioClip> GetAudioClip(const std::string& path);
 
+    // RGBA8 + mipmaps via Texture::LoadFromFile. Like GetFont, a failure is logged and returns nullptr (also
+    // cached, so a missing file isn't retried every frame) - callers fall back to a default texture.
+    static Ref<Texture> GetTexture(const std::string& path);
+
     // For meshes that aren't loaded from a file path at all (procedurally built,
     // or derived from another mesh) but still need to live as long as any entity's
     // Mesh* points at them - same cache, same Clear() lifetime, arbitrary key.
@@ -58,6 +63,7 @@ private:
     static std::unordered_map<std::string, Ref<Shader>> s_Shaders;
     static std::unordered_map<std::string, Ref<Font>> s_Fonts;
     static std::unordered_map<std::string, Ref<AudioClip>> s_AudioClips;
+    static std::unordered_map<std::string, Ref<Texture>> s_Textures;
 };
 
 } // namespace Wankel

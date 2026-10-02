@@ -5,11 +5,11 @@ in vec4 v_Color;
 
 out vec4 FragColor;
 
-// Built-in soft round sprite - single channel (R8), supplies only the alpha shape. Per-particle rgba
-// comes from v_Color.
-uniform sampler2D u_Sprite;
+// RGBA particle texture (or the built-in white soft sprite) - multiplied by the per-particle color.
+uniform sampler2D u_Texture;
+uniform float u_Emissive; // rgb multiplier, > 1 for bright additive effects
 
 void main() {
-    float mask = texture(u_Sprite, v_UV).r;
-    FragColor = vec4(v_Color.rgb, v_Color.a * mask);
+    vec4 tex = texture(u_Texture, v_UV);
+    FragColor = vec4(tex.rgb * v_Color.rgb * u_Emissive, tex.a * v_Color.a);
 }

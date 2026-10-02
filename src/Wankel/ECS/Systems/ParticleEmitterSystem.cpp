@@ -17,24 +17,39 @@ void ParticleEmitterSystem::Update(Scene& scene, ParticleSystem& particles, floa
     for (auto entity : view) {
         auto& transform = view.get<Transform>(entity);
         auto& emitter = view.get<ParticleEmitter>(entity);
+        if (!emitter.Effect)
+            continue;
 
         glm::vec3 origin = glm::vec3(transform.FinalTransform * glm::vec4(emitter.LocalOffset, 1.0f));
 
         glm::vec3 axis = glm::mat3(transform.FinalTransform) * emitter.LocalDirection;
         axis = glm::dot(axis, axis) > 1e-8f ? glm::normalize(axis) : glm::vec3(0.0f, 0.0f, -1.0f);
 
-        if (emitter.Enabled && emitter.Effect.SpawnRate > 0.0f) {
-            emitter.SpawnAccumulator += emitter.Effect.SpawnRate * dt;
-            auto n = (uint32_t)emitter.SpawnAccumulator;
-            if (n > 0) {
-                emitter.SpawnAccumulator -= (float)n;
-                particles.Spawn(emitter.Effect, origin, axis, n);
+        glm::vec3 velocity(0.0f);
+        if (emitter.HasPreviousOrigin && dt > 0.0f)
+            velocity = (origin - emitter.PreviousOrigin) / dt;
+        emitter.PreviousOrigin = origin;
+        emitter.HasPreviousOrigin = true;
+
+        const auto& layers = emitter.Effect->Layers;
+        emitter.SpawnAccumulators.resize(layers.size(), 0.0f);
+        if (emitter.Enabled) {
+            for (uint32_t i = 0; i < layers.size(); i++) {
+                if (!layers[i].Enabled || layers[i].Emission.Rate <= 0.0f)
+                    continue;
+                float& acc = emitter.SpawnAccumulators[i];
+                acc += layers[i].Emission.Rate * dt;
+                auto n = (uint32_t)acc;
+                if (n > 0) {
+                    acc -= (float)n;
+                    particles.Emit(emitter.Effect, i, origin, axis, velocity, n);
+                }
             }
         }
 
-        if (emitter.PendingBurst > 0) {
-            particles.Spawn(emitter.Effect, origin, axis, emitter.PendingBurst);
-            emitter.PendingBurst = 0;
+        if (emitter.PendingBursts > 0) {
+            particles.Play(emitter.Effect, origin, axis, velocity, emitter.PendingBursts);
+            emitter.PendingBursts = 0;
         }
     }
 }

@@ -1,14 +1,15 @@
 #pragma once
 
+#include "Wankel/Core/Base.h"
 #include "Wankel/Particles/ParticleEffect.h"
 
 namespace Wankel::ParticleEffects {
 
-// Ready-to-use presets built on the shared particle implementation - copy one into a
-// ParticleEmitter::Effect and tweak from there. Values are deliberately conservative; tune per game.
-ParticleEffect Smoke();
-ParticleEffect Sparks();
-ParticleEffect Blood();
-ParticleEffect MuzzleFlash();
+// Built-in single-layer presets on the default soft sprite - quick defaults and code examples. Authored
+// effects normally live in .particle files (ParticleLibrary::Load). Each call returns a fresh effect.
+Ref<ParticleEffect> Smoke();
+Ref<ParticleEffect> Sparks();
+Ref<ParticleEffect> Blood();
+Ref<ParticleEffect> MuzzleFlash();
 
 } // namespace Wankel::ParticleEffects
