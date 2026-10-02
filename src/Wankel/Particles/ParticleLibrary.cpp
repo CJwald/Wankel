@@ -131,6 +131,15 @@ json LayerJson(const ParticleLayer& layer) {
           {"AtlasRect", Vec(ma.AtlasRect)},
           {"Blend", EnumName(ma.Blend, kBlendNames)},
           {"EmissiveStrength", ma.EmissiveStrength},
+          {"SoftParticles", ma.SoftParticles},
+          {"SoftDistance", ma.SoftDistance},
+          {"Erosion", ma.Erosion},
+          {"ErosionOverLife", CurveJson(ma.ErosionOverLife)},
+          {"ErosionSoftness", ma.ErosionSoftness},
+          {"Distortion", ma.Distortion},
+          {"DistortionStrength", ma.DistortionStrength},
+          {"DistortionScale", ma.DistortionScale},
+          {"DistortionScroll", ma.DistortionScroll},
           {"Flipbook",
            {{"Enabled", fb.Enabled},
             {"Columns", fb.Columns},
@@ -195,6 +204,15 @@ ParticleLayer LayerFromJson(const json& j) {
         Read(m, "AtlasRect", ma.AtlasRect);
         ReadEnum(m, "Blend", ma.Blend, kBlendNames);
         Read(m, "EmissiveStrength", ma.EmissiveStrength);
+        Read(m, "SoftParticles", ma.SoftParticles);
+        Read(m, "SoftDistance", ma.SoftDistance);
+        Read(m, "Erosion", ma.Erosion);
+        ReadCurve(m, "ErosionOverLife", ma.ErosionOverLife);
+        Read(m, "ErosionSoftness", ma.ErosionSoftness);
+        Read(m, "Distortion", ma.Distortion);
+        Read(m, "DistortionStrength", ma.DistortionStrength);
+        Read(m, "DistortionScale", ma.DistortionScale);
+        Read(m, "DistortionScroll", ma.DistortionScroll);
         if (m.contains("Flipbook")) {
             const json& f = m["Flipbook"];
             ParticleFlipbook& fb = ma.Flipbook;
