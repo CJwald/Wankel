@@ -9,6 +9,8 @@
 
 #include <glm/glm.hpp>
 
+#include <limits>
+
 namespace Wankel {
 
 const ParticleLayer* ParticleSystem::LayerSlot::Layer() const {
@@ -51,7 +53,7 @@ void ParticleSystem::ReleaseParticle(uint16_t slot) {
 }
 
 void ParticleSystem::Play(const Ref<ParticleEffect>& effect, const glm::vec3& origin, const glm::vec3& direction,
-                          const glm::vec3& velocity, uint32_t times) {
+                          const glm::vec3& velocity, uint32_t times, float maxTravel) {
     if (!effect || times == 0)
         return;
     for (uint32_t i = 0; i < effect->Layers.size(); i++) {
@@ -60,14 +62,14 @@ void ParticleSystem::Play(const Ref<ParticleEffect>& effect, const glm::vec3& or
         if (!layer.Enabled || count == 0)
             continue;
         if (layer.Emission.StartDelay > 0.0f)
-            m_Pending.push_back({effect, i, origin, direction, velocity, count, layer.Emission.StartDelay});
+            m_Pending.push_back({effect, i, origin, direction, velocity, count, layer.Emission.StartDelay, maxTravel});
         else
-            Emit(effect, i, origin, direction, velocity, count);
+            Emit(effect, i, origin, direction, velocity, count, maxTravel);
     }
 }
 
 void ParticleSystem::Emit(const Ref<ParticleEffect>& effect, uint32_t layerIndex, const glm::vec3& origin,
-                          const glm::vec3& direction, const glm::vec3& velocity, uint32_t count) {
+                          const glm::vec3& direction, const glm::vec3& velocity, uint32_t count, float maxTravel) {
     if (!effect || layerIndex >= effect->Layers.size() || count == 0)
         return;
     const ParticleLayer& layer = effect->Layers[layerIndex];
@@ -110,6 +112,9 @@ void ParticleSystem::Emit(const Ref<ParticleEffect>& effect, uint32_t layerIndex
         p.Velocity = dir * Random::Float(em.SpeedMin, em.SpeedMax) + velocity * em.InheritVelocity + em.AddedVelocity;
         p.Age = 0.0f;
         p.Lifetime = Random::Float(em.LifetimeMin, em.LifetimeMax);
+        float speed = glm::length(p.Velocity);
+        if (maxTravel < std::numeric_limits<float>::infinity() && speed > 1e-4f)
+            p.Lifetime = glm::clamp(maxTravel / speed, 0.001f, p.Lifetime);
         p.Size = Random::Float(look.SizeMin, look.SizeMax);
         p.Rotation = Random::Float(-look.StartRotationJitter, look.StartRotationJitter);
         p.AngularVelocity = Random::Float(look.AngularVelocityMin, look.AngularVelocityMax);
@@ -131,7 +136,7 @@ void ParticleSystem::Simulate(float dt) {
             i++;
             continue;
         }
-        Emit(b.Effect, b.LayerIndex, b.Origin, b.Direction, b.Velocity, b.Count);
+        Emit(b.Effect, b.LayerIndex, b.Origin, b.Direction, b.Velocity, b.Count, b.MaxTravel);
         m_Pending[i] = std::move(m_Pending.back());
         m_Pending.pop_back();
     }
