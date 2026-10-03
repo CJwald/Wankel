@@ -172,9 +172,16 @@ json Serialize(const PlayerController& controller) {
         {"ControllerAccelTime", controller.ControllerAccelTime},
         {"ControllerAccelUsePower", controller.ControllerAccelUsePower},
         {"ControllerAccelPower", controller.ControllerAccelPower},
+        {"ControllerAccelUseRate", controller.ControllerAccelUseRate},
+        {"ControllerAccelRate", controller.ControllerAccelRate},
+        {"ControllerAccelDirectionLoss", controller.ControllerAccelDirectionLoss},
+        {"ControllerAccelDirectionLossRate", controller.ControllerAccelDirectionLossRate},
         {"FPSDeceleration", controller.FPSDeceleration},
         {"FlightDeceleration", controller.FlightDeceleration},
         {"FlightGravityScale", controller.FlightGravityScale},
+        {"MoveAccelUsePower", controller.MoveAccelUsePower},
+        {"MoveAccelTime", controller.MoveAccelTime},
+        {"MoveAccelPower", controller.MoveAccelPower},
         {"MaxPitchUp", controller.MaxPitchUp},
         {"MaxPitchDown", controller.MaxPitchDown},
         {"Mode", (int)controller.Mode},
@@ -205,10 +212,19 @@ void Deserialize(const json& json, PlayerController& controller) {
     controller.ControllerAccelUsePower = json.value("ControllerAccelUsePower", controller.ControllerAccelUsePower);
     controller.ControllerAccelPower =
         glm::max(json.value("ControllerAccelPower", controller.ControllerAccelPower), 0.1f);
+    controller.ControllerAccelUseRate = json.value("ControllerAccelUseRate", controller.ControllerAccelUseRate);
+    controller.ControllerAccelRate = glm::max(json.value("ControllerAccelRate", controller.ControllerAccelRate), 1.0f);
+    controller.ControllerAccelDirectionLoss =
+        json.value("ControllerAccelDirectionLoss", controller.ControllerAccelDirectionLoss);
+    controller.ControllerAccelDirectionLossRate =
+        glm::max(json.value("ControllerAccelDirectionLossRate", controller.ControllerAccelDirectionLossRate), 0.0f);
 
     controller.FPSDeceleration = json.at("FPSDeceleration").get<float>();
     controller.FlightDeceleration = json.at("FlightDeceleration").get<float>();
     controller.FlightGravityScale = json.at("FlightGravityScale").get<float>();
+    controller.MoveAccelUsePower = json.value("MoveAccelUsePower", controller.MoveAccelUsePower);
+    controller.MoveAccelTime = glm::max(json.value("MoveAccelTime", controller.MoveAccelTime), 0.0f);
+    controller.MoveAccelPower = glm::max(json.value("MoveAccelPower", controller.MoveAccelPower), 0.1f);
     controller.MaxPitchUp = json.at("MaxPitchUp").get<float>();
     controller.MaxPitchDown = json.at("MaxPitchDown").get<float>();
     controller.Mode = (PlayerController::LookMode)json.at("Mode").get<int>();
@@ -233,6 +249,9 @@ json Serialize(const Movement& movement) {
         {"MaxSpeed", movement.MaxSpeed},
         {"Acceleration", movement.Acceleration},
         {"Deceleration", movement.Deceleration},
+        {"UsePowerRamp", movement.UsePowerRamp},
+        {"RampTime", movement.RampTime},
+        {"RampPower", movement.RampPower},
     };
 }
 
@@ -240,6 +259,9 @@ void Deserialize(const json& json, Movement& movement) {
     movement.MaxSpeed = json.at("MaxSpeed").get<float>();
     movement.Acceleration = json.at("Acceleration").get<float>();
     movement.Deceleration = json.at("Deceleration").get<float>();
+    movement.UsePowerRamp = json.value("UsePowerRamp", movement.UsePowerRamp);
+    movement.RampTime = glm::max(json.value("RampTime", movement.RampTime), 0.0f);
+    movement.RampPower = glm::max(json.value("RampPower", movement.RampPower), 0.1f);
     movement.SavedMaxSpeed = movement.MaxSpeed;
 }
 

@@ -127,6 +127,9 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
         // uses the shared tunable instead.
         bool grounded = controller.Mode == PlayerController::LookMode::FPS;
         movement.Deceleration = grounded ? controller.FPSDeceleration : controller.FlightDeceleration;
+        movement.UsePowerRamp = controller.MoveAccelUsePower;
+        movement.RampTime = controller.MoveAccelTime;
+        movement.RampPower = controller.MoveAccelPower;
 
         // Mech/FPS is always fully grounded (full gravity); any non-grounded mode uses the tunable
         // scalar - see PlayerController::FlightGravityScale and Rigidbody::GravityScale.
