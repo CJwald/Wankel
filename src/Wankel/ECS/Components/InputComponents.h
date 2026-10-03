@@ -28,8 +28,8 @@ struct PlayerController {
     // let either reach 0 (floored wherever read/written - deserialize, the debug UI, and
     // point-of-use) since that would silently make the controller stick produce zero look input on
     // that axis, indistinguishable from "controller stopped working."
-    float ControllerSensitivityX = 0.8f;    // horizontal/yaw
-    float ControllerSensitivityY = 0.8f;    // vertical/pitch
+    float ControllerSensitivityX = 1.0f;    // horizontal/yaw
+    float ControllerSensitivityY = 1.0f;    // vertical/pitch
     EaseType LookCurve = EaseType::Dynamic; // Response Curve
     float LookCurveExponent = 1.5f;         // only meaningful for EaseIn (Standard) / EaseOut (Reverse S-Curve)
 
@@ -40,6 +40,9 @@ struct PlayerController {
     // ramped result - scaling a linear ramp by a constant doesn't change how long it takes to reach
     // its own max, so each axis still reaches its full target in exactly this many seconds).
     float ControllerAccelTime = 0.25f;
+    // Off = linear ramp. On = speed follows (t / ControllerAccelTime)^ControllerAccelPower, same end time.
+    bool ControllerAccelUsePower = false;
+    float ControllerAccelPower = 2.0f;
     // Runtime-only ramp state (current applied scalar look speed, deg/sec) - not a tuning value, so
     // deliberately excluded from ComponentSerialization.cpp same as LookDeltaX/Y/R3PressedLastFrame.
     float ControllerLookSpeed = 0.0f;
