@@ -170,6 +170,8 @@ json Serialize(const PlayerController& controller) {
         {"LookCurve", (int)controller.LookCurve},
         {"LookCurveExponent", controller.LookCurveExponent},
         {"ControllerAccelTime", controller.ControllerAccelTime},
+        {"ControllerAccelUsePower", controller.ControllerAccelUsePower},
+        {"ControllerAccelPower", controller.ControllerAccelPower},
         {"FPSDeceleration", controller.FPSDeceleration},
         {"FlightDeceleration", controller.FlightDeceleration},
         {"FlightGravityScale", controller.FlightGravityScale},
@@ -200,6 +202,9 @@ void Deserialize(const json& json, PlayerController& controller) {
     // guard against a corrupt negative value, not zero itself.
     if (json.contains("ControllerAccelTime"))
         controller.ControllerAccelTime = glm::max(json.at("ControllerAccelTime").get<float>(), 0.0f);
+    controller.ControllerAccelUsePower = json.value("ControllerAccelUsePower", controller.ControllerAccelUsePower);
+    controller.ControllerAccelPower =
+        glm::max(json.value("ControllerAccelPower", controller.ControllerAccelPower), 0.1f);
 
     controller.FPSDeceleration = json.at("FPSDeceleration").get<float>();
     controller.FlightDeceleration = json.at("FlightDeceleration").get<float>();
