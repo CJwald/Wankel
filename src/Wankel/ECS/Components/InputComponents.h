@@ -20,7 +20,7 @@ struct PlayerController {
     bool Boost = false;
 
     float WindowSensitivity = 0.002f;
-    float MouseSensitivity = 2.5f;
+    float MouseSensitivity = 1.0f;
     float RollSpeed = 2.5f;
 
     // Independent horizontal/vertical multipliers on PlayerInputSystem's fixed StickTurnSpeed
@@ -41,11 +41,20 @@ struct PlayerController {
     // its own max, so each axis still reaches its full target in exactly this many seconds).
     float ControllerAccelTime = 0.25f;
     // Off = linear ramp. On = speed follows (t / ControllerAccelTime)^ControllerAccelPower, same end time.
-    bool ControllerAccelUsePower = false;
+    bool ControllerAccelUsePower = true;
     float ControllerAccelPower = 2.0f;
+    // On = the ramp's length comes from ControllerAccelRate (deg/sec^2 of actual, post-sensitivity look
+    // speed), so a higher sensitivity takes longer to reach full speed. Off = ControllerAccelTime.
+    bool ControllerAccelUseRate = false;
+    float ControllerAccelRate = 3600.0f;
+    // On = turning the stick's direction bleeds ramp speed (exp(-rate * radians turned)), so circling
+    // never fully accelerates.
+    bool ControllerAccelDirectionLoss = true;
+    float ControllerAccelDirectionLossRate = 1.0f;
     // Runtime-only ramp state (current applied scalar look speed, deg/sec) - not a tuning value, so
     // deliberately excluded from ComponentSerialization.cpp same as LookDeltaX/Y/R3PressedLastFrame.
     float ControllerLookSpeed = 0.0f;
+    glm::vec2 ControllerLookDirection {0.0f}; // runtime only - last frame's stick direction, zero when centered
 
     float LookDeltaX = 0.0f;
     float LookDeltaY = 0.0f;
@@ -62,6 +71,11 @@ struct PlayerController {
     // up for an instant halt. Tune to taste - time-to-stop from MaxSpeed is roughly MaxSpeed/this.
     float FPSDeceleration = 50.0f;
     float FlightDeceleration = 2.0f;
+
+    // Copied onto Movement::UsePowerRamp/RampTime/RampPower each frame - see Movement.
+    bool MoveAccelUsePower = true;
+    float MoveAccelTime = 0.25f;
+    float MoveAccelPower = 1.1f;
 
     // Per-mode Rigidbody::GravityScale, applied each frame by PlayerControllerSystem (same pattern as
     // FPSDeceleration/FlightDeceleration above) - Mech/FPS is always fully grounded (hardcoded 1.0 in
@@ -126,6 +140,12 @@ struct Movement {
     // Movement-driven AI) - an entity with both gets this overwritten every frame from
     // PlayerController::FPSDeceleration/FlightDeceleration instead (see PlayerControllerSystem).
     float Deceleration = 50.0f;
+
+    // Off = constant Acceleration. On = speed follows MaxSpeed * (t / RampTime)^RampPower from rest.
+    bool UsePowerRamp = false;
+    float RampTime = 0.1f;
+    float RampPower = 2.0f;
+    float RampElapsed = 0.0f; // runtime only - time along the ramp, reset when MoveIntent goes to zero
 };
 
 

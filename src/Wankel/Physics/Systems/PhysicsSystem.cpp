@@ -36,10 +36,29 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 continue; // if body is static, no integration (go next)
 
             // ACCELERATION
-            float accel = glm::length(m.MoveIntent) > 0.001f ? m.Acceleration : m.Deceleration;
+            bool moving = glm::length(m.MoveIntent) > 0.001f;
+            float accel = moving ? m.Acceleration : m.Deceleration;
+            bool gravityOwnsVertical = Gravity.Enabled && rb.GravityScale > 0.0f && glm::abs(m.MoveIntent.y) < 0.001f;
+
+            // Power ramp shapes the target speed over time (MaxSpeed * (t / RampTime)^RampPower), not the
+            // per-frame step, so ground friction can't stall the near-zero start of the curve.
+            float speedScale = 1.0f;
+            if (!moving || !m.UsePowerRamp || m.RampTime <= 0.0f) {
+                m.RampElapsed = 0.0f;
+            } else if (m.MaxSpeed > 0.0f) {
+                float power = glm::max(m.RampPower, 0.1f);
+                glm::vec3 controlledVel = rb.Velocity;
+                if (gravityOwnsVertical)
+                    controlledVel.y = 0.0f;
+                // Resuming while already moving (or boost released) picks up the ramp at the current speed.
+                float speedFraction = glm::min(glm::length(controlledVel) / m.MaxSpeed, 1.0f);
+                m.RampElapsed = glm::max(m.RampElapsed + dt, m.RampTime * glm::pow(speedFraction, 1.0f / power));
+                speedScale = glm::pow(glm::min(m.RampElapsed / m.RampTime, 1.0f), power);
+                accel = glm::max(accel, power * m.MaxSpeed / m.RampTime); // keep up with the curve's steepest part
+            }
 
             // VELOCITY
-            glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed;
+            glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed * speedScale;
             glm::vec3 deltaVel = targetVel - rb.Velocity;
 
             // Once there's no vertical input, hand vertical velocity fully to gravity (below) instead
@@ -47,7 +66,6 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             // Rigidbody::GravityScale. Untouched whenever gravity doesn't apply to this entity (e.g.
             // Flight mode at its default scale, or gravity-less worlds), so non-player Movement users
             // and Ctrl-descend in the Void are unaffected.
-            bool gravityOwnsVertical = Gravity.Enabled && rb.GravityScale > 0.0f && glm::abs(m.MoveIntent.y) < 0.001f;
             if (gravityOwnsVertical)
                 deltaVel.y = 0.0f;
 
