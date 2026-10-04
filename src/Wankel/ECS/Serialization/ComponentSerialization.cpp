@@ -108,11 +108,12 @@ json Serialize(const ProceduralMotion& animation) {
     for (int from = 0; from < ProceduralMotion::AxisCount; from++) {
         for (int to = 0; to < ProceduralMotion::AxisCount; to++) {
             const MotionLink& link = animation.Links[from][to];
-            if (!link.Enabled)
-                continue;
+            if (!link.Authored())
+                continue; // switched-off links are kept, so turning one back on restores its tuning
 
             links.push_back({
                 {"From", MotionAxisName((MotionAxis)from)},
+                {"Enabled", link.Enabled},
                 {"To", MotionAxisName((MotionAxis)to)},
                 {"Magnitude", link.Magnitude},
                 {"Frequency", link.Frequency},
@@ -144,7 +145,7 @@ void Deserialize(const json& json, ProceduralMotion& animation) {
         }
 
         MotionLink& link = animation.Links[(int)from][(int)to];
-        link.Enabled = true;
+        link.Enabled = linkJson.value("Enabled", true);
         link.Magnitude = linkJson.at("Magnitude").get<float>();
         link.Frequency = linkJson.at("Frequency").get<float>();
         link.Damping = linkJson.at("Damping").get<float>();
