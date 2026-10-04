@@ -19,13 +19,15 @@ void PoseSystem::Update(Scene& scene, float dt) {
         auto& poseSet = view.get<PoseSet>(entity);
         if (poseSet.Poses.empty())
             continue;
+        if (poseSet.Current < 0 || poseSet.Current >= (int)poseSet.Poses.size())
+            poseSet.Current = 0; // the pose list was rebuilt shorter
 
         bool poseChanged = poseSet.Current != poseSet.Previous;
         if (poseChanged) {
             // Re-target from wherever the transform actually is right now, not the old pose's raw
             // value - so changing the target again mid-transition doesn't jump.
             poseSet.Blend.Position = tc.LocalPosition;
-            poseSet.Blend.Orientation = tc.LocalOrientation;
+            poseSet.Blend.Orientation = glm::inverse(poseSet.AdditiveRotation) * tc.LocalOrientation;
             poseSet.Elapsed = 0.0f;
             poseSet.Previous = poseSet.Current;
         }
@@ -52,7 +54,8 @@ void PoseSystem::Update(Scene& scene, float dt) {
         float eased = Ease(target.Ease, t, target.EaseExponent);
 
         tc.LocalPosition = glm::mix(poseSet.Blend.Position, target.Position, eased);
-        tc.LocalOrientation = glm::slerp(poseSet.Blend.Orientation, target.Orientation, eased);
+        tc.LocalOrientation =
+            poseSet.AdditiveRotation * glm::slerp(poseSet.Blend.Orientation, target.Orientation, eased);
     }
 }
 } // namespace Wankel

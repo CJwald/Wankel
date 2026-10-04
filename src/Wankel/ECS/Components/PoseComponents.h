@@ -25,6 +25,9 @@ struct Pose {
 struct PoseSet {
     std::vector<Pose> Poses;
     int Current = 0; // index into Poses - the target pose, set by gameplay code
+    // Applied on top of the blended pose, in the parent's frame - for procedural adjustments (e.g. a hip yaw
+    // follow) that must layer over whichever pose is active instead of fighting PoseSystem for the Transform.
+    glm::quat AdditiveRotation {1.0f, 0.0f, 0.0f, 0.0f};
 
     // Internal - PoseSystem's own bookkeeping, not meant to be set by callers.
     int Previous = -1;
