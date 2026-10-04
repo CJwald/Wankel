@@ -87,7 +87,7 @@ void NetDemoLayer::SetupClient() {
         auto pong = Networking::DecodeBody<PongBody>(msg.Payload);
         if (!pong)
             return;
-        float rttMs = (Time::GetTime() - pong->SentAtSeconds) * 1000.0f;
+        float rttMs = (float)(Time::GetTime() - pong->SentAtSeconds) * 1000.0f;
         WK_CLIENT_INFO("NetDemo(client): pong #{0} received, round-trip {1:.2f} ms", pong->Counter, rttMs);
     });
     m_ReplicationSystem.RegisterHandlers(m_ClientBus, m_ClientRegistry);
@@ -129,8 +129,8 @@ void NetDemoLayer::LogReplicationStatus() {
 }
 
 void NetDemoLayer::OnUpdate() {
-    float time = Time::GetTime();
-    float dt = time - m_LastFrameTime;
+    double time = Time::GetTime();
+    float dt = (float)(time - m_LastFrameTime);
     m_LastFrameTime = time;
     m_ElapsedTime += dt;
 
@@ -143,7 +143,7 @@ void NetDemoLayer::OnUpdate() {
     m_PingTimer += dt;
     if (m_ClientConnected && m_PingTimer >= 1.0f) {
         m_PingTimer = 0.0f;
-        PingBody ping {m_PingCounter++, time};
+        PingBody ping {m_PingCounter++, (float)time};
         Networking::NetMessage msg = Networking::MakeMessage(Networking::NetMessageType::Ping, m_Tick, ping);
         WK_CLIENT_INFO("NetDemo(client): sending ping #{0}", ping.Counter);
         m_ClientHost.Send(m_ClientSeenServer, msg, Networking::NetChannel::Reliable, true);

@@ -114,18 +114,15 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
             moveDir = glm::normalize(moveDir);
         }
 
-        // TODO: this is a hack, this should be controlled from sandbox
-        if (controller.Boost) {
-            movement.MaxSpeed = movement.SavedMaxSpeed * controller.BoostMultiplier;
-        } else {
-            movement.MaxSpeed = movement.SavedMaxSpeed;
-        }
         movement.MoveIntent = moveDir;
 
         // Mode-specific stop feel - PhysicsSystem uses Movement::Deceleration once MoveIntent goes to
         // zero (see its own comment); Mech/FPS stays snappy, any non-grounded mode (Flight, Spectator)
         // uses the shared tunable instead.
         bool grounded = controller.Mode == PlayerController::LookMode::FPS;
+        float speed = grounded ? controller.FPSMoveSpeed : controller.FlightMoveSpeed;
+        float boost = grounded ? controller.FPSBoostMultiplier : controller.FlightBoostMultiplier;
+        movement.MaxSpeed = speed * (controller.Boost ? boost : 1.0f) * controller.MoveSpeedScale;
         movement.Deceleration = grounded ? controller.FPSDeceleration : controller.FlightDeceleration;
         movement.UsePowerRamp = controller.MoveAccelUsePower;
         movement.RampTime = controller.MoveAccelTime;

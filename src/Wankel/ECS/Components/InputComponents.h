@@ -15,9 +15,15 @@ struct PlayerController {
     // flattens movement to the body plane). See PlayerControllerSystem::Update.
     enum class LookMode { FPS, Flight, Spectator };
 
-    float MoveSpeed = 5.0f;
-    float BoostMultiplier = 1.2f;
+    // Per-mode top speed (m/s) and boost multiplier, applied to Movement::MaxSpeed each frame by
+    // PlayerControllerSystem. FPS is grounded; Flight covers every non-grounded mode (Flight, Spectator).
+    float FPSMoveSpeed = 5.0f;
+    float FPSBoostMultiplier = 1.75f;
+    float FlightMoveSpeed = 5.0f;
+    float FlightBoostMultiplier = 3.0f;
     bool Boost = false;
+    // Runtime-only, set by the game each frame (e.g. slower while aiming) - multiplies the mode's speed.
+    float MoveSpeedScale = 1.0f;
 
     float WindowSensitivity = 0.002f;
     float MouseSensitivity = 1.0f;
@@ -133,8 +139,7 @@ struct RotationPivot {
 struct Movement {
     glm::vec3 MoveIntent {0.0f};
 
-    float MaxSpeed = 5.0f;
-    float SavedMaxSpeed = 5.0f; // TODO: Remove, this is a hack to get boost working before full refactor
+    float MaxSpeed = 5.0f; // overwritten every frame from PlayerController's per-mode speed when one drives it
     float Acceleration = 50.0f;
     // Default/standalone value for a Movement not driven by a PlayerController (e.g. future
     // Movement-driven AI) - an entity with both gets this overwritten every frame from
