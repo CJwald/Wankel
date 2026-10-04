@@ -39,6 +39,10 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             bool moving = glm::length(m.MoveIntent) > 0.001f;
             float accel = moving ? m.Acceleration : m.Deceleration;
             bool gravityOwnsVertical = Gravity.Enabled && rb.GravityScale > 0.0f && glm::abs(m.MoveIntent.y) < 0.001f;
+            glm::vec3 controlledVel = rb.Velocity;
+            if (gravityOwnsVertical)
+                controlledVel.y = 0.0f;
+            float controlledSpeed = glm::length(controlledVel);
 
             // Power ramp shapes the target speed over time (MaxSpeed * (t / RampTime)^RampPower), not the
             // per-frame step, so ground friction can't stall the near-zero start of the curve.
@@ -47,15 +51,16 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 m.RampElapsed = 0.0f;
             } else if (m.MaxSpeed > 0.0f) {
                 float power = glm::max(m.RampPower, 0.1f);
-                glm::vec3 controlledVel = rb.Velocity;
-                if (gravityOwnsVertical)
-                    controlledVel.y = 0.0f;
                 // Resuming while already moving (or boost released) picks up the ramp at the current speed.
-                float speedFraction = glm::min(glm::length(controlledVel) / m.MaxSpeed, 1.0f);
+                float speedFraction = glm::min(controlledSpeed / m.MaxSpeed, 1.0f);
                 m.RampElapsed = glm::max(m.RampElapsed + dt, m.RampTime * glm::pow(speedFraction, 1.0f / power));
                 speedScale = glm::pow(glm::min(m.RampElapsed / m.RampTime, 1.0f), power);
                 accel = glm::max(accel, power * m.MaxSpeed / m.RampTime); // keep up with the curve's steepest part
             }
+
+            // Faster than the current top speed (after a dash, or releasing sprint) bleeds off at Deceleration.
+            if (moving && controlledSpeed > m.MaxSpeed + 0.01f)
+                accel = m.Deceleration;
 
             // VELOCITY
             glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed * speedScale;
