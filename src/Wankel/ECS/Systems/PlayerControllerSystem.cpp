@@ -116,21 +116,13 @@ void PlayerControllerSystem::Update(Scene& scene, float dt) {
 
         movement.MoveIntent = moveDir;
 
-        // Mode-specific stop feel - PhysicsSystem uses Movement::Deceleration once MoveIntent goes to
-        // zero (see its own comment); Mech/FPS stays snappy, any non-grounded mode (Flight, Spectator)
-        // uses the shared tunable instead.
-        bool grounded = controller.Mode == PlayerController::LookMode::FPS;
-        float speed = grounded ? controller.FPSMoveSpeed : controller.FlightMoveSpeed;
-        float boost = grounded ? controller.FPSBoostMultiplier : controller.FlightBoostMultiplier;
-        movement.MaxSpeed = speed * (controller.Boost ? boost : 1.0f) * controller.MoveSpeedScale;
-        movement.Deceleration = grounded ? controller.FPSDeceleration : controller.FlightDeceleration;
+        movement.MaxSpeed = controller.MoveSpeed * (controller.Boost ? controller.BoostMultiplier : 1.0f) *
+                            controller.MoveSpeedScale;
+        movement.Deceleration = controller.Deceleration;
         movement.UsePowerRamp = controller.MoveAccelUsePower;
         movement.RampTime = controller.MoveAccelTime;
         movement.RampPower = controller.MoveAccelPower;
-
-        // Mech/FPS is always fully grounded (full gravity); any non-grounded mode uses the tunable
-        // scalar - see PlayerController::FlightGravityScale and Rigidbody::GravityScale.
-        rb.GravityScale = grounded ? 1.0f : controller.FlightGravityScale;
+        rb.GravityScale = controller.GravityScale;
 
         // APPLY TRANSFORM - if the controller delegates its look orientation to another entity (a
         // body-centre pivot child), write there and keep this entity, which carries the upright

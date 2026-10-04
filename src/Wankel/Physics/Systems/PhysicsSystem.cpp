@@ -62,7 +62,7 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             glm::vec3 deltaVel = targetVel - rb.Velocity;
 
             // Once there's no vertical input, hand vertical velocity fully to gravity (below) instead
-            // of Movement decelerating it back toward 0 - see PlayerController::FlightGravityScale /
+            // of Movement decelerating it back toward 0 - see PlayerController::GravityScale /
             // Rigidbody::GravityScale. Untouched whenever gravity doesn't apply to this entity (e.g.
             // Flight mode at its default scale, or gravity-less worlds), so non-player Movement users
             // and Ctrl-descend in the Void are unaffected.

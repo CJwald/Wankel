@@ -18,8 +18,8 @@ struct Rigidbody {
 
     // Per-entity multiplier on PhysicsSystem::Gravity (see PhysicsSystem::Update) - 1.0 (full gravity)
     // by default, matching what any generic Rigidbody (props, ragdolls) should expect. A
-    // PlayerController-driven entity gets this overwritten every frame based on look mode instead
-    // (PlayerControllerSystem) - see PlayerController::FlightGravityScale.
+    // PlayerController-driven entity gets this overwritten every frame instead
+    // (PlayerControllerSystem) - see PlayerController::GravityScale.
     float GravityScale = 1.0f;
 };
 

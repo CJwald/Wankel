@@ -160,10 +160,10 @@ void Deserialize(const json& json, ProceduralMotion& animation) {
 
 json Serialize(const PlayerController& controller) {
     return {
-        {"FPSMoveSpeed", controller.FPSMoveSpeed},
-        {"FPSBoostMultiplier", controller.FPSBoostMultiplier},
-        {"FlightMoveSpeed", controller.FlightMoveSpeed},
-        {"FlightBoostMultiplier", controller.FlightBoostMultiplier},
+        {"MoveSpeed", controller.MoveSpeed},
+        {"BoostMultiplier", controller.BoostMultiplier},
+        {"Deceleration", controller.Deceleration},
+        {"GravityScale", controller.GravityScale},
         {"WindowSensitivity", controller.WindowSensitivity},
         {"MouseSensitivity", controller.MouseSensitivity},
         {"RollSpeed", controller.RollSpeed},
@@ -178,9 +178,6 @@ json Serialize(const PlayerController& controller) {
         {"ControllerAccelRate", controller.ControllerAccelRate},
         {"ControllerAccelDirectionLoss", controller.ControllerAccelDirectionLoss},
         {"ControllerAccelDirectionLossRate", controller.ControllerAccelDirectionLossRate},
-        {"FPSDeceleration", controller.FPSDeceleration},
-        {"FlightDeceleration", controller.FlightDeceleration},
-        {"FlightGravityScale", controller.FlightGravityScale},
         {"MoveAccelUsePower", controller.MoveAccelUsePower},
         {"MoveAccelTime", controller.MoveAccelTime},
         {"MoveAccelPower", controller.MoveAccelPower},
@@ -191,12 +188,11 @@ json Serialize(const PlayerController& controller) {
 }
 
 void Deserialize(const json& json, PlayerController& controller) {
-    // Older files only have the pre-per-mode MoveSpeed/BoostMultiplier - those seed the FPS values.
-    controller.FPSMoveSpeed = json.value("FPSMoveSpeed", json.value("MoveSpeed", controller.FPSMoveSpeed));
-    controller.FPSBoostMultiplier =
-        json.value("FPSBoostMultiplier", json.value("BoostMultiplier", controller.FPSBoostMultiplier));
-    controller.FlightMoveSpeed = json.value("FlightMoveSpeed", controller.FlightMoveSpeed);
-    controller.FlightBoostMultiplier = json.value("FlightBoostMultiplier", controller.FlightBoostMultiplier);
+    // Files from the per-look-mode era carry FPSMoveSpeed/FPSDeceleration instead - those seed the active set.
+    controller.MoveSpeed = json.value("MoveSpeed", json.value("FPSMoveSpeed", controller.MoveSpeed));
+    controller.BoostMultiplier = json.value("BoostMultiplier", controller.BoostMultiplier);
+    controller.Deceleration = json.value("Deceleration", json.value("FPSDeceleration", controller.Deceleration));
+    controller.GravityScale = json.value("GravityScale", controller.GravityScale);
     controller.WindowSensitivity = json.at("WindowSensitivity").get<float>();
     controller.MouseSensitivity = json.at("MouseSensitivity").get<float>();
     controller.RollSpeed = json.at("RollSpeed").get<float>();
@@ -225,9 +221,6 @@ void Deserialize(const json& json, PlayerController& controller) {
     controller.ControllerAccelDirectionLossRate =
         glm::max(json.value("ControllerAccelDirectionLossRate", controller.ControllerAccelDirectionLossRate), 0.0f);
 
-    controller.FPSDeceleration = json.at("FPSDeceleration").get<float>();
-    controller.FlightDeceleration = json.at("FlightDeceleration").get<float>();
-    controller.FlightGravityScale = json.at("FlightGravityScale").get<float>();
     controller.MoveAccelUsePower = json.value("MoveAccelUsePower", controller.MoveAccelUsePower);
     controller.MoveAccelTime = glm::max(json.value("MoveAccelTime", controller.MoveAccelTime), 0.0f);
     controller.MoveAccelPower = glm::max(json.value("MoveAccelPower", controller.MoveAccelPower), 0.1f);
