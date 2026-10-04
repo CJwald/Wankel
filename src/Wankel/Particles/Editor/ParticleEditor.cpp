@@ -2,6 +2,7 @@
 #include "Wankel/Particles/Editor/ParticleEditor.h"
 
 #include "Wankel/Assets/AssetManager.h"
+#include "Wankel/Core/ImGui/ImGuiTexture.h"
 #include "Wankel/Particles/ParticleEffect.h"
 #include "Wankel/Particles/ParticleLibrary.h"
 #include "Wankel/Renderer/DebugDraw.h"
@@ -26,13 +27,9 @@ namespace {
 
 constexpr float kStep = 1.0f / 60.0f; // scrub/fast-forward step
 
-ImTextureID ToImTexture(uint32_t glTexture) {
-    return (ImTextureID)(uintptr_t)glTexture;
-}
-
-// GL textures (loaded flipped, and render targets) have v=0 at the bottom; ImGui draws v=0 at the top.
-const ImVec2 kUvTop(0.0f, 1.0f);
-const ImVec2 kUvBottom(1.0f, 0.0f);
+using ImGuiTexture::FromGL;
+const ImVec2 kUvTop = ImGuiTexture::UvTop();
+const ImVec2 kUvBottom = ImGuiTexture::UvBottom();
 
 template <typename E, size_t N>
 bool EnumCombo(const char* label, E& value, const char* const (&names)[N]) {
@@ -786,7 +783,7 @@ void ParticleEditor::DrawPreview(float height) {
     RenderPreview((uint32_t)size.x, (uint32_t)size.y);
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec2 max(min.x + size.x, min.y + size.y);
-    draw->AddImage(ToImTexture(m_Target->GetColorTexture()), min, max, kUvTop, kUvBottom);
+    draw->AddImage(FromGL(m_Target->GetColorTexture()), min, max, kUvTop, kUvBottom);
     const ParticleSystem::Stats& stats = m_Preview->GetStats();
     char overlay[160];
     std::snprintf(overlay, sizeof(overlay), "t %.2fs   alive %u   draws %u   alpha %u   additive %u", m_Time,
@@ -957,7 +954,7 @@ void ParticleEditor::DrawProperties() {
                 if (ImGui::IsItemHovered()) {
                     if (Ref<Texture> tex = AssetManager::GetTexture(texture)) {
                         ImGui::BeginTooltip();
-                        ImGui::Image(ToImTexture(tex->GetID()), ImVec2(96.0f, 96.0f), kUvTop, kUvBottom);
+                        ImGui::Image(FromGL(tex->GetID()), ImVec2(96.0f, 96.0f), kUvTop, kUvBottom);
                         ImGui::EndTooltip();
                     }
                 }
@@ -1014,7 +1011,7 @@ void ParticleEditor::DrawProperties() {
             ImVec2 max(min.x + side, min.y + side);
             ImDrawList* draw = ImGui::GetWindowDrawList();
             DrawChecker(draw, min, max, 8.0f);
-            ImGui::Image(ToImTexture(tex->GetID()), ImVec2(side, side), kUvTop, kUvBottom);
+            ImGui::Image(FromGL(tex->GetID()), ImVec2(side, side), kUvTop, kUvBottom);
             ImVec2 rectMin(min.x + mat.AtlasRect.x * side, min.y + mat.AtlasRect.y * side);
             ImVec2 rectSize(mat.AtlasRect.z * side, mat.AtlasRect.w * side);
             draw->AddRect(rectMin, ImVec2(rectMin.x + rectSize.x, rectMin.y + rectSize.y), IM_COL32(150, 205, 64, 255));

@@ -53,6 +53,12 @@ void PlayerInputSystem::Update(Scene& scene, float dt, bool gameFocused) {
         glm::vec3 input(0.0f);
         float rollInput = 0.0f;
 
+        // Grounded FPS sprints and falls; Flight drifts weightless with a bigger boost.
+        bool grounded = controller.Mode == PlayerController::LookMode::FPS;
+        controller.BoostMultiplier = grounded ? 1.6f : 2.6f;
+        controller.Deceleration = grounded ? 50.0f : 2.0f;
+        controller.GravityScale = grounded ? 1.0f : 0.0f;
+
         // KEYBOARD INPUT
         if (Input::IsKeyPressed(Key::W))
             input.z += 1.0f;

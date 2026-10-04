@@ -15,14 +15,15 @@ struct PlayerController {
     // flattens movement to the body plane). See PlayerControllerSystem::Update.
     enum class LookMode { FPS, Flight, Spectator };
 
-    // Per-mode top speed (m/s) and boost multiplier, applied to Movement::MaxSpeed each frame by
-    // PlayerControllerSystem. FPS is grounded; Flight covers every non-grounded mode (Flight, Spectator).
-    float FPSMoveSpeed = 5.0f;
-    float FPSBoostMultiplier = 1.75f;
-    float FlightMoveSpeed = 5.0f;
-    float FlightBoostMultiplier = 3.0f;
+    // The active movement parameters, applied to Movement/Rigidbody each frame by PlayerControllerSystem.
+    // A game with its own state model (e.g. Mechtrix's character states) rewrites these every frame;
+    // otherwise they're plain tuning.
+    float MoveSpeed = 5.0f;       // top speed, m/s
+    float BoostMultiplier = 1.0f; // applied while Boost is held
+    float Deceleration = 50.0f;   // Movement::Deceleration - time-to-stop from MoveSpeed is roughly MoveSpeed/this
+    float GravityScale = 1.0f;    // Rigidbody::GravityScale
     bool Boost = false;
-    // Runtime-only, set by the game each frame (e.g. slower while aiming) - multiplies the mode's speed.
+    // Runtime-only, set by the game each frame (e.g. slower while aiming) - multiplies the speed.
     float MoveSpeedScale = 1.0f;
 
     float WindowSensitivity = 0.002f;
@@ -70,25 +71,10 @@ struct PlayerController {
     LookMode Mode = LookMode::FPS;
     bool R3PressedLastFrame = false;
 
-    // Per-mode Movement::Deceleration, applied each frame by PlayerControllerSystem (mirrors how
-    // Boost/MaxSpeed already works below) - Mech/FPS stays snappy (matches Movement's own prior
-    // single shared default); any non-grounded mode (Flight, Spectator) uses FlightDeceleration
-    // instead - Flight's default drifts slowly to a stop, Spectator typically wants this cranked way
-    // up for an instant halt. Tune to taste - time-to-stop from MaxSpeed is roughly MaxSpeed/this.
-    float FPSDeceleration = 50.0f;
-    float FlightDeceleration = 2.0f;
-
     // Copied onto Movement::UsePowerRamp/RampTime/RampPower each frame - see Movement.
     bool MoveAccelUsePower = true;
     float MoveAccelTime = 0.25f;
     float MoveAccelPower = 1.1f;
-
-    // Per-mode Rigidbody::GravityScale, applied each frame by PlayerControllerSystem (same pattern as
-    // FPSDeceleration/FlightDeceleration above) - Mech/FPS is always fully grounded (hardcoded 1.0 in
-    // PlayerControllerSystem, not exposed as its own tunable); any non-grounded mode (Flight,
-    // Spectator) uses FlightGravityScale, defaulting to 0 (free-flight, unaffected by world gravity
-    // unless you deliberately dial this up toward 1).
-    float FlightGravityScale = 0.0f;
 
     // FPS CAMERA STATE, TODO: make sure I need these
     float Yaw = 0.0f;
@@ -129,7 +115,7 @@ struct RotationPivot {
     entt::entity Source = entt::null;
 
     // Per-mode channel mask - named fields (not an array indexed by LookMode) to match
-    // PlayerController's own FPSDeceleration/FlightDeceleration/FlightGravityScale naming style.
+    // PlayerController's FPS/Flight/Spectator modes.
     uint8_t FPSChannels = OrientationChannel_All;
     uint8_t FlightChannels = OrientationChannel_All;
     uint8_t SpectatorChannels = OrientationChannel_All;
@@ -139,11 +125,11 @@ struct RotationPivot {
 struct Movement {
     glm::vec3 MoveIntent {0.0f};
 
-    float MaxSpeed = 5.0f; // overwritten every frame from PlayerController's per-mode speed when one drives it
+    float MaxSpeed = 5.0f; // overwritten every frame from PlayerController's MoveSpeed when one drives it
     float Acceleration = 50.0f;
     // Default/standalone value for a Movement not driven by a PlayerController (e.g. future
     // Movement-driven AI) - an entity with both gets this overwritten every frame from
-    // PlayerController::FPSDeceleration/FlightDeceleration instead (see PlayerControllerSystem).
+    // PlayerController::Deceleration instead (see PlayerControllerSystem).
     float Deceleration = 50.0f;
 
     // Off = constant Acceleration. On = speed follows MaxSpeed * (t / RampTime)^RampPower from rest.

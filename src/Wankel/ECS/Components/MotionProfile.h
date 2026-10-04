@@ -53,6 +53,12 @@ struct MotionLink {
 
     float Output = 0.0f;
 
+    // A link that was set up, even if switched off (Enabled false) - an unused slot keeps every default.
+    bool Authored() const {
+        return Enabled || Magnitude != 0.0f || Frequency != 2.0f || Damping != 0.8f || Response != 2.0f ||
+               ClampMin != -9999.0f || ClampMax != 9999.0f;
+    }
+
     // Copies only the authored tuning, not Spring/Output (live runtime state) - lets a pose swap
     // sway "feel" without resetting the spring's current physical motion, matching how
     // ProceduralAnimationSystem already re-tunes Spring from these fields every frame regardless.
