@@ -41,7 +41,7 @@ private:
     Scene m_Scene;
     PlayerInputSystem m_PlayerInputSystem;
 
-    float m_LastFrame = 0.0f;
+    double m_LastFrame = 0.0;
 
     // IMGUI / DEBUG
     FogSettings m_Fog;

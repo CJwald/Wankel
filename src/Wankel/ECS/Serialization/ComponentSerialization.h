@@ -52,7 +52,7 @@ void Deserialize(const nlohmann::json& json, PlayerController& controller);
 nlohmann::json Serialize(const Rigidbody& rigidbody);
 void Deserialize(const nlohmann::json& json, Rigidbody& rigidbody);
 
-// MaxSpeed/Acceleration/Deceleration only - skips MoveIntent and the SavedMaxSpeed hack field.
+// Tuning only - skips MoveIntent and RampElapsed (runtime state).
 nlohmann::json Serialize(const Movement& movement);
 void Deserialize(const nlohmann::json& json, Movement& movement);
 

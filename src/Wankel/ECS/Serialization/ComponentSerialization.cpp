@@ -160,8 +160,10 @@ void Deserialize(const json& json, ProceduralMotion& animation) {
 
 json Serialize(const PlayerController& controller) {
     return {
-        {"MoveSpeed", controller.MoveSpeed},
-        {"BoostMultiplier", controller.BoostMultiplier},
+        {"FPSMoveSpeed", controller.FPSMoveSpeed},
+        {"FPSBoostMultiplier", controller.FPSBoostMultiplier},
+        {"FlightMoveSpeed", controller.FlightMoveSpeed},
+        {"FlightBoostMultiplier", controller.FlightBoostMultiplier},
         {"WindowSensitivity", controller.WindowSensitivity},
         {"MouseSensitivity", controller.MouseSensitivity},
         {"RollSpeed", controller.RollSpeed},
@@ -189,8 +191,12 @@ json Serialize(const PlayerController& controller) {
 }
 
 void Deserialize(const json& json, PlayerController& controller) {
-    controller.MoveSpeed = json.at("MoveSpeed").get<float>();
-    controller.BoostMultiplier = json.at("BoostMultiplier").get<float>();
+    // Older files only have the pre-per-mode MoveSpeed/BoostMultiplier - those seed the FPS values.
+    controller.FPSMoveSpeed = json.value("FPSMoveSpeed", json.value("MoveSpeed", controller.FPSMoveSpeed));
+    controller.FPSBoostMultiplier =
+        json.value("FPSBoostMultiplier", json.value("BoostMultiplier", controller.FPSBoostMultiplier));
+    controller.FlightMoveSpeed = json.value("FlightMoveSpeed", controller.FlightMoveSpeed);
+    controller.FlightBoostMultiplier = json.value("FlightBoostMultiplier", controller.FlightBoostMultiplier);
     controller.WindowSensitivity = json.at("WindowSensitivity").get<float>();
     controller.MouseSensitivity = json.at("MouseSensitivity").get<float>();
     controller.RollSpeed = json.at("RollSpeed").get<float>();
@@ -262,7 +268,6 @@ void Deserialize(const json& json, Movement& movement) {
     movement.UsePowerRamp = json.value("UsePowerRamp", movement.UsePowerRamp);
     movement.RampTime = glm::max(json.value("RampTime", movement.RampTime), 0.0f);
     movement.RampPower = glm::max(json.value("RampPower", movement.RampPower), 0.1f);
-    movement.SavedMaxSpeed = movement.MaxSpeed;
 }
 
 json Serialize(const MeshRenderer& renderer) {

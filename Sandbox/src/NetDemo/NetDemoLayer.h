@@ -43,7 +43,7 @@ private:
     Networking::NetPeer m_ClientSeenServer; // set once the client's connection to the server completes
     bool m_ClientConnected = false;
 
-    float m_LastFrameTime = 0.0f;
+    double m_LastFrameTime = 0.0;
     float m_ElapsedTime = 0.0f;
     float m_PingTimer = 0.0f;
     float m_ReplicationTimer = 0.0f;

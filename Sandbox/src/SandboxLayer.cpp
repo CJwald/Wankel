@@ -75,8 +75,8 @@ SandboxLayer::SandboxLayer() : Layer("Cube") {
 
 
 void SandboxLayer::OnUpdate() {
-    float time = Time::GetTime();
-    float dt = time - m_LastFrame;
+    double time = Time::GetTime();
+    float dt = (float)(time - m_LastFrame);
     m_LastFrame = time;
 
     DebugOverlay::PushFrameTime(dt);

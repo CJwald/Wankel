@@ -424,7 +424,7 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
 
         shader->SetVec3("u_FogColor", s_Data.Fog.Color);
         shader->SetFloat("u_FogDensity", s_Data.Fog.Density);
-        shader->SetFloat("u_Time", Time::GetTime());
+        shader->SetFloat("u_Time", (float)Time::GetTime());
 
         shader->SetFloat("u_FogNoiseScale", s_Data.Fog.NoiseScale);
         shader->SetFloat("u_FogNoiseStrength", s_Data.Fog.NoiseStrength);
