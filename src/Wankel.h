@@ -68,3 +68,5 @@
 #include "Wankel/Math/Math.h"
 #include "Wankel/Math/Random.h"
 #include "Wankel/Math/Noise.h"
+#include "Wankel/Math/Hash.h"
+#include "Wankel/Math/SeededRandom.h"
