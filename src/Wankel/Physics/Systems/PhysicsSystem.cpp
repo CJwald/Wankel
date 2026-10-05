@@ -58,12 +58,18 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 accel = glm::max(accel, power * m.MaxSpeed / m.RampTime); // keep up with the curve's steepest part
             }
 
-            // Faster than the current top speed (after a dash, or releasing sprint) bleeds off at Deceleration.
-            if (moving && controlledSpeed > m.MaxSpeed + 0.01f)
-                accel = m.Deceleration;
-
             // VELOCITY
             glm::vec3 targetVel = m.MoveIntent * m.MaxSpeed * speedScale;
+
+            // Faster than the current top speed (after a boost/dash, or releasing sprint): the excess speed
+            // bleeds off at Deceleration only as far as the input keeps going the same way - turning trades
+            // it away and pushing against it brakes, both at full acceleration.
+            if (moving && controlledSpeed > m.MaxSpeed + 0.01f) {
+                glm::vec3 inputDir = glm::normalize(m.MoveIntent);
+                float along = glm::max(glm::dot(controlledVel / controlledSpeed, inputDir), 0.0f);
+                float excess = glm::max(controlledSpeed - m.Deceleration * dt - m.MaxSpeed * speedScale, 0.0f);
+                targetVel = inputDir * (m.MaxSpeed * speedScale + excess * along);
+            }
             glm::vec3 deltaVel = targetVel - rb.Velocity;
 
             // Once there's no vertical input, hand vertical velocity fully to gravity (below) instead
