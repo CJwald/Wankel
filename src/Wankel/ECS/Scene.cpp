@@ -72,6 +72,15 @@ void Scene::OnUpdate(float dt, Camera& camera) {
     m_RotationPivotSystem.Update(*this);
     Smooth(m_SystemTimings.RotationPivotMs, ElapsedMs(tRotationPivot));
 
+    // Velocity -> clip -> per-target pose, ahead of PoseSystem, which blends those poses into the local transforms.
+    auto tLocomotion = std::chrono::high_resolution_clock::now();
+    m_LocomotionSystem.Update(*this);
+    Smooth(m_SystemTimings.LocomotionMs, ElapsedMs(tLocomotion));
+
+    auto tAnimationPlayer = std::chrono::high_resolution_clock::now();
+    m_AnimationPlayerSystem.Update(*this, dt);
+    Smooth(m_SystemTimings.AnimationPlayerMs, ElapsedMs(tAnimationPlayer));
+
     auto t1 = std::chrono::high_resolution_clock::now();
     m_PoseSystem.Update(*this, dt);
     Smooth(m_SystemTimings.PoseMs, ElapsedMs(t1));

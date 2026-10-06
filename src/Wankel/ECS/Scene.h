@@ -5,6 +5,8 @@
 #include "Wankel/Physics/Systems/PhysicsSystem.h"
 #include "Wankel/ECS/Systems/PlayerControllerSystem.h"
 #include "Wankel/ECS/Systems/RotationPivotSystem.h"
+#include "Wankel/ECS/Systems/LocomotionSystem.h"
+#include "Wankel/ECS/Systems/AnimationPlayerSystem.h"
 #include "Wankel/ECS/Systems/PoseSystem.h"
 #include "Wankel/ECS/Systems/TransformAnimationSystem.h"
 #include "Wankel/ECS/Systems/TransformSystem.h"
@@ -25,6 +27,8 @@ namespace Wankel {
 struct SceneSystemTimings {
     float PlayerControllerMs = 0.0f;
     float RotationPivotMs = 0.0f;
+    float LocomotionMs = 0.0f;
+    float AnimationPlayerMs = 0.0f;
     float PoseMs = 0.0f;
     float PhysicsMs = 0.0f;
     float TransformAnimationMs = 0.0f;
@@ -104,6 +108,8 @@ public:
 private:
     PlayerControllerSystem m_PlayerControllerSystem;
     RotationPivotSystem m_RotationPivotSystem;
+    LocomotionSystem m_LocomotionSystem;
+    AnimationPlayerSystem m_AnimationPlayerSystem;
     PoseSystem m_PoseSystem;
     TransformAnimationSystem m_TransformAnimationSystem;
     TransformSystem m_TransformSystem;
