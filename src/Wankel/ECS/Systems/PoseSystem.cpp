@@ -23,14 +23,21 @@ void PoseSystem::Update(Scene& scene, float dt) {
             poseSet.Current = 0; // the pose list was rebuilt shorter
 
         bool poseChanged = poseSet.Current != poseSet.Previous;
-        if (poseChanged) {
+        // An animated target (AnimationPlayerSystem) replaces Poses[Current]; entering, leaving or switching
+        // clips re-blends the same way a pose change does.
+        bool sourceChanged = poseSet.Animated != poseSet.WasAnimated ||
+                             (poseSet.Animated && poseSet.AnimatedSerial != poseSet.LastAnimatedSerial);
+        bool retarget = sourceChanged || (poseChanged && !poseSet.Animated);
+        if (retarget) {
             // Re-target from wherever the transform actually is right now, not the old pose's raw
             // value - so changing the target again mid-transition doesn't jump.
             poseSet.Blend.Position = tc.LocalPosition;
             poseSet.Blend.Orientation = glm::inverse(poseSet.AdditiveRotation) * tc.LocalOrientation;
             poseSet.Elapsed = 0.0f;
-            poseSet.Previous = poseSet.Current;
         }
+        poseSet.Previous = poseSet.Current;
+        poseSet.WasAnimated = poseSet.Animated;
+        poseSet.LastAnimatedSerial = poseSet.AnimatedSerial;
 
         const Pose& target = poseSet.Poses[poseSet.Current];
 
@@ -50,12 +57,23 @@ void PoseSystem::Update(Scene& scene, float dt) {
         }
 
         poseSet.Elapsed += dt;
-        float t = target.Duration <= 0.0f ? 1.0f : glm::clamp(poseSet.Elapsed / target.Duration, 0.0f, 1.0f);
-        float eased = Ease(target.Ease, t, target.EaseExponent);
+        glm::vec3 targetPosition = target.Position;
+        glm::quat targetOrientation = target.Orientation;
+        float eased;
+        if (poseSet.Animated) {
+            targetPosition = poseSet.AnimatedPosition;
+            targetOrientation = poseSet.AnimatedOrientation;
+            eased = poseSet.AnimatedBlendTime <= 0.0f
+                        ? 1.0f
+                        : Ease(EaseType::SmoothStep, glm::clamp(poseSet.Elapsed / poseSet.AnimatedBlendTime, 0.0f, 1.0f));
+        } else {
+            float t = target.Duration <= 0.0f ? 1.0f : glm::clamp(poseSet.Elapsed / target.Duration, 0.0f, 1.0f);
+            eased = Ease(target.Ease, t, target.EaseExponent);
+        }
 
-        tc.LocalPosition = glm::mix(poseSet.Blend.Position, target.Position, eased);
+        tc.LocalPosition = glm::mix(poseSet.Blend.Position, targetPosition, eased);
         tc.LocalOrientation =
-            poseSet.AdditiveRotation * glm::slerp(poseSet.Blend.Orientation, target.Orientation, eased);
+            poseSet.AdditiveRotation * glm::slerp(poseSet.Blend.Orientation, targetOrientation, eased);
     }
 }
 } // namespace Wankel

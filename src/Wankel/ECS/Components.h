@@ -21,6 +21,8 @@
 // ANIMATION
 #include "Components/AnimationComponents.h"
 #include "Components/PoseComponents.h"
+#include "Components/AnimationPlayerComponents.h"
+#include "Components/LocomotionComponents.h"
 
 // GAMEPLAY
 #include "Components/GameplayComponents.h"
