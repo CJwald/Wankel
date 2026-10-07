@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace Wankel {
 
@@ -50,10 +51,69 @@ struct TerrainMaterialDesc {
     float NormalStrength = 1.0f;
     float HeightScale = 0.0f; // parallax depth in world units; 0 = off even with a height map
 
+    // Alternate texture sets of the same material (map paths only), picked per world-space cell when
+    // TextureVariationSettings::Variants is on. Expected to provide the same channels as the main maps.
+    std::vector<TerrainMaterialDesc> Variants;
+
     // Every `<dir>/<name>_<channel>.png` that exists (channel = basecolor, normal, roughness, metallic,
-    // height, ao, emissive, opacity, mask) - missing ones are simply left unset.
+    // height, ao, emissive, opacity, mask) - missing ones are simply left unset. Variants come from
+    // `<dir>/<name>_v<N>_<channel>.png` (N = 1..kMaxTerrainVariants-1), each needing at least a base color.
     static TerrainMaterialDesc FromDirectory(const std::string& dir, const std::string& name);
 };
+
+// Texture repetition mitigation for every terrain slot. Everything is derived from world position (never
+// chunk coordinates) and wraps at the world period (TerrainMaterials::SetWorldPeriod), so chunk borders,
+// regeneration, streaming order and a tiled world's seam never change the result. Scales are world units.
+struct TextureVariationSettings {
+    bool Enabled = true; // master switch - off renders exactly as without this feature
+
+    struct TransformSettings {
+        bool Enabled = true;
+        float Scale = 4.0f;      // cell size; each cell's texture gets its own rotation/mirror
+        float EdgeBlend = 0.15f; // fraction of a cell blended with its neighbours at the edges (0 = hard)
+        bool Rotation = true;
+        bool Mirror = true;
+        uint32_t Seed = 1;
+    } Transform;
+
+    struct VariantSettings {
+        bool Enabled = true;
+        int Count = 8; // variants to choose among, capped per slot by how many loaded
+        float Scale = 8.0f;
+        uint32_t Seed = 2;
+    } Variants;
+
+    struct MacroSettings {
+        bool Enabled = true;
+        float Scale = 50.0f;
+        float Strength = 0.12f; // albedo *= 1 +- Strength
+        float Contrast = 1.0f;
+        uint32_t Seed = 3;
+    } Macro;
+
+    struct DetailSettings {
+        bool Enabled = false;
+        float Scale = 1.0f; // repeats per world unit - the slot's own texture, sampled again at this scale
+        float Strength = 0.3f;
+        bool BaseColor = true;
+        bool Normal = true;
+        bool Roughness = true;
+    } Detail;
+
+    struct MaterialSettings {
+        bool Enabled = true;
+        float Scale = 20.0f;
+        float Albedo = 0.05f; // each multiplies its channel by 1 +- this
+        float Roughness = 0.05f;
+        float Normal = 0.15f;
+        uint32_t Seed = 4;
+    } Material;
+
+    enum class DebugView : uint8_t { None, MacroPattern, VariationCells, TextureVariant, TransformId };
+    DebugView View = DebugView::None;
+};
+
+constexpr uint32_t kMaxTerrainVariants = 8; // per slot, the main maps included
 
 // Per-vertex slot weights. A textured vertex bakes Color=0 plus a one-hot weight, so interpolated
 // color + weighted texture samples reproduces the plain vertex-color blend exactly.
@@ -103,6 +163,15 @@ public:
     // 0 = project along the smooth vertex normal, 1 (default) = along the true triangle normal (no edge smearing).
     static void SetTriplanarFaceNormal(float blend);
     static float GetTriplanarFaceNormal();
+
+    // Live-edited; uploaded with the rest of the terrain uniforms.
+    static TextureVariationSettings& GetVariationSettings();
+    // The tiling period of the world being drawn (0 on an axis = not tiled). Variation patterns wrap at it so a
+    // tiled world has no seam; set it whenever the world's extent changes.
+    static void SetWorldPeriod(const glm::vec3& period);
+    static glm::vec3 GetWorldPeriod();
+    // How many texture variants a slot has (1 = just its main maps).
+    static uint32_t GetSlotVariantCount(uint32_t slot);
 
     // Texture units 1-5; bound on every terrain draw, even with no active slots, so the shader's
     // sampler2DArray uniforms never alias unit 0's sampler2D (a GL draw-time error).
