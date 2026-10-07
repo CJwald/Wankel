@@ -74,9 +74,19 @@ struct TerrainMaterialsData {
         none.fill(-1);
         return none;
     }();
+    // Variant layers sit after the kMaxTerrainMaterialSlots slot layers: VariantBase is a slot's first one,
+    // VariantCount its variants including the main maps (1 = none).
+    std::array<uint32_t, kMaxTerrainMaterialSlots> VariantBase {};
+    std::array<uint32_t, kMaxTerrainMaterialSlots> VariantCount = [] {
+        std::array<uint32_t, kMaxTerrainMaterialSlots> one;
+        one.fill(1);
+        return one;
+    }();
     uint32_t Resolution = 2048;
     float TriplanarSharpness = 4.0f;
     float TriplanarFaceNormal = 1.0f;
+    TextureVariationSettings Variation;
+    glm::vec3 WorldPeriod {0.0f};
     bool Dirty = true; // arrays rebuilt lazily on the next BindTextures, so registering N slots loads once
     std::array<Scope<TextureArray>, kArrayCount> Arrays;
 };
@@ -86,7 +96,7 @@ TerrainMaterialsData s_Data;
 // Uniform names built once - UploadUniforms runs every frame per terrain shader.
 struct SlotUniformNames {
     std::string BaseColorTint, Roughness, Metallic, Emissive, EmissiveStrength, Opacity, Scale, NormalStrength,
-        HeightScale, Maps, Active, Layer;
+        HeightScale, Maps, Active, Layer, VariantBase, VariantCount;
 };
 
 const std::array<SlotUniformNames, kMaxTerrainMaterialSlots>& GetSlotUniformNames() {
@@ -96,7 +106,8 @@ const std::array<SlotUniformNames, kMaxTerrainMaterialSlots>& GetSlotUniformName
             std::string p = "u_TerrainSlots[" + std::to_string(i) + "].";
             result[i] = {p + "BaseColorTint",    p + "Roughness", p + "Metallic", p + "Emissive",
                          p + "EmissiveStrength", p + "Opacity",   p + "Scale",    p + "NormalStrength",
-                         p + "HeightScale",      p + "Maps",      p + "Active",   p + "Layer"};
+                         p + "HeightScale",      p + "Maps",      p + "Active",   p + "Layer",
+                         p + "VariantBase",      p + "VariantCount"};
         }
         return result;
     }();
@@ -142,11 +153,8 @@ std::vector<uint8_t> PackChannels(const std::vector<const std::vector<uint8_t>*>
     return packed;
 }
 
-// Each slot's layer for every array it uses, built from whichever of its maps exist.
-void UploadSlot(uint32_t slot, uint32_t size) {
-    const TerrainMaterialDesc& desc = s_Data.Descs[slot];
-    uint32_t maps = s_Data.Maps[slot];
-
+// One texture set into `layer` of every array it uses, from whichever of `maps` load; returns the maps that did.
+uint32_t UploadLayer(const TerrainMaterialDesc& desc, uint32_t maps, uint32_t layer, uint32_t size) {
     std::vector<uint8_t> loaded[std::size(kMaps)];
     for (size_t m = 0; m < std::size(kMaps); m++) {
         if (!(maps & kMaps[m].Bit))
@@ -155,7 +163,6 @@ void UploadSlot(uint32_t slot, uint32_t size) {
         if (loaded[m].empty())
             maps &= ~kMaps[m].Bit; // readable at SetSlot but not now - fall back to its default
     }
-    s_Data.Maps[slot] = maps;
     auto mapPixels = [&](TerrainMap bit) -> const std::vector<uint8_t>* {
         for (size_t m = 0; m < std::size(kMaps); m++)
             if (kMaps[m].Bit == bit)
@@ -164,9 +171,9 @@ void UploadSlot(uint32_t slot, uint32_t size) {
     };
     auto setLayer = [&](ArrayKind kind, const std::vector<uint8_t>& pixels) {
         TextureArray& array = *s_Data.Arrays[(int)kind];
-        if (slot < array.GetLayerCount() &&
+        if (layer < array.GetLayerCount() &&
             pixels.size() == (size_t)size * size * TextureArrayChannels(array.GetFormat()))
-            array.SetLayer(slot, pixels.data());
+            array.SetLayer(layer, pixels.data());
     };
 
     if (maps & TerrainMap_BaseColor)
@@ -185,21 +192,52 @@ void UploadSlot(uint32_t slot, uint32_t size) {
         setLayer(ArrayKind::OpacityMask,
                  PackChannels({mapPixels(TerrainMap_Opacity), mapPixels(TerrainMap_Mask)}, {255, 0}, size));
     }
+    return maps;
+}
+
+// A variant missing a channel the main maps have borrows the main one, so its layer is never left empty.
+TerrainMaterialDesc VariantWithFallbacks(const TerrainMaterialDesc& variant, const TerrainMaterialDesc& main) {
+    TerrainMaterialDesc merged = variant;
+    for (const MapInfo& map : kMaps)
+        if ((merged.*map.Path).empty())
+            merged.*map.Path = main.*map.Path;
+    return merged;
+}
+
+// The slot's main layer (its slot index) plus each of its variants' layers.
+void UploadSlot(uint32_t slot, uint32_t size) {
+    const TerrainMaterialDesc& desc = s_Data.Descs[slot];
+    s_Data.Maps[slot] = UploadLayer(desc, s_Data.Maps[slot], slot, size);
+    for (uint32_t v = 1; v < s_Data.VariantCount[slot]; v++)
+        UploadLayer(VariantWithFallbacks(desc.Variants[v - 1], desc), s_Data.Maps[slot],
+                    s_Data.VariantBase[slot] + v - 1, size);
 }
 
 void RebuildArrays() {
     s_Data.Dirty = false;
 
-    // Each array holds layers 0..highest owning slot using it (sharers sample their source's layer); an
-    // array no slot uses is a 1x1 placeholder.
+    // Each array holds layers 0..highest owning slot using it (sharers sample their source's layer), then the
+    // variant layers; an array no slot uses is a 1x1 placeholder.
     auto ownsLayer = [](uint32_t slot) {
         return s_Data.Active[slot] && s_Data.SharedFrom[slot] < 0;
     };
+    uint32_t nextVariantLayer = kMaxTerrainMaterialSlots;
+    for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++) {
+        uint32_t variants = ownsLayer(slot) ? (uint32_t)s_Data.Descs[slot].Variants.size() : 0;
+        variants = std::min(variants, kMaxTerrainVariants - 1);
+        s_Data.VariantBase[slot] = nextVariantLayer;
+        s_Data.VariantCount[slot] = 1 + variants;
+        nextVariantLayer += variants;
+    }
     for (int a = 0; a < kArrayCount; a++) {
         uint32_t layers = 0;
-        for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
-            if (ownsLayer(slot) && (s_Data.Maps[slot] & kArrays[a].Maps))
-                layers = slot + 1;
+        for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++) {
+            if (!ownsLayer(slot) || !(s_Data.Maps[slot] & kArrays[a].Maps))
+                continue;
+            layers = std::max(layers, slot + 1);
+            if (s_Data.VariantCount[slot] > 1)
+                layers = std::max(layers, s_Data.VariantBase[slot] + s_Data.VariantCount[slot] - 1);
+        }
         uint32_t size = layers > 0 ? s_Data.Resolution : 1;
         s_Data.Arrays[a] = CreateScope<TextureArray>(size, std::max(layers, 1u), kArrays[a].Format);
     }
@@ -218,12 +256,28 @@ void RebuildArrays() {
 
 } // namespace
 
-TerrainMaterialDesc TerrainMaterialDesc::FromDirectory(const std::string& dir, const std::string& name) {
+namespace {
+
+// The map paths alone (no variant search) for `<dir>/<name>_<channel>.png`.
+TerrainMaterialDesc MapsFromDirectory(const std::string& dir, const std::string& name) {
     TerrainMaterialDesc desc;
     for (const MapInfo& map : kMaps) {
         std::filesystem::path path = std::filesystem::path(dir) / (name + "_" + map.Suffix + ".png");
         if (std::filesystem::exists(path))
             desc.*map.Path = path.string();
+    }
+    return desc;
+}
+
+} // namespace
+
+TerrainMaterialDesc TerrainMaterialDesc::FromDirectory(const std::string& dir, const std::string& name) {
+    TerrainMaterialDesc desc = MapsFromDirectory(dir, name);
+    for (uint32_t n = 1; n < kMaxTerrainVariants; n++) {
+        TerrainMaterialDesc variant = MapsFromDirectory(dir, name + "_v" + std::to_string(n));
+        if (variant.BaseColorPath.empty())
+            break;
+        desc.Variants.push_back(std::move(variant));
     }
     return desc;
 }
@@ -383,6 +437,25 @@ float TerrainMaterials::GetTriplanarFaceNormal() {
     return s_Data.TriplanarFaceNormal;
 }
 
+TextureVariationSettings& TerrainMaterials::GetVariationSettings() {
+    return s_Data.Variation;
+}
+
+void TerrainMaterials::SetWorldPeriod(const glm::vec3& period) {
+    s_Data.WorldPeriod = glm::max(period, glm::vec3(0.0f));
+}
+
+glm::vec3 TerrainMaterials::GetWorldPeriod() {
+    return s_Data.WorldPeriod;
+}
+
+uint32_t TerrainMaterials::GetSlotVariantCount(uint32_t slot) {
+    if (slot >= kMaxTerrainMaterialSlots)
+        return 1;
+    int32_t source = s_Data.SharedFrom[slot];
+    return s_Data.VariantCount[source >= 0 ? source : slot];
+}
+
 void TerrainMaterials::BindTextures() {
     if (s_Data.Dirty)
         RebuildArrays();
@@ -412,7 +485,43 @@ void TerrainMaterials::UploadUniforms(Shader* shader) {
         shader->SetInt(names[i].Maps, (int)s_Data.Maps[i]);
         shader->SetInt(names[i].Active, s_Data.Active[i] ? 1 : 0);
         shader->SetInt(names[i].Layer, s_Data.SharedFrom[i] >= 0 ? s_Data.SharedFrom[i] : (int)i);
+        uint32_t owner = s_Data.SharedFrom[i] >= 0 ? (uint32_t)s_Data.SharedFrom[i] : i;
+        shader->SetInt(names[i].VariantBase, (int)s_Data.VariantBase[owner]);
+        shader->SetInt(names[i].VariantCount, (int)s_Data.VariantCount[owner]);
     }
+
+    // Texture repetition mitigation - every feature reads as off when the master switch is.
+    const TextureVariationSettings& v = s_Data.Variation;
+    auto on = [&](bool feature) { return v.Enabled && feature ? 1 : 0; };
+    shader->SetInt("u_TexVarEnabled", on(true));
+    shader->SetVec3("u_TexVarPeriod", s_Data.WorldPeriod);
+    shader->SetInt("u_TexVarTransform", on(v.Transform.Enabled && (v.Transform.Rotation || v.Transform.Mirror)));
+    shader->SetFloat("u_TexVarTransformScale", std::max(v.Transform.Scale, 0.01f));
+    shader->SetFloat("u_TexVarEdgeBlend", std::clamp(v.Transform.EdgeBlend, 0.0f, 0.5f));
+    shader->SetInt("u_TexVarRotation", v.Transform.Rotation ? 1 : 0);
+    shader->SetInt("u_TexVarMirror", v.Transform.Mirror ? 1 : 0);
+    shader->SetInt("u_TexVarTransformSeed", (int)v.Transform.Seed);
+    shader->SetInt("u_TexVarVariants", on(v.Variants.Enabled));
+    shader->SetInt("u_TexVarVariantCount", std::clamp(v.Variants.Count, 1, (int)kMaxTerrainVariants));
+    shader->SetFloat("u_TexVarVariantScale", std::max(v.Variants.Scale, 0.01f));
+    shader->SetInt("u_TexVarVariantSeed", (int)v.Variants.Seed);
+    shader->SetInt("u_TexVarMacro", on(v.Macro.Enabled));
+    shader->SetFloat("u_TexVarMacroScale", std::max(v.Macro.Scale, 0.01f));
+    shader->SetFloat("u_TexVarMacroStrength", v.Macro.Strength);
+    shader->SetFloat("u_TexVarMacroContrast", v.Macro.Contrast);
+    shader->SetInt("u_TexVarMacroSeed", (int)v.Macro.Seed);
+    shader->SetInt("u_TexVarDetail", on(v.Detail.Enabled));
+    shader->SetFloat("u_TexVarDetailScale", std::max(v.Detail.Scale, 0.001f));
+    shader->SetFloat("u_TexVarDetailStrength", v.Detail.Strength);
+    shader->SetInt("u_TexVarDetailChannels",
+                   (v.Detail.BaseColor ? 1 : 0) | (v.Detail.Normal ? 2 : 0) | (v.Detail.Roughness ? 4 : 0));
+    shader->SetInt("u_TexVarMaterial", on(v.Material.Enabled));
+    shader->SetFloat("u_TexVarMaterialScale", std::max(v.Material.Scale, 0.01f));
+    shader->SetFloat("u_TexVarMaterialAlbedo", v.Material.Albedo);
+    shader->SetFloat("u_TexVarMaterialRoughness", v.Material.Roughness);
+    shader->SetFloat("u_TexVarMaterialNormal", v.Material.Normal);
+    shader->SetInt("u_TexVarMaterialSeed", (int)v.Material.Seed);
+    shader->SetInt("u_TexVarDebugView", v.Enabled ? (int)v.View : 0);
 }
 
 } // namespace Wankel
