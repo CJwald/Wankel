@@ -112,25 +112,21 @@ int TexVarTransformId(uint h) {
     return mirrorOnly[int(h & 3u)];
 }
 
-// One plane's samples: up to four cells (near a cell edge they blend), each with its own transform.
-struct PlaneTaps {
-    vec3 UV[4];
-    vec2 Dx[4], Dy[4];
+// One plane's per-cell transforms: up to four cells (near a cell edge they blend). Depends only on world position,
+// so it's built once per fragment and shared by every slot; each tap's transform is applied as it samples.
+struct PlaneCells {
     float W[4]; // 0 = tap unused; fixed slots (no runtime indexing) keep the arrays in registers on Intel
     int Id[4];
     uint CellHash; // the fragment's own cell, for the debug views
 };
 
-// q = this plane's two world coordinates (cell lattice), uv/dx/dy = its texture coords and gradients, period2 = the
-// world period along q's two axes, planeId keeps the three planes' patterns independent.
-PlaneTaps BuildPlaneTaps(vec2 q, vec3 uv, vec2 dx, vec2 dy, vec2 period2, int planeId) {
-    PlaneTaps t;
+// q = this plane's two world coordinates (cell lattice), period2 = the world period along q's two axes, planeId
+// keeps the three planes' patterns independent.
+PlaneCells BuildPlaneCells(vec2 q, vec2 period2, int planeId) {
+    PlaneCells cells;
     for (int k = 0; k < 4; k++) {
-        t.UV[k] = uv;
-        t.Dx[k] = dx;
-        t.Dy[k] = dy;
-        t.W[k] = 0.0;
-        t.Id[k] = 0;
+        cells.W[k] = 0.0;
+        cells.Id[k] = 0;
     }
     vec3 period = vec3(period2, 0.0);
     vec3 size = TexVarCellSize(u_TexVarTransformScale, period);
@@ -138,11 +134,11 @@ PlaneTaps BuildPlaneTaps(vec2 q, vec3 uv, vec2 dx, vec2 dy, vec2 period2, int pl
     ivec2 cell = ivec2(floor(cellF));
     vec2 f = fract(cellF);
     int seed = u_TexVarTransformSeed + planeId * 7919;
-    t.CellHash = TexVarHash(TexVarWrap(ivec3(cell, 0), size, period), seed);
+    cells.CellHash = TexVarHash(TexVarWrap(ivec3(cell, 0), size, period), seed);
 
     if (TEXVAR_TRANSFORM == 0) {
-        t.W[0] = 1.0;
-        return t;
+        cells.W[0] = 1.0;
+        return cells;
     }
 
     // Weight toward the neighbouring cell across the nearer edge, 0.5 right at the edge, 0 past the band.
@@ -157,45 +153,48 @@ PlaneTaps BuildPlaneTaps(vec2 q, vec3 uv, vec2 dx, vec2 dy, vec2 period2, int pl
         if (w < 1e-4)
             continue;
         ivec2 c = cell + offset * ivec2(toward);
-        int id = TexVarTransformId(TexVarHash(TexVarWrap(ivec3(c, 0), size, period), seed));
-        t.UV[k] = vec3(TexVarApply(id, uv.xy), uv.z);
-        t.Dx[k] = TexVarApply(id, dx);
-        t.Dy[k] = TexVarApply(id, dy);
-        t.W[k] = w;
-        t.Id[k] = id;
+        cells.W[k] = w;
+        cells.Id[k] = TexVarTransformId(TexVarHash(TexVarWrap(ivec3(c, 0), size, period), seed));
     }
-    return t;
+    return cells;
 }
 
-vec4 SamplePlaneTaps(sampler2DArray tex, PlaneTaps t) {
+vec4 SamplePlaneCells(sampler2DArray tex, PlaneCells cells, vec3 uv, vec2 dx, vec2 dy) {
     vec4 sum = vec4(0.0);
     for (int k = 0; k < 4; k++)
-        if (t.W[k] > 0.0)
-            sum += textureGrad(tex, t.UV[k], t.Dx[k], t.Dy[k]) * t.W[k];
+        if (cells.W[k] > 0.0) {
+            int id = cells.Id[k];
+            sum += textureGrad(tex, vec3(TexVarApply(id, uv.xy), uv.z), TexVarApply(id, dx), TexVarApply(id, dy)) *
+                   cells.W[k];
+        }
     return sum;
 }
 
 // A plane's tangent normal, each tap's sample turned back from its transform before blending.
-vec3 SamplePlaneTapsNormal(PlaneTaps t, float strength) {
+vec3 SamplePlaneCellsNormal(PlaneCells cells, vec3 uv, vec2 dx, vec2 dy, float strength) {
     vec3 sum = vec3(0.0);
     for (int k = 0; k < 4; k++) {
-        if (t.W[k] <= 0.0)
+        if (cells.W[k] <= 0.0)
             continue;
-        vec3 tn = textureGrad(u_TerrainNormal, t.UV[k], t.Dx[k], t.Dy[k]).xyz * 2.0 - 1.0;
-        tn.xy = TexVarApplyInverse(t.Id[k], tn.xy) * strength;
-        sum += tn * t.W[k];
+        int id = cells.Id[k];
+        vec3 tn = textureGrad(u_TerrainNormal, vec3(TexVarApply(id, uv.xy), uv.z), TexVarApply(id, dx), TexVarApply(id, dy))
+                      .xyz * 2.0 - 1.0;
+        tn.xy = TexVarApplyInverse(id, tn.xy) * strength;
+        sum += tn * cells.W[k];
     }
     return sum;
 }
 
-vec4 SampleTriplanarTaps(sampler2DArray tex, PlaneTaps tx, PlaneTaps ty, PlaneTaps tz, vec3 blend) {
+// layers = each plane's texture array layer (a variant's own, or the slot's).
+vec4 SampleTriplanarCells(sampler2DArray tex, PlaneCells cx, PlaneCells cy, PlaneCells cz, TriplanarCoords c,
+                          vec3 layers, vec3 blend) {
     vec4 sum = vec4(0.0);
     if (blend.x > 0.0)
-        sum += SamplePlaneTaps(tex, tx) * blend.x;
+        sum += SamplePlaneCells(tex, cx, vec3(c.X.xy, layers.x), c.DxX, c.DyX) * blend.x;
     if (blend.y > 0.0)
-        sum += SamplePlaneTaps(tex, ty) * blend.y;
+        sum += SamplePlaneCells(tex, cy, vec3(c.Y.xy, layers.y), c.DxY, c.DyY) * blend.y;
     if (blend.z > 0.0)
-        sum += SamplePlaneTaps(tex, tz) * blend.z;
+        sum += SamplePlaneCells(tex, cz, vec3(c.Z.xy, layers.z), c.DxZ, c.DyZ) * blend.z;
     return sum;
 }
 
@@ -247,6 +246,25 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
     int debugVariant = 0;
     int dominantPlane = blend.x >= blend.y && blend.x >= blend.z ? 0 : blend.y >= blend.z ? 1 : 2;
 
+    // Per-plane cell transforms and variant picks depend only on world position - once here, not per slot.
+    const bool anyTaps = variation && (TEXVAR_TRANSFORM != 0 || TEXVAR_VARIANTS != 0);
+    PlaneCells cellsX, cellsY, cellsZ;
+    uint variantHash[3] = uint[3](0u, 0u, 0u);
+    if (anyTaps) {
+        vec3 period = u_TexVarPeriod;
+        vec2 qs[3] = vec2[3](worldPos.zy, worldPos.xz, worldPos.xy);
+        vec2 periods[3] = vec2[3](period.zy, period.xz, period.xy);
+        cellsX = BuildPlaneCells(qs[0], periods[0], 0);
+        cellsY = BuildPlaneCells(qs[1], periods[1], 1);
+        cellsZ = BuildPlaneCells(qs[2], periods[2], 2);
+        if (TEXVAR_VARIANTS != 0)
+            for (int pl = 0; pl < 3; pl++) {
+                vec3 size = TexVarCellSize(u_TexVarVariantScale, vec3(periods[pl], 0.0));
+                ivec3 cell = ivec3(ivec2(floor(qs[pl] / size.xy)), pl);
+                variantHash[pl] = TexVarHash(TexVarWrap(cell, size, vec3(periods[pl], 0.0)), u_TexVarVariantSeed);
+            }
+    }
+
     vec3 baseColorSum = vec3(0.0);
     vec3 normalSum = vec3(0.0);
     vec3 emissiveSum = vec3(0.0);
@@ -292,36 +310,23 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         int variantCount = min(u_TexVarVariantCount, slot.VariantCount);
         bool useVariants = variation && TEXVAR_VARIANTS != 0 && variantCount > 1;
         bool useTaps = variation && (TEXVAR_TRANSFORM != 0 || useVariants);
-        PlaneTaps tx, ty, tz;
         int planeVariant[3] = int[3](0, 0, 0);
-        if (useTaps) {
-            vec3 period = u_TexVarPeriod;
-            vec2 qs[3] = vec2[3](worldPos.zy, worldPos.xz, worldPos.xy);
-            vec2 periods[3] = vec2[3](period.zy, period.xz, period.xy);
-            if (useVariants) {
-                for (int pl = 0; pl < 3; pl++) {
-                    vec3 size = TexVarCellSize(u_TexVarVariantScale, vec3(periods[pl], 0.0));
-                    ivec3 cell = ivec3(ivec2(floor(qs[pl] / size.xy)), pl);
-                    uint h = TexVarHash(TexVarWrap(cell, size, vec3(periods[pl], 0.0)), u_TexVarVariantSeed);
-                    planeVariant[pl] = int(h % uint(variantCount));
-                }
+        vec3 layers = vec3(layer);
+        if (useVariants) {
+            for (int pl = 0; pl < 3; pl++) {
+                planeVariant[pl] = int(variantHash[pl] % uint(variantCount));
+                layers[pl] = planeVariant[pl] == 0 ? layer : float(slot.VariantBase + planeVariant[pl] - 1);
             }
-            vec3 layers = vec3(planeVariant[0] == 0 ? layer : float(slot.VariantBase + planeVariant[0] - 1),
-                               planeVariant[1] == 0 ? layer : float(slot.VariantBase + planeVariant[1] - 1),
-                               planeVariant[2] == 0 ? layer : float(slot.VariantBase + planeVariant[2] - 1));
-            tx = BuildPlaneTaps(qs[0], vec3(c.X.xy, layers.x), c.DxX, c.DyX, periods[0], 0);
-            ty = BuildPlaneTaps(qs[1], vec3(c.Y.xy, layers.y), c.DxY, c.DyY, periods[1], 1);
-            tz = BuildPlaneTaps(qs[2], vec3(c.Z.xy, layers.z), c.DxZ, c.DyZ, periods[2], 2);
         }
 
         vec3 baseColor = slot.BaseColorTint;
         if ((maps & TERRAIN_MAP_BASECOLOR) != 0)
-            baseColor *= useTaps ? SampleTriplanarTaps(u_TerrainBaseColor, tx, ty, tz, blend).rgb
+            baseColor *= useTaps ? SampleTriplanarCells(u_TerrainBaseColor, cellsX, cellsY, cellsZ, c, layers, blend).rgb
                                  : SampleTriplanar(u_TerrainBaseColor, c, blend).rgb;
 
         vec4 surf = vec4(1.0, slot.Roughness, slot.Metallic, 0.5); // AO, roughness, metallic, height defaults
         if ((maps & TERRAIN_MAPS_SURFACE) != 0) {
-            vec4 t = useTaps ? SampleTriplanarTaps(u_TerrainSurface, tx, ty, tz, blend)
+            vec4 t = useTaps ? SampleTriplanarCells(u_TerrainSurface, cellsX, cellsY, cellsZ, c, layers, blend)
                              : SampleTriplanar(u_TerrainSurface, c, blend);
             surf = vec4((maps & TERRAIN_MAP_AO) != 0 ? t.r : surf.r, (maps & TERRAIN_MAP_ROUGHNESS) != 0 ? t.g : surf.g,
                         (maps & TERRAIN_MAP_METALLIC) != 0 ? t.b : surf.b, (maps & TERRAIN_MAP_HEIGHT) != 0 ? t.a : surf.a);
@@ -329,7 +334,7 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
 
         vec2 opacityMask = vec2(slot.Opacity, 0.0);
         if ((maps & TERRAIN_MAPS_OPACITY_MASK) != 0) {
-            vec2 t = useTaps ? SampleTriplanarTaps(u_TerrainOpacityMask, tx, ty, tz, blend).rg
+            vec2 t = useTaps ? SampleTriplanarCells(u_TerrainOpacityMask, cellsX, cellsY, cellsZ, c, layers, blend).rg
                              : SampleTriplanar(u_TerrainOpacityMask, c, blend).rg;
             opacityMask = vec2((maps & TERRAIN_MAP_OPACITY) != 0 ? t.r : opacityMask.r,
                                (maps & TERRAIN_MAP_MASK) != 0 ? t.g : opacityMask.g);
@@ -337,7 +342,7 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
 
         vec3 emissive = slot.Emissive;
         if ((maps & TERRAIN_MAP_EMISSIVE) != 0)
-            emissive = useTaps ? SampleTriplanarTaps(u_TerrainEmissive, tx, ty, tz, blend).rgb
+            emissive = useTaps ? SampleTriplanarCells(u_TerrainEmissive, cellsX, cellsY, cellsZ, c, layers, blend).rgb
                                : SampleTriplanar(u_TerrainEmissive, c, blend).rgb;
         emissive *= slot.EmissiveStrength;
 
@@ -389,9 +394,9 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         if ((maps & TERRAIN_MAP_NORMAL) != 0) {
             vec3 tnX, tnY, tnZ;
             if (useTaps) {
-                tnX = SamplePlaneTapsNormal(tx, normalStrength);
-                tnY = SamplePlaneTapsNormal(ty, normalStrength);
-                tnZ = SamplePlaneTapsNormal(tz, normalStrength);
+                tnX = SamplePlaneCellsNormal(cellsX, vec3(c.X.xy, layers.x), c.DxX, c.DyX, normalStrength);
+                tnY = SamplePlaneCellsNormal(cellsY, vec3(c.Y.xy, layers.y), c.DxY, c.DyY, normalStrength);
+                tnZ = SamplePlaneCellsNormal(cellsZ, vec3(c.Z.xy, layers.z), c.DxZ, c.DyZ, normalStrength);
             } else {
                 tnX = textureGrad(u_TerrainNormal, c.X, c.DxX, c.DyX).xyz * 2.0 - 1.0;
                 tnY = textureGrad(u_TerrainNormal, c.Y, c.DxY, c.DyY).xyz * 2.0 - 1.0;
@@ -422,8 +427,8 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         if (variation && TEXVAR_DEBUG_VIEW != 0 && w > debugWeight) {
             debugWeight = w;
             if (useTaps) {
-                debugCell = dominantPlane == 0 ? tx.CellHash : dominantPlane == 1 ? ty.CellHash : tz.CellHash;
-                debugId = dominantPlane == 0 ? tx.Id[0] : dominantPlane == 1 ? ty.Id[0] : tz.Id[0];
+                debugCell = dominantPlane == 0 ? cellsX.CellHash : dominantPlane == 1 ? cellsY.CellHash : cellsZ.CellHash;
+                debugId = dominantPlane == 0 ? cellsX.Id[0] : dominantPlane == 1 ? cellsY.Id[0] : cellsZ.Id[0];
             }
             debugVariant = planeVariant[dominantPlane];
         }
