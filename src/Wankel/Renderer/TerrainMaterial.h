@@ -164,8 +164,10 @@ public:
     static void SetTriplanarFaceNormal(float blend);
     static float GetTriplanarFaceNormal();
 
-    // Live-edited; uploaded with the rest of the terrain uniforms.
+    // Live-edited; feature on/off switches become TEXVAR_* shader defines (see SyncShaderDefines), the rest uniforms.
     static TextureVariationSettings& GetVariationSettings();
+    // Publishes the variation on/off switches as global shader defines, so disabled features compile out entirely.
+    static void SyncShaderDefines();
     // The tiling period of the world being drawn (0 on an axis = not tiled). Variation patterns wrap at it so a
     // tiled world has no seam; set it whenever the world's extent changes.
     static void SetWorldPeriod(const glm::vec3& period);

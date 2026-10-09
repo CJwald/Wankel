@@ -68,14 +68,67 @@ static unsigned int CompileShader(unsigned int type, const std::string& src) {
     return id;
 }
 
-Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcFile) {
+namespace {
+unsigned int s_BoundProgram = 0; // GL is global state - one cache shared by every Shader instance
+std::map<std::string, int> s_GlobalDefines;
+uint64_t s_GlobalDefinesVersion = 1;
+
+std::string InjectDefines(const std::string& source, const std::map<std::string, int>& defines) {
+    if (defines.empty())
+        return source;
+    std::string block;
+    for (const auto& [name, value] : defines)
+        block += "#define " + name + " " + std::to_string(value) + "\n";
+    size_t insertAt = 0; // just after the #version line - nothing may precede it
+    if (size_t version = source.find("#version"); version != std::string::npos) {
+        size_t lineEnd = source.find('\n', version);
+        insertAt = lineEnd == std::string::npos ? source.size() : lineEnd + 1;
+    }
+    return std::string(source).insert(insertAt, block);
+}
+} // namespace
+
+Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcFile)
+    : m_VertexPath(vertexSrcFile), m_FragmentPath(fragmentSrcFile), m_VertexSource(ReadShaderSource(vertexSrcFile)),
+      m_FragmentSource(ReadShaderSource(fragmentSrcFile)) {
+    m_CompiledDefines = ReferencedGlobalDefines();
+    m_DefinesVersion = s_GlobalDefinesVersion;
+    Compile();
+}
+
+void Shader::SetGlobalDefine(const std::string& name, int value) {
+    auto it = s_GlobalDefines.find(name);
+    if (it != s_GlobalDefines.end() && it->second == value)
+        return;
+    s_GlobalDefines[name] = value;
+    s_GlobalDefinesVersion++;
+}
+
+std::map<std::string, int> Shader::ReferencedGlobalDefines() const {
+    std::map<std::string, int> referenced;
+    for (const auto& [name, value] : s_GlobalDefines)
+        if (m_VertexSource.find(name) != std::string::npos || m_FragmentSource.find(name) != std::string::npos)
+            referenced.emplace(name, value);
+    return referenced;
+}
+
+bool Shader::ApplyGlobalDefines() {
+    if (m_DefinesVersion == s_GlobalDefinesVersion)
+        return false;
+    m_DefinesVersion = s_GlobalDefinesVersion;
+    std::map<std::string, int> referenced = ReferencedGlobalDefines();
+    if (referenced == m_CompiledDefines)
+        return false;
+    m_CompiledDefines = std::move(referenced);
+    Compile();
+    return true;
+}
+
+void Shader::Compile() {
     unsigned int program = glCreateProgram();
 
-    std::string vertexSrc = ReadShaderSource(vertexSrcFile);
-    std::string fragmentSrc = ReadShaderSource(fragmentSrcFile);
-
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexSrc);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
+    unsigned int vs = CompileShader(GL_VERTEX_SHADER, InjectDefines(m_VertexSource, m_CompiledDefines));
+    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, InjectDefines(m_FragmentSource, m_CompiledDefines));
 
     glAttachShader(program, vs);
     glAttachShader(program, fs);
@@ -86,7 +139,7 @@ Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcF
     if (!linkResult) {
         char info[512];
         glGetProgramInfoLog(program, 512, nullptr, info);
-        WK_CORE_ERROR("Shader link error ({0}, {1}):\n{2}", vertexSrcFile, fragmentSrcFile, info);
+        WK_CORE_ERROR("Shader link error ({0}, {1}):\n{2}", m_VertexPath, m_FragmentPath, info);
     }
     m_LinkSucceeded = linkResult != 0;
 
@@ -95,11 +148,13 @@ Shader::Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcF
     glDeleteShader(vs);
     glDeleteShader(fs);
 
+    if (m_RendererID) {
+        if (s_BoundProgram == m_RendererID)
+            s_BoundProgram = 0;
+        glDeleteProgram(m_RendererID);
+    }
     m_RendererID = program;
-}
-
-namespace {
-unsigned int s_BoundProgram = 0; // GL is global state - one cache shared by every Shader instance
+    m_UniformLocationCache.clear();
 }
 
 Shader::~Shader() {
