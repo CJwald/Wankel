@@ -21,6 +21,10 @@ struct Rigidbody {
     // PlayerController-driven entity gets this overwritten every frame instead
     // (PlayerControllerSystem) - see PlayerController::GravityScale.
     float GravityScale = 1.0f;
+
+    // Fixed-step render interpolation state (see PhysicsSystem::Interpolate) - runtime only, not tuning.
+    glm::vec3 PreviousPosition {0.0f};  // LocalPosition before the latest physics step
+    glm::vec3 SimulatedPosition {0.0f}; // LocalPosition as the latest step left it; differing = moved outside physics
 };
 
 

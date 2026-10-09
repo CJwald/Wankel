@@ -17,11 +17,8 @@ struct GravitySettings {
     glm::vec3 Direction = {0.0f, -1.0f, 0.0f};
 
     // Hard cap on every non-static Rigidbody's speed (see PhysicsSystem::Update), applied regardless
-    // of Enabled - position integration is plain discrete-time Euler with no substepping or swept
-    // collision, so an unbounded fall (or any other unbounded velocity source) can accumulate enough
-    // speed in one frame to skip clean over a thin collider ("tunneling"). Independent of and
-    // complementary to MechtrixLayer's own dt clamp, which bounds the *step size* but not velocity
-    // itself.
+    // of Enabled. Tunneling itself is handled by the fixed timestep plus swept moves against terrain
+    // (see TimestepSettings / PhysicsSystem::Update) - this is a gameplay speed limit.
     float TerminalVelocity = 25.0f;
 
     // Hard angle cutoff (degrees from horizontal) below/at which a contact's tangential (in-surface)
@@ -32,9 +29,22 @@ struct GravitySettings {
     float SlopeSlideCutoffDegrees = 50.0f;
 };
 
+// Physics runs in constant steps decoupled from the frame rate (Scene::OnUpdate), so a slow frame means more
+// steps, never a bigger one - collision stays exactly as reliable at 5 fps as at 144.
+struct TimestepSettings {
+    float FixedDeltaTime = 1.0f / 60.0f;
+    // Steps allowed per frame; beyond it the leftover time is dropped (brief slow motion) rather than piling up.
+    int MaxStepsPerFrame = 8;
+    bool Interpolate = true; // render bodies between the last two steps instead of snapping to the latest
+};
+
 class PhysicsSystem {
 public:
     void Update(Scene& scene, float dt);
+    // Eases each dynamic body's render position from its pre-step to its post-step position by alpha (0..1).
+    void Interpolate(Scene& scene, float alpha);
+
+    TimestepSettings Timestep;
 
     // Plain public settings struct, same convention as Renderer's FogSettings/LightSettings - read/
     // written directly (e.g. via Scene::GetGravitySettings()), not through getter/setter methods.

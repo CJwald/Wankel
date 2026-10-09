@@ -3,6 +3,7 @@
 #include "Components.h"
 
 #include <chrono>
+#include <cmath>
 
 
 namespace Wankel {
@@ -86,7 +87,20 @@ void Scene::OnUpdate(float dt, Camera& camera) {
     Smooth(m_SystemTimings.PoseMs, ElapsedMs(t1));
 
     auto t2 = std::chrono::high_resolution_clock::now();
-    m_PhysicsSystem.Update(*this, dt);
+    // Fixed steps covering this frame's time (see TimestepSettings), then render positions eased by the leftover.
+    const TimestepSettings& timestep = m_PhysicsSystem.Timestep;
+    float step = glm::max(timestep.FixedDeltaTime, 1e-4f);
+    m_PhysicsAccumulator += dt;
+    int steps = 0;
+    while (m_PhysicsAccumulator >= step && steps < timestep.MaxStepsPerFrame) {
+        m_PhysicsSystem.Update(*this, step);
+        m_PhysicsAccumulator -= step;
+        steps++;
+    }
+    if (m_PhysicsAccumulator >= step)
+        m_PhysicsAccumulator = std::fmod(m_PhysicsAccumulator, step); // over budget - drop the backlog, don't spiral
+    m_PhysicsSystem.Interpolate(*this, m_PhysicsAccumulator / step);
+    m_SystemTimings.PhysicsSteps = steps;
     Smooth(m_SystemTimings.PhysicsMs, ElapsedMs(t2));
 
     // Right before the hierarchy pass that consumes its offsets - animated parts and their children

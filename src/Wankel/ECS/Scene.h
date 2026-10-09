@@ -30,7 +30,8 @@ struct SceneSystemTimings {
     float LocomotionMs = 0.0f;
     float AnimationPlayerMs = 0.0f;
     float PoseMs = 0.0f;
-    float PhysicsMs = 0.0f;
+    float PhysicsMs = 0.0f; // all of the frame's fixed steps together
+    int PhysicsSteps = 0;   // fixed steps the last frame ran (unsmoothed)
     float TransformAnimationMs = 0.0f;
     float TransformMs = 0.0f;
     float KinematicsMs = 0.0f;
@@ -100,6 +101,8 @@ public:
 
     // Forwards to PhysicsSystem - see GravitySettings for what's tunable (Enabled/Magnitude/Direction).
     GravitySettings& GetGravitySettings() { return m_PhysicsSystem.Gravity; }
+    // Forwards to PhysicsSystem - the fixed physics step OnUpdate runs at, independent of frame rate.
+    TimestepSettings& GetTimestepSettings() { return m_PhysicsSystem.Timestep; }
 
     // Per-system CPU timing from the most recent OnUpdate, for a debug/profiling overlay - see
     // SceneSystemTimings' own comment.
@@ -119,6 +122,7 @@ private:
 
     entt::registry m_Registry;
     PhysicsSystem m_PhysicsSystem;
+    float m_PhysicsAccumulator = 0.0f; // frame time not yet covered by a fixed physics step
     SceneSystemTimings m_SystemTimings;
 };
 

@@ -15,9 +15,9 @@ static constexpr int kMaxHierarchyDepth = 64;
 
 // The animated offset sits in the entity's own rest frame, same convention as FinalTransform's visual offset.
 static glm::mat4 ComposeTransform(const Transform& tc) {
-    return glm::translate(glm::mat4(1.0f), tc.LocalPosition) * glm::toMat4(tc.LocalOrientation) *
-           glm::translate(glm::mat4(1.0f), tc.AnimationPosition) * glm::toMat4(tc.AnimationRotation) *
-           glm::scale(glm::mat4(1.0f), tc.LocalScale);
+    return glm::translate(glm::mat4(1.0f), tc.LocalPosition + tc.InterpolationOffset) *
+           glm::toMat4(tc.LocalOrientation) * glm::translate(glm::mat4(1.0f), tc.AnimationPosition) *
+           glm::toMat4(tc.AnimationRotation) * glm::scale(glm::mat4(1.0f), tc.LocalScale);
 }
 
 
