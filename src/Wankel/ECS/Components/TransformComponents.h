@@ -16,6 +16,9 @@ struct Transform {
     glm::vec3 AnimationPosition {0.0f};
     glm::quat AnimationRotation {1, 0, 0, 0};
 
+    // Render-only offset easing a Rigidbody between fixed physics steps (PhysicsSystem::Interpolate) - children inherit it
+    glm::vec3 InterpolationOffset {0.0f};
+
     // VISUAL OFFSET
     glm::vec3 VisualPosition {0.0f};
     glm::quat VisualRotation {1, 0, 0, 0};

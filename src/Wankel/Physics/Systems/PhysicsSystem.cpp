@@ -8,6 +8,8 @@
 #include "../Collision/CollisionDispatcher.h"
 #include "../Raycast/Raycast.h"
 
+#include <limits>
+
 namespace Wankel {
 
 namespace {
@@ -17,10 +19,33 @@ bool IsStaticEntity(entt::registry& registry, entt::entity e) {
     return !rb || rb->IsStatic;
 }
 
+// Ray origins along a body's core plus the radius around them, so rays from them cover the shape; 0 = no sweep.
+int SweepOrigins(entt::registry& registry, entt::entity e, const glm::vec3& position, glm::vec3 (&origins)[3],
+                 float& radius) {
+    if (auto* sphere = registry.try_get<SphereCollider>(e)) {
+        origins[0] = position + sphere->Offset;
+        radius = sphere->Radius;
+        return 1;
+    }
+    if (auto* capsule = registry.try_get<CapsuleCollider>(e)) {
+        glm::vec3 center = position + capsule->Offset;
+        glm::vec3 half(0.0f, capsule->HalfHeight, 0.0f);
+        origins[0] = center - half;
+        origins[1] = center;
+        origins[2] = center + half;
+        radius = capsule->Radius;
+        return 3;
+    }
+    return 0;
+}
+
 } // namespace
 
 void PhysicsSystem::Update(Scene& scene, float dt) {
     auto& registry = scene.Registry();
+
+    registry.view<Transform, Rigidbody>().each(
+        [](Transform& t, Rigidbody& rb) { rb.PreviousPosition = t.LocalPosition; });
 
     // INTEGRATE
 
@@ -135,16 +160,13 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
     // not it has a Movement component (e.g. thrown props, ragdolls, anything
     // whose velocity comes purely from collision response).
     //
-    // Discrete collision (SpherevsMesh etc. in CollisionDispatcher) only tests the *post-move*
-    // position, so a fast-enough sphere can skip clean through terrain thinner than its
-    // per-frame displacement ("tunneling") with nothing ever detecting the crossing - lowering
-    // TerminalVelocity only shrinks that window, it can't close it. For SphereCollider bodies
-    // moving fast relative to their own radius, sweep a ray against the static terrain mesh
-    // first (reusing RaycastMesh - Physics/Raycast/Raycast.cpp) and clamp the move short of any
-    // hit instead of stepping straight through it.
+    // Discrete collision (vs Mesh in CollisionDispatcher) only tests the *post-move* position, so a body
+    // moving more than about its radius per step can cross thin terrain undetected. Such moves are swept
+    // first: rays from the collider's core (SweepOrigins) against the terrain mesh, clamped short of the
+    // nearest hit instead of stepping straight through it.
     {
         auto view = registry.view<Transform, Rigidbody>();
-        constexpr float kSkin = 0.02f; // small stand-off so the sphere doesn't end up exactly touching the surface
+        constexpr float kSkin = 0.02f; // small stand-off so the body doesn't end up exactly touching the surface
 
         for (auto e : view) {
             auto& t = registry.get<Transform>(e);
@@ -154,23 +176,29 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
                 continue;
 
             glm::vec3 delta = rb.Velocity * dt;
+            float travel = glm::length(delta);
 
-            auto* sphere = registry.try_get<SphereCollider>(e);
-            if (sphere) {
-                float travel = glm::length(delta);
-                if (travel > sphere->Radius * 0.5f) {
-                    Ray ray {t.LocalPosition + sphere->Offset, delta};
+            glm::vec3 origins[3];
+            float radius = 0.0f;
+            int originCount = SweepOrigins(registry, e, t.LocalPosition, origins, radius);
+            if (originCount > 0 && travel > radius * 0.5f) {
+                RaycastHit nearest;
+                nearest.Distance = std::numeric_limits<float>::max();
+                for (int i = 0; i < originCount; i++) {
                     RaycastHit hit;
-                    if (RaycastMesh(scene, ray, hit, travel + sphere->Radius)) {
-                        float safeDist = glm::max(hit.Distance - sphere->Radius - kSkin, 0.0f);
-                        t.LocalPosition += glm::normalize(delta) * safeDist;
+                    if (RaycastMesh(scene, Ray {origins[i], delta}, hit, travel + radius) &&
+                        hit.Distance < nearest.Distance)
+                        nearest = hit;
+                }
+                if (nearest.Distance < std::numeric_limits<float>::max()) {
+                    float safeDist = glm::max(nearest.Distance - radius - kSkin, 0.0f);
+                    t.LocalPosition += (delta / travel) * safeDist;
 
-                        float intoSurface = glm::dot(rb.Velocity, hit.Normal);
-                        if (intoSurface < 0.0f)
-                            rb.Velocity -= hit.Normal * intoSurface;
+                    float intoSurface = glm::dot(rb.Velocity, nearest.Normal);
+                    if (intoSurface < 0.0f)
+                        rb.Velocity -= nearest.Normal * intoSurface;
 
-                        continue;
-                    }
+                    continue;
                 }
             }
 
@@ -349,6 +377,21 @@ void PhysicsSystem::Update(Scene& scene, float dt) {
             }
         }
     }
+
+    registry.view<Transform, Rigidbody>().each(
+        [](Transform& t, Rigidbody& rb) { rb.SimulatedPosition = t.LocalPosition; });
+}
+
+void PhysicsSystem::Interpolate(Scene& scene, float alpha) {
+    bool enabled = Timestep.Interpolate;
+    scene.Registry().view<Transform, Rigidbody>().each([&](Transform& t, Rigidbody& rb) {
+        // Moved outside physics since its last step (teleport, respawn, world wrap) - show it there, don't streak.
+        if (t.LocalPosition != rb.SimulatedPosition)
+            rb.PreviousPosition = rb.SimulatedPosition = t.LocalPosition;
+        bool interpolate = enabled && !rb.IsStatic;
+        t.InterpolationOffset =
+            interpolate ? (rb.PreviousPosition - t.LocalPosition) * (1.0f - alpha) : glm::vec3(0.0f);
+    });
 }
 
 // Indexes every collider entity whose static-ness (see IsStaticEntity) matches this grid's
