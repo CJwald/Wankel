@@ -300,6 +300,22 @@ void ClearSharersOf(uint32_t source) {
 
 void TerrainMaterials::Init() {
     RebuildArrays();
+    SyncShaderDefines();
+}
+
+void TerrainMaterials::SyncShaderDefines() {
+    const TextureVariationSettings& v = s_Data.Variation;
+    auto on = [&](bool feature) {
+        return v.Enabled && feature ? 1 : 0;
+    };
+    Shader::SetGlobalDefine("TEXVAR_ENABLED", on(true));
+    Shader::SetGlobalDefine("TEXVAR_TRANSFORM",
+                            on(v.Transform.Enabled && (v.Transform.Rotation || v.Transform.Mirror)));
+    Shader::SetGlobalDefine("TEXVAR_VARIANTS", on(v.Variants.Enabled));
+    Shader::SetGlobalDefine("TEXVAR_MACRO", on(v.Macro.Enabled));
+    Shader::SetGlobalDefine("TEXVAR_DETAIL", on(v.Detail.Enabled));
+    Shader::SetGlobalDefine("TEXVAR_MATERIAL", on(v.Material.Enabled));
+    Shader::SetGlobalDefine("TEXVAR_DEBUG_VIEW", v.Enabled ? (int)v.View : 0);
 }
 
 void TerrainMaterials::Shutdown() {
@@ -490,38 +506,30 @@ void TerrainMaterials::UploadUniforms(Shader* shader) {
         shader->SetInt(names[i].VariantCount, (int)s_Data.VariantCount[owner]);
     }
 
-    // Texture repetition mitigation - every feature reads as off when the master switch is.
+    // Texture repetition mitigation parameters - the on/off switches are defines, see SyncShaderDefines.
     const TextureVariationSettings& v = s_Data.Variation;
-    auto on = [&](bool feature) { return v.Enabled && feature ? 1 : 0; };
-    shader->SetInt("u_TexVarEnabled", on(true));
     shader->SetVec3("u_TexVarPeriod", s_Data.WorldPeriod);
-    shader->SetInt("u_TexVarTransform", on(v.Transform.Enabled && (v.Transform.Rotation || v.Transform.Mirror)));
     shader->SetFloat("u_TexVarTransformScale", std::max(v.Transform.Scale, 0.01f));
     shader->SetFloat("u_TexVarEdgeBlend", std::clamp(v.Transform.EdgeBlend, 0.0f, 0.5f));
     shader->SetInt("u_TexVarRotation", v.Transform.Rotation ? 1 : 0);
     shader->SetInt("u_TexVarMirror", v.Transform.Mirror ? 1 : 0);
     shader->SetInt("u_TexVarTransformSeed", (int)v.Transform.Seed);
-    shader->SetInt("u_TexVarVariants", on(v.Variants.Enabled));
     shader->SetInt("u_TexVarVariantCount", std::clamp(v.Variants.Count, 1, (int)kMaxTerrainVariants));
     shader->SetFloat("u_TexVarVariantScale", std::max(v.Variants.Scale, 0.01f));
     shader->SetInt("u_TexVarVariantSeed", (int)v.Variants.Seed);
-    shader->SetInt("u_TexVarMacro", on(v.Macro.Enabled));
     shader->SetFloat("u_TexVarMacroScale", std::max(v.Macro.Scale, 0.01f));
     shader->SetFloat("u_TexVarMacroStrength", v.Macro.Strength);
     shader->SetFloat("u_TexVarMacroContrast", v.Macro.Contrast);
     shader->SetInt("u_TexVarMacroSeed", (int)v.Macro.Seed);
-    shader->SetInt("u_TexVarDetail", on(v.Detail.Enabled));
     shader->SetFloat("u_TexVarDetailScale", std::max(v.Detail.Scale, 0.001f));
     shader->SetFloat("u_TexVarDetailStrength", v.Detail.Strength);
     shader->SetInt("u_TexVarDetailChannels",
                    (v.Detail.BaseColor ? 1 : 0) | (v.Detail.Normal ? 2 : 0) | (v.Detail.Roughness ? 4 : 0));
-    shader->SetInt("u_TexVarMaterial", on(v.Material.Enabled));
     shader->SetFloat("u_TexVarMaterialScale", std::max(v.Material.Scale, 0.01f));
     shader->SetFloat("u_TexVarMaterialAlbedo", v.Material.Albedo);
     shader->SetFloat("u_TexVarMaterialRoughness", v.Material.Roughness);
     shader->SetFloat("u_TexVarMaterialNormal", v.Material.Normal);
     shader->SetInt("u_TexVarMaterialSeed", (int)v.Material.Seed);
-    shader->SetInt("u_TexVarDebugView", v.Enabled ? (int)v.View : 0);
 }
 
 } // namespace Wankel

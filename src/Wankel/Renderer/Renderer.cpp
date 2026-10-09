@@ -283,6 +283,7 @@ void Renderer::BeginScene(const Camera& camera) {
     s_Data.View = camera.GetViewMatrix();
     s_Data.Projection = camera.GetProjectionMatrix();
     s_Data.CameraPos = camera.GetPosition();
+    TerrainMaterials::SyncShaderDefines();
     s_Data.DebugVertices.clear();
     s_Data.GameplayLineVertices.clear();
     s_Data.DebugTriangleVertices.clear();
@@ -399,7 +400,9 @@ void UploadShadowUniforms(Shader* shader) {
 // re-uploading when they actually differ from the last draw's - e.g. every voxel chunk shares one
 // identical Material, so this collapses to one upload total regardless of which draw path is used.
 void UploadSharedDrawState(Shader* shader, const Material& material, bool useVertexColor) {
-    shader->Bind(); // no-op if already the current program
+    if (shader != s_Data.LastSubmitShader)
+        shader->ApplyGlobalDefines(); // may recompile - must precede this frame's first uniform upload to it
+    shader->Bind();                   // no-op if already the current program
 
     if (shader != s_Data.LastSubmitShader) {
         shader->SetMat4("view", s_Data.View);

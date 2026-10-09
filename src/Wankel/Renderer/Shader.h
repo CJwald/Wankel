@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdint>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <glm/glm.hpp>
@@ -9,6 +11,11 @@ class Shader {
 public:
     Shader(const std::string& vertexSrcFile, const std::string& fragmentSrcFile);
     ~Shader();
+
+    // `#define name value` injected after #version into every shader whose source mentions `name`.
+    static void SetGlobalDefine(const std::string& name, int value);
+    // Recompiles in place if a global define this shader mentions changed since its last compile; true if it did.
+    bool ApplyGlobalDefines();
 
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
@@ -30,10 +37,16 @@ public:
 
 private:
     int GetUniformLocation(const std::string& name);
+    std::map<std::string, int> ReferencedGlobalDefines() const;
+    void Compile();
 
 private:
-    unsigned int m_RendererID;
+    unsigned int m_RendererID = 0;
     bool m_LinkSucceeded = false;
+    std::string m_VertexPath, m_FragmentPath;
+    std::string m_VertexSource, m_FragmentSource; // includes expanded, defines not yet injected
+    std::map<std::string, int> m_CompiledDefines;
+    uint64_t m_DefinesVersion = 0;
     std::unordered_map<std::string, int> m_UniformLocationCache;
 };
 

@@ -42,36 +42,22 @@ uniform TerrainSlot u_TerrainSlots[TERRAIN_MATERIAL_SLOTS];
 uniform float u_TriplanarSharpness;
 uniform float u_TriplanarFaceNormal; // 0 = project along the smooth vertex normal, 1 = along the true triangle normal
 
-// Texture repetition mitigation (Wankel::TextureVariationSettings). Every pattern comes from world position and
-// wraps at u_TexVarPeriod (0 = no wrap), so chunk borders and a tiled world's seam never show.
-uniform int u_TexVarEnabled;
-uniform vec3 u_TexVarPeriod;
-uniform int u_TexVarTransform;
+#include "terrain_variation.glsl"
 uniform float u_TexVarTransformScale;
 uniform float u_TexVarEdgeBlend;
 uniform int u_TexVarRotation;
 uniform int u_TexVarMirror;
 uniform int u_TexVarTransformSeed;
-uniform int u_TexVarVariants;
 uniform int u_TexVarVariantCount;
 uniform float u_TexVarVariantScale;
 uniform int u_TexVarVariantSeed;
-uniform int u_TexVarMacro;
-uniform float u_TexVarMacroScale;
 uniform float u_TexVarMacroStrength;
-uniform float u_TexVarMacroContrast;
-uniform int u_TexVarMacroSeed;
-uniform int u_TexVarDetail;
 uniform float u_TexVarDetailScale;
 uniform float u_TexVarDetailStrength;
 uniform int u_TexVarDetailChannels; // 1 = base color, 2 = normal, 4 = roughness
-uniform int u_TexVarMaterial;
-uniform float u_TexVarMaterialScale;
 uniform float u_TexVarMaterialAlbedo;
 uniform float u_TexVarMaterialRoughness;
 uniform float u_TexVarMaterialNormal;
-uniform int u_TexVarMaterialSeed;
-uniform int u_TexVarDebugView; // Wankel::TextureVariationSettings::DebugView
 
 struct TerrainSurface {
     vec3 BaseColor;
@@ -99,56 +85,6 @@ vec4 SampleTriplanar(sampler2DArray tex, TriplanarCoords c, vec3 blend) {
 }
 
 // ---- Variation helpers ----
-
-// pcg3d (Jarzynski & Olano) over a lattice cell plus seed.
-uint TexVarHash(ivec3 cell, int seed) {
-    uvec3 v = uvec3(cell) * 1664525u + 1013904223u + uint(seed) * 0x9E3779B9u;
-    v.x += v.y * v.z;
-    v.y += v.z * v.x;
-    v.z += v.x * v.y;
-    v ^= v >> 16u;
-    v.x += v.y * v.z;
-    v.y += v.z * v.x;
-    v.z += v.x * v.y;
-    return v.x ^ v.y ^ v.z;
-}
-
-// Lattice spacing along each axis: `scale`, nudged so a whole number of cells fits the world period.
-vec3 TexVarCellSize(float scale, vec3 period) {
-    vec3 cells = max(floor(period / scale + 0.5), vec3(1.0));
-    return mix(vec3(scale), period / cells, step(vec3(1e-4), period));
-}
-
-// A lattice cell wrapped into the world period, so tiled copies of the world hash identically.
-ivec3 TexVarWrap(ivec3 cell, vec3 size, vec3 period) {
-    ivec3 count = ivec3(floor(period / size + 0.5));
-    ivec3 wrapped = ivec3(mod(vec3(cell), vec3(max(count, ivec3(1)))));
-    return ivec3(count.x > 0 ? wrapped.x : cell.x, count.y > 0 ? wrapped.y : cell.y, count.z > 0 ? wrapped.z : cell.z);
-}
-
-float TexVarHash01(ivec3 cell, vec3 size, int seed) {
-    return float(TexVarHash(TexVarWrap(cell, size, u_TexVarPeriod), seed) & 0xFFFFu) / 65535.0;
-}
-
-// Trilinear value noise in [0,1] at `scale` world units per cell, periodic with the world.
-float TexVarValueNoise(vec3 p, float scale, int seed) {
-    vec3 size = TexVarCellSize(scale, u_TexVarPeriod);
-    vec3 q = p / size;
-    ivec3 i = ivec3(floor(q));
-    vec3 f = fract(q);
-    f = f * f * (3.0 - 2.0 * f);
-    float n000 = TexVarHash01(i, size, seed), n100 = TexVarHash01(i + ivec3(1, 0, 0), size, seed);
-    float n010 = TexVarHash01(i + ivec3(0, 1, 0), size, seed), n110 = TexVarHash01(i + ivec3(1, 1, 0), size, seed);
-    float n001 = TexVarHash01(i + ivec3(0, 0, 1), size, seed), n101 = TexVarHash01(i + ivec3(1, 0, 1), size, seed);
-    float n011 = TexVarHash01(i + ivec3(0, 1, 1), size, seed), n111 = TexVarHash01(i + ivec3(1, 1, 1), size, seed);
-    return mix(mix(mix(n000, n100, f.x), mix(n010, n110, f.x), f.y), mix(mix(n001, n101, f.x), mix(n011, n111, f.x), f.y),
-               f.z);
-}
-
-// Two octaves - broad shapes without visible lattice blockiness.
-float TexVarFbm(vec3 p, float scale, int seed) {
-    return TexVarValueNoise(p, scale, seed) * 0.65 + TexVarValueNoise(p, scale * 0.5, seed + 101) * 0.35;
-}
 
 // One of the 8 rotate/mirror transforms (bit 2 = mirror u, bits 0-1 = quarter turns), applied to a uv/gradient.
 vec2 TexVarApply(int id, vec2 v) {
@@ -180,9 +116,8 @@ int TexVarTransformId(uint h) {
 struct PlaneTaps {
     vec3 UV[4];
     vec2 Dx[4], Dy[4];
-    float W[4];
+    float W[4]; // 0 = tap unused; fixed slots (no runtime indexing) keep the arrays in registers on Intel
     int Id[4];
-    int Count;
     uint CellHash; // the fragment's own cell, for the debug views
 };
 
@@ -190,7 +125,13 @@ struct PlaneTaps {
 // world period along q's two axes, planeId keeps the three planes' patterns independent.
 PlaneTaps BuildPlaneTaps(vec2 q, vec3 uv, vec2 dx, vec2 dy, vec2 period2, int planeId) {
     PlaneTaps t;
-    t.Count = 0;
+    for (int k = 0; k < 4; k++) {
+        t.UV[k] = uv;
+        t.Dx[k] = dx;
+        t.Dy[k] = dy;
+        t.W[k] = 0.0;
+        t.Id[k] = 0;
+    }
     vec3 period = vec3(period2, 0.0);
     vec3 size = TexVarCellSize(u_TexVarTransformScale, period);
     vec2 cellF = q / size.xy;
@@ -199,13 +140,8 @@ PlaneTaps BuildPlaneTaps(vec2 q, vec3 uv, vec2 dx, vec2 dy, vec2 period2, int pl
     int seed = u_TexVarTransformSeed + planeId * 7919;
     t.CellHash = TexVarHash(TexVarWrap(ivec3(cell, 0), size, period), seed);
 
-    if (u_TexVarTransform == 0) {
-        t.UV[0] = uv;
-        t.Dx[0] = dx;
-        t.Dy[0] = dy;
+    if (TEXVAR_TRANSFORM == 0) {
         t.W[0] = 1.0;
-        t.Id[0] = 0;
-        t.Count = 1;
         return t;
     }
 
@@ -222,27 +158,29 @@ PlaneTaps BuildPlaneTaps(vec2 q, vec3 uv, vec2 dx, vec2 dy, vec2 period2, int pl
             continue;
         ivec2 c = cell + offset * ivec2(toward);
         int id = TexVarTransformId(TexVarHash(TexVarWrap(ivec3(c, 0), size, period), seed));
-        t.UV[t.Count] = vec3(TexVarApply(id, uv.xy), uv.z);
-        t.Dx[t.Count] = TexVarApply(id, dx);
-        t.Dy[t.Count] = TexVarApply(id, dy);
-        t.W[t.Count] = w;
-        t.Id[t.Count] = id;
-        t.Count++;
+        t.UV[k] = vec3(TexVarApply(id, uv.xy), uv.z);
+        t.Dx[k] = TexVarApply(id, dx);
+        t.Dy[k] = TexVarApply(id, dy);
+        t.W[k] = w;
+        t.Id[k] = id;
     }
     return t;
 }
 
 vec4 SamplePlaneTaps(sampler2DArray tex, PlaneTaps t) {
     vec4 sum = vec4(0.0);
-    for (int k = 0; k < t.Count; k++)
-        sum += textureGrad(tex, t.UV[k], t.Dx[k], t.Dy[k]) * t.W[k];
+    for (int k = 0; k < 4; k++)
+        if (t.W[k] > 0.0)
+            sum += textureGrad(tex, t.UV[k], t.Dx[k], t.Dy[k]) * t.W[k];
     return sum;
 }
 
 // A plane's tangent normal, each tap's sample turned back from its transform before blending.
 vec3 SamplePlaneTapsNormal(PlaneTaps t, float strength) {
     vec3 sum = vec3(0.0);
-    for (int k = 0; k < t.Count; k++) {
+    for (int k = 0; k < 4; k++) {
+        if (t.W[k] <= 0.0)
+            continue;
         vec3 tn = textureGrad(u_TerrainNormal, t.UV[k], t.Dx[k], t.Dy[k]).xyz * 2.0 - 1.0;
         tn.xy = TexVarApplyInverse(t.Id[k], tn.xy) * strength;
         sum += tn * t.W[k];
@@ -251,7 +189,14 @@ vec3 SamplePlaneTapsNormal(PlaneTaps t, float strength) {
 }
 
 vec4 SampleTriplanarTaps(sampler2DArray tex, PlaneTaps tx, PlaneTaps ty, PlaneTaps tz, vec3 blend) {
-    return SamplePlaneTaps(tex, tx) * blend.x + SamplePlaneTaps(tex, ty) * blend.y + SamplePlaneTaps(tex, tz) * blend.z;
+    vec4 sum = vec4(0.0);
+    if (blend.x > 0.0)
+        sum += SamplePlaneTaps(tex, tx) * blend.x;
+    if (blend.y > 0.0)
+        sum += SamplePlaneTaps(tex, ty) * blend.y;
+    if (blend.z > 0.0)
+        sum += SamplePlaneTaps(tex, tz) * blend.z;
+    return sum;
 }
 
 vec3 TexVarDebugColor(uint h) {
@@ -260,9 +205,11 @@ vec3 TexVarDebugColor(uint h) {
 
 // Textured vertices bake Color=0 + a one-hot slot weight, so vertexColor + sum(w * base color) is exactly the
 // plain vertex-color blend with that material's color swapped for its texture; every other channel blends
-// from its untextured default the same way. weights[k] = slots 4k..4k+3; viewDir = surface to camera, normalized.
+// from its untextured default the same way. weights[k] = slots 4k..4k+3; viewDir = surface to camera, normalized;
+// variationNoise = the interpolated TexVarVertexNoise of the vertex shader.
 TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughness, float baseMetallic,
-                                     vec4 weights[TERRAIN_WEIGHT_VEC4S], vec3 worldPos, vec3 viewDir) {
+                                     vec4 weights[TERRAIN_WEIGHT_VEC4S], vec3 worldPos, vec3 viewDir,
+                                     vec4 variationNoise) {
     TerrainSurface surface = TerrainSurface(vertexColor, N, baseRoughness, baseMetallic, 1.0, vec3(0.0), 1.0, 0.0, 0.5);
 
     // Derivatives before any per-fragment branch - they're undefined in divergent control flow.
@@ -290,17 +237,9 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
     vec3 axisSign = vec3(projN.x < 0.0 ? -1.0 : 1.0, projN.y < 0.0 ? -1.0 : 1.0, projN.z < 0.0 ? -1.0 : 1.0);
 
     // Fragment-wide variation terms, shared by every slot.
-    bool variation = u_TexVarEnabled != 0;
-    float macro = 0.5;
-    if (variation && (u_TexVarMacro != 0 || u_TexVarDebugView == 1)) {
-        macro = TexVarFbm(worldPos, u_TexVarMacroScale, u_TexVarMacroSeed);
-        macro = clamp((macro - 0.5) * u_TexVarMacroContrast + 0.5, 0.0, 1.0);
-    }
-    vec3 materialNoise = vec3(0.5);
-    if (variation && u_TexVarMaterial != 0)
-        materialNoise = vec3(TexVarFbm(worldPos, u_TexVarMaterialScale, u_TexVarMaterialSeed),
-                             TexVarFbm(worldPos, u_TexVarMaterialScale, u_TexVarMaterialSeed + 1),
-                             TexVarFbm(worldPos, u_TexVarMaterialScale, u_TexVarMaterialSeed + 2));
+    const bool variation = TEXVAR_ENABLED != 0;
+    float macro = variationNoise.x;
+    vec3 materialNoise = variationNoise.yzw;
     // Debug view inputs from the most heavily weighted slot's dominant plane.
     float debugWeight = -1.0;
     uint debugCell = 0u;
@@ -351,8 +290,8 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
 
         // Per-cell transforms and/or texture variants switch to per-plane sample taps; otherwise the plain path.
         int variantCount = min(u_TexVarVariantCount, slot.VariantCount);
-        bool useVariants = variation && u_TexVarVariants != 0 && variantCount > 1;
-        bool useTaps = variation && (u_TexVarTransform != 0 || useVariants);
+        bool useVariants = variation && TEXVAR_VARIANTS != 0 && variantCount > 1;
+        bool useTaps = variation && (TEXVAR_TRANSFORM != 0 || useVariants);
         PlaneTaps tx, ty, tz;
         int planeVariant[3] = int[3](0, 0, 0);
         if (useTaps) {
@@ -403,11 +342,11 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         emissive *= slot.EmissiveStrength;
 
         float normalStrength = slot.NormalStrength;
-        if (variation && u_TexVarMaterial != 0)
+        if (variation && TEXVAR_MATERIAL != 0)
             normalStrength *= mix(1.0 - u_TexVarMaterialNormal, 1.0 + u_TexVarMaterialNormal, materialNoise.z);
 
         // Multi-scale detail: the slot's own maps again at another scale, so channels don't all repeat together.
-        bool useDetail = variation && u_TexVarDetail != 0;
+        bool useDetail = variation && TEXVAR_DETAIL != 0;
         TriplanarCoords d;
         if (useDetail) {
             float k = u_TexVarDetailScale / max(slot.Scale, 1e-4);
@@ -436,9 +375,9 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         }
 
         // Large-scale and low-frequency variation of the final channels.
-        if (variation && u_TexVarMacro != 0)
+        if (variation && TEXVAR_MACRO != 0)
             baseColor *= mix(1.0 - u_TexVarMacroStrength, 1.0 + u_TexVarMacroStrength, macro);
-        if (variation && u_TexVarMaterial != 0) {
+        if (variation && TEXVAR_MATERIAL != 0) {
             baseColor *= mix(1.0 - u_TexVarMaterialAlbedo, 1.0 + u_TexVarMaterialAlbedo, materialNoise.x);
             surf.g = clamp(surf.g * mix(1.0 - u_TexVarMaterialRoughness, 1.0 + u_TexVarMaterialRoughness, materialNoise.y),
                            0.0, 1.0);
@@ -480,7 +419,7 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
             normal = normalize(tnX.zyx * blend.x + tnY.xzy * blend.y + tnZ.xyz * blend.z);
         }
 
-        if (variation && u_TexVarDebugView != 0 && w > debugWeight) {
+        if (variation && TEXVAR_DEBUG_VIEW != 0 && w > debugWeight) {
             debugWeight = w;
             if (useTaps) {
                 debugCell = dominantPlane == 0 ? tx.CellHash : dominantPlane == 1 ? ty.CellHash : tz.CellHash;
@@ -512,10 +451,10 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
     surface.Height = 0.5 * rest + heightSum;
 
     // Debug views: a flat, unlit color so the pattern reads regardless of lighting.
-    if (variation && u_TexVarDebugView != 0) {
-        vec3 color = u_TexVarDebugView == 1   ? vec3(macro)
-                     : u_TexVarDebugView == 2 ? TexVarDebugColor(debugCell)
-                     : u_TexVarDebugView == 3 ? TexVarDebugColor(uint(debugVariant + 1) * 2654435761u)
+    if (variation && TEXVAR_DEBUG_VIEW != 0) {
+        vec3 color = TEXVAR_DEBUG_VIEW == 1   ? vec3(macro)
+                     : TEXVAR_DEBUG_VIEW == 2 ? TexVarDebugColor(debugCell)
+                     : TEXVAR_DEBUG_VIEW == 3 ? TexVarDebugColor(uint(debugVariant + 1) * 2654435761u)
                                               : TexVarDebugColor(uint(debugId + 1) * 2654435761u);
         surface.BaseColor = vec3(0.0);
         surface.Emissive = color;
