@@ -15,6 +15,11 @@
 #define TERRAIN_MAPS_SURFACE (TERRAIN_MAP_AO | TERRAIN_MAP_ROUGHNESS | TERRAIN_MAP_METALLIC | TERRAIN_MAP_HEIGHT)
 #define TERRAIN_MAPS_OPACITY_MASK (TERRAIN_MAP_OPACITY | TERRAIN_MAP_MASK)
 
+// Every map any slot samples (TerrainMaterials::SyncShaderDefines) - the rest compile out.
+#ifndef TERRAIN_MAPS_USED
+#define TERRAIN_MAPS_USED 511
+#endif
+
 // Each param is the channel's value when its map is missing; BaseColorTint and EmissiveStrength also scale maps.
 struct TerrainSlot {
     vec3 BaseColorTint;
@@ -246,7 +251,8 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
     int debugVariant = 0;
     int dominantPlane = blend.x >= blend.y && blend.x >= blend.z ? 0 : blend.y >= blend.z ? 1 : 2;
 
-    // Per-plane cell transforms and variant picks depend only on world position - once here, not per slot.
+    // Per-plane cell transforms and variant picks depend only on world position - once here, not per slot, and
+    // only for planes that contribute (flat ground needs just one of the three).
     const bool anyTaps = variation && (TEXVAR_TRANSFORM != 0 || TEXVAR_VARIANTS != 0);
     PlaneCells cellsX, cellsY, cellsZ;
     uint variantHash[3] = uint[3](0u, 0u, 0u);
@@ -254,11 +260,16 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         vec3 period = u_TexVarPeriod;
         vec2 qs[3] = vec2[3](worldPos.zy, worldPos.xz, worldPos.xy);
         vec2 periods[3] = vec2[3](period.zy, period.xz, period.xy);
-        cellsX = BuildPlaneCells(qs[0], periods[0], 0);
-        cellsY = BuildPlaneCells(qs[1], periods[1], 1);
-        cellsZ = BuildPlaneCells(qs[2], periods[2], 2);
+        if (blend.x > 0.0)
+            cellsX = BuildPlaneCells(qs[0], periods[0], 0);
+        if (blend.y > 0.0)
+            cellsY = BuildPlaneCells(qs[1], periods[1], 1);
+        if (blend.z > 0.0)
+            cellsZ = BuildPlaneCells(qs[2], periods[2], 2);
         if (TEXVAR_VARIANTS != 0)
             for (int pl = 0; pl < 3; pl++) {
+                if (blend[pl] <= 0.0)
+                    continue;
                 vec3 size = TexVarCellSize(u_TexVarVariantScale, vec3(periods[pl], 0.0));
                 ivec3 cell = ivec3(ivec2(floor(qs[pl] / size.xy)), pl);
                 variantHash[pl] = TexVarHash(TexVarWrap(cell, size, vec3(periods[pl], 0.0)), u_TexVarVariantSeed);
@@ -276,7 +287,7 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
             continue;
 
         TerrainSlot slot = u_TerrainSlots[i];
-        int maps = slot.Maps;
+        int maps = slot.Maps & TERRAIN_MAPS_USED;
         float layer = float(slot.Layer);
         vec3 p = worldPos * slot.Scale;
         vec3 gx = dPdx * slot.Scale;
@@ -394,9 +405,14 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         if ((maps & TERRAIN_MAP_NORMAL) != 0) {
             vec3 tnX, tnY, tnZ;
             if (useTaps) {
-                tnX = SamplePlaneCellsNormal(cellsX, vec3(c.X.xy, layers.x), c.DxX, c.DyX, normalStrength);
-                tnY = SamplePlaneCellsNormal(cellsY, vec3(c.Y.xy, layers.y), c.DxY, c.DyY, normalStrength);
-                tnZ = SamplePlaneCellsNormal(cellsZ, vec3(c.Z.xy, layers.z), c.DxZ, c.DyZ, normalStrength);
+                // Unweighted planes have no cells built (see above) - a flat tangent normal stands in.
+                tnX = tnY = tnZ = vec3(0.0, 0.0, 1.0);
+                if (blend.x > 0.0)
+                    tnX = SamplePlaneCellsNormal(cellsX, vec3(c.X.xy, layers.x), c.DxX, c.DyX, normalStrength);
+                if (blend.y > 0.0)
+                    tnY = SamplePlaneCellsNormal(cellsY, vec3(c.Y.xy, layers.y), c.DxY, c.DyY, normalStrength);
+                if (blend.z > 0.0)
+                    tnZ = SamplePlaneCellsNormal(cellsZ, vec3(c.Z.xy, layers.z), c.DxZ, c.DyZ, normalStrength);
             } else {
                 tnX = textureGrad(u_TerrainNormal, c.X, c.DxX, c.DyX).xyz * 2.0 - 1.0;
                 tnY = textureGrad(u_TerrainNormal, c.Y, c.DxY, c.DyY).xyz * 2.0 - 1.0;

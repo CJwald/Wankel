@@ -35,6 +35,18 @@ vec3 ShadowCoords(mat4 viewProj, vec3 p) {
     return inside ? c : vec3(-1.0);
 }
 
+#ifndef SHADOW_FILTER_TAPS
+#define SHADOW_FILTER_TAPS 9 // ShadowSettings::FilterTaps
+#endif
+
+// Tap offsets in units of the filter spacing: a 3x3 grid, or 2x2 at +-0.75 - each tap is a hardware-filtered
+// 2x2 compare, so four of those cover about the same footprint as the 3x3 for less than half the lookups.
+vec2 ShadowTapOffset(int tap) {
+    if (SHADOW_FILTER_TAPS == 9)
+        return vec2(tap % 3 - 1, tap / 3 - 1);
+    return (vec2(tap & 1, tap >> 1) - 0.5) * 1.5;
+}
+
 // 0 = no sky light reaches this point (under terrain), 1 = open to the top world border. Blurs over
 // u_SkySoftness texels and fades over u_SkyFadeDepth below the topmost surface, one depth step per tap.
 float SkyVisibility(vec3 worldPos, vec3 N) {
@@ -49,14 +61,11 @@ float SkyVisibility(vec3 worldPos, vec3 N) {
     float fade = u_SkyFadeDepth / max(u_SkyDepthRange, 1e-4);
     float surfaceBias = 0.1 / max(u_SkyDepthRange, 1e-4);
     float sum = 0.0;
-    int tap = 0;
-    for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-            float depthStep = float(tap++) / 8.0; // spread depth offsets 0..fade across the 9 taps
-            sum += texture(u_SkyShadowMap, vec3(c.xy + vec2(x, y) * texel, c.z - surfaceBias - fade * depthStep));
-        }
+    for (int tap = 0; tap < SHADOW_FILTER_TAPS; tap++) {
+        float depthStep = float(tap) / float(SHADOW_FILTER_TAPS - 1); // spread depth offsets 0..fade across the taps
+        sum += texture(u_SkyShadowMap, vec3(c.xy + ShadowTapOffset(tap) * texel, c.z - surfaceBias - fade * depthStep));
     }
-    return sum / 9.0;
+    return sum / float(SHADOW_FILTER_TAPS);
 }
 
 // Direct sunlight visibility; `fallback` is used outside the sun map's box (e.g. sky visibility, so far
@@ -72,10 +81,9 @@ float SunVisibility(vec3 worldPos, vec3 N, float fallback) {
     vec2 texel = u_ShadowPcfRadius / vec2(textureSize(u_SunShadowMap, 0));
     float ref = c.z - u_ShadowDepthBias / max(u_SunDepthRange, 1e-4);
     float lit = 0.0;
-    for (int y = -1; y <= 1; y++)
-        for (int x = -1; x <= 1; x++)
-            lit += texture(u_SunShadowMap, vec3(c.xy + vec2(x, y) * texel, ref));
-    lit /= 9.0;
+    for (int tap = 0; tap < SHADOW_FILTER_TAPS; tap++)
+        lit += texture(u_SunShadowMap, vec3(c.xy + ShadowTapOffset(tap) * texel, ref));
+    lit /= float(SHADOW_FILTER_TAPS);
 
     // Ease into the fallback near the map's edge instead of popping.
     vec2 edge = min(c.xy, 1.0 - c.xy);
