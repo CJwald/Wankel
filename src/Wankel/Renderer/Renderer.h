@@ -60,7 +60,8 @@ struct ShadowSettings {
     float DepthBias = 0.05f;
     float NormalBias = 0.15f;
     float PcfRadius = 1.0f; // texels between PCF taps
-    float Strength = 1.0f;  // 0 = shadows have no effect
+    int FilterTaps = 9;    // PCF taps per sun/sky lookup: 4 (2x2) or 9 (3x3) - a shader define, so recompiles on change
+    float Strength = 1.0f; // 0 = shadows have no effect
 
     // Top-down depth of the highest surface per XZ: fragments well below it get no sky light (caves).
     bool SkyEnabled = false;

@@ -15,7 +15,10 @@
 #include <stb_image_resize2.h>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <filesystem>
+#include <optional>
 #include <vector>
 
 namespace Wankel {
@@ -50,24 +53,42 @@ struct MapInfo {
     std::string TerrainMaterialDesc::* Path;
     int Channels;
     bool Srgb;
+    // The shader's value with no map, for channels no slot param stands in for; -1 = a param does (any constant folds).
+    std::array<int, 3> Neutral;
 };
 
+constexpr std::array<int, 3> kHasParam {-1, -1, -1};
+
 const MapInfo kMaps[] = {
-    {TerrainMap_BaseColor, "basecolor", &TerrainMaterialDesc::BaseColorPath, 3, true},
-    {TerrainMap_Normal, "normal", &TerrainMaterialDesc::NormalPath, 3, false},
-    {TerrainMap_Roughness, "roughness", &TerrainMaterialDesc::RoughnessPath, 1, false},
-    {TerrainMap_Metallic, "metallic", &TerrainMaterialDesc::MetallicPath, 1, false},
-    {TerrainMap_Height, "height", &TerrainMaterialDesc::HeightPath, 1, false},
-    {TerrainMap_AO, "ao", &TerrainMaterialDesc::AOPath, 1, false},
-    {TerrainMap_Emissive, "emissive", &TerrainMaterialDesc::EmissivePath, 3, true},
-    {TerrainMap_Opacity, "opacity", &TerrainMaterialDesc::OpacityPath, 1, false},
-    {TerrainMap_Mask, "mask", &TerrainMaterialDesc::MaskPath, 1, false},
+    {TerrainMap_BaseColor, "basecolor", &TerrainMaterialDesc::BaseColorPath, 3, true, kHasParam},
+    {TerrainMap_Normal, "normal", &TerrainMaterialDesc::NormalPath, 3, false, {128, 128, 255}},
+    {TerrainMap_Roughness, "roughness", &TerrainMaterialDesc::RoughnessPath, 1, false, kHasParam},
+    {TerrainMap_Metallic, "metallic", &TerrainMaterialDesc::MetallicPath, 1, false, kHasParam},
+    {TerrainMap_Height, "height", &TerrainMaterialDesc::HeightPath, 1, false, {128, 128, 128}},
+    {TerrainMap_AO, "ao", &TerrainMaterialDesc::AOPath, 1, false, {255, 255, 255}},
+    {TerrainMap_Emissive, "emissive", &TerrainMaterialDesc::EmissivePath, 3, true, kHasParam},
+    {TerrainMap_Opacity, "opacity", &TerrainMaterialDesc::OpacityPath, 1, false, kHasParam},
+    {TerrainMap_Mask, "mask", &TerrainMaterialDesc::MaskPath, 1, false, {0, 0, 0}},
 };
+constexpr size_t kMapCount = std::size(kMaps);
+constexpr int kConstantTolerance = 2; // texel spread (0-255) still counted as one flat value
+
+constexpr size_t MapIndex(TerrainMap bit) {
+    for (size_t m = 0; m < kMapCount; m++)
+        if (kMaps[m].Bit == bit)
+            return m;
+    return 0;
+}
+
+using MapConstants = std::array<std::optional<glm::vec3>, kMapCount>;
 
 struct TerrainMaterialsData {
     std::array<TerrainMaterialDesc, kMaxTerrainMaterialSlots> Descs {};
     std::array<bool, kMaxTerrainMaterialSlots> Active {};
     std::array<uint32_t, kMaxTerrainMaterialSlots> Maps {}; // TerrainMap bits of the maps that loaded
+    // Loaded maps that are one flat value on every layer: never sampled, their value uploaded instead (0-1, as stored).
+    std::array<uint32_t, kMaxTerrainMaterialSlots> ConstantMaps {};
+    std::array<std::array<glm::vec3, kMapCount>, kMaxTerrainMaterialSlots> ConstantValues {};
     // Source slot whose texture layer this slot samples (SetSlotShared), or -1 when it owns its own layer.
     std::array<int32_t, kMaxTerrainMaterialSlots> SharedFrom = [] {
         std::array<int32_t, kMaxTerrainMaterialSlots> none;
@@ -92,6 +113,15 @@ struct TerrainMaterialsData {
 };
 
 TerrainMaterialsData s_Data;
+
+uint32_t LayerOwner(uint32_t slot) {
+    return s_Data.SharedFrom[slot] >= 0 ? (uint32_t)s_Data.SharedFrom[slot] : slot;
+}
+
+// The slot's flat maps (see ConstantMaps); none until pending slot changes have been loaded.
+uint32_t ConstantMapsOf(uint32_t slot) {
+    return s_Data.Dirty ? 0u : s_Data.ConstantMaps[LayerOwner(slot)] & s_Data.Maps[slot];
+}
 
 // Uniform names built once - UploadUniforms runs every frame per terrain shader.
 struct SlotUniformNames {
@@ -139,6 +169,41 @@ std::vector<uint8_t> LoadMap(const std::string& path, int channels, bool srgb, u
     return pixels;
 }
 
+// The map's single value (0-1 per channel) if every texel is within kConstantTolerance of it.
+std::optional<glm::vec3> ConstantValue(const std::vector<uint8_t>& pixels, int channels) {
+    glm::vec3 value(0.0f);
+    for (int c = 0; c < channels; c++) {
+        uint8_t lo = 255, hi = 0;
+        for (size_t i = c; i < pixels.size(); i += channels) {
+            lo = std::min(lo, pixels[i]);
+            hi = std::max(hi, pixels[i]);
+            if (hi - lo > kConstantTolerance)
+                return std::nullopt;
+        }
+        value[c] = (lo + hi) * 0.5f / 255.0f;
+    }
+    return channels == 1 ? glm::vec3(value.x) : value;
+}
+
+// Whether a flat map can go unsampled: a slot param stands in for it, or it equals the shader's no-map value.
+bool CanFold(const MapInfo& map, const glm::vec3& value) {
+    for (int c = 0; c < 3; c++)
+        if (map.Neutral[c] >= 0 && std::abs(value[c] * 255.0f - (float)map.Neutral[c]) > kConstantTolerance)
+            return false;
+    return true;
+}
+
+bool SameConstant(const glm::vec3& a, const std::optional<glm::vec3>& b) {
+    return b && glm::all(glm::lessThanEqual(glm::abs(a - *b), glm::vec3(kConstantTolerance / 255.0f)));
+}
+
+glm::vec3 SrgbToLinear(const glm::vec3& srgb) {
+    glm::vec3 linear;
+    for (int c = 0; c < 3; c++)
+        linear[c] = srgb[c] <= 0.04045f ? srgb[c] / 12.92f : std::pow((srgb[c] + 0.055f) / 1.055f, 2.4f);
+    return linear;
+}
+
 // Interleaves single-channel maps into one multi-channel layer; a missing channel gets its default value.
 std::vector<uint8_t> PackChannels(const std::vector<const std::vector<uint8_t>*>& channels,
                                   const std::vector<uint8_t>& defaults, uint32_t size) {
@@ -154,20 +219,22 @@ std::vector<uint8_t> PackChannels(const std::vector<const std::vector<uint8_t>*>
 }
 
 // One texture set into `layer` of every array it uses, from whichever of `maps` load; returns the maps that did.
-uint32_t UploadLayer(const TerrainMaterialDesc& desc, uint32_t maps, uint32_t layer, uint32_t size) {
-    std::vector<uint8_t> loaded[std::size(kMaps)];
-    for (size_t m = 0; m < std::size(kMaps); m++) {
+// `constants` gets each loaded map's flat value, where it has one.
+uint32_t UploadLayer(const TerrainMaterialDesc& desc, uint32_t maps, uint32_t layer, uint32_t size,
+                     MapConstants& constants) {
+    std::vector<uint8_t> loaded[kMapCount];
+    constants = {};
+    for (size_t m = 0; m < kMapCount; m++) {
         if (!(maps & kMaps[m].Bit))
             continue;
         loaded[m] = LoadMap(desc.*kMaps[m].Path, kMaps[m].Channels, kMaps[m].Srgb, size);
         if (loaded[m].empty())
             maps &= ~kMaps[m].Bit; // readable at SetSlot but not now - fall back to its default
+        else
+            constants[m] = ConstantValue(loaded[m], kMaps[m].Channels);
     }
     auto mapPixels = [&](TerrainMap bit) -> const std::vector<uint8_t>* {
-        for (size_t m = 0; m < std::size(kMaps); m++)
-            if (kMaps[m].Bit == bit)
-                return &loaded[m];
-        return nullptr;
+        return &loaded[MapIndex(bit)];
     };
     auto setLayer = [&](ArrayKind kind, const std::vector<uint8_t>& pixels) {
         TextureArray& array = *s_Data.Arrays[(int)kind];
@@ -205,12 +272,26 @@ TerrainMaterialDesc VariantWithFallbacks(const TerrainMaterialDesc& variant, con
 }
 
 // The slot's main layer (its slot index) plus each of its variants' layers.
+// A map counts as constant only if every layer (main + variants) is flat at the same value.
 void UploadSlot(uint32_t slot, uint32_t size) {
     const TerrainMaterialDesc& desc = s_Data.Descs[slot];
-    s_Data.Maps[slot] = UploadLayer(desc, s_Data.Maps[slot], slot, size);
-    for (uint32_t v = 1; v < s_Data.VariantCount[slot]; v++)
+    MapConstants constants, variantConstants;
+    s_Data.Maps[slot] = UploadLayer(desc, s_Data.Maps[slot], slot, size, constants);
+    for (uint32_t v = 1; v < s_Data.VariantCount[slot]; v++) {
         UploadLayer(VariantWithFallbacks(desc.Variants[v - 1], desc), s_Data.Maps[slot],
-                    s_Data.VariantBase[slot] + v - 1, size);
+                    s_Data.VariantBase[slot] + v - 1, size, variantConstants);
+        for (size_t m = 0; m < kMapCount; m++)
+            if (constants[m] && !SameConstant(*constants[m], variantConstants[m]))
+                constants[m].reset();
+    }
+    s_Data.ConstantMaps[slot] = 0;
+    for (size_t m = 0; m < kMapCount; m++) {
+        if ((s_Data.Maps[slot] & kMaps[m].Bit) && constants[m] && CanFold(kMaps[m], *constants[m])) {
+            s_Data.ConstantMaps[slot] |= kMaps[m].Bit;
+            s_Data.ConstantValues[slot][m] = *constants[m];
+            WK_CORE_INFO("TerrainMaterials - '{0}' is a flat value, not sampled", desc.*kMaps[m].Path);
+        }
+    }
 }
 
 void RebuildArrays() {
@@ -316,6 +397,12 @@ void TerrainMaterials::SyncShaderDefines() {
     Shader::SetGlobalDefine("TEXVAR_DETAIL", on(v.Detail.Enabled));
     Shader::SetGlobalDefine("TEXVAR_MATERIAL", on(v.Material.Enabled));
     Shader::SetGlobalDefine("TEXVAR_DEBUG_VIEW", v.Enabled ? (int)v.View : 0);
+
+    uint32_t sampled = 0;
+    for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
+        if (s_Data.Active[slot])
+            sampled |= s_Data.Maps[slot] & ~ConstantMapsOf(slot);
+    Shader::SetGlobalDefine("TERRAIN_MAPS_USED", (int)sampled);
 }
 
 void TerrainMaterials::Shutdown() {
@@ -489,19 +576,35 @@ void TerrainMaterials::UploadUniforms(Shader* shader) {
     const auto& names = GetSlotUniformNames();
     for (uint32_t i = 0; i < kMaxTerrainMaterialSlots; i++) {
         const TerrainMaterialDesc& desc = s_Data.Descs[i];
-        shader->SetVec3(names[i].BaseColorTint, desc.BaseColorTint);
-        shader->SetFloat(names[i].Roughness, desc.Roughness);
-        shader->SetFloat(names[i].Metallic, desc.Metallic);
-        shader->SetVec3(names[i].Emissive, desc.EmissiveColor);
+        uint32_t owner = LayerOwner(i);
+
+        // A flat map's value replaces the param it would have overridden (the base color map multiplies the tint).
+        uint32_t constant = ConstantMapsOf(i);
+        const auto& value = s_Data.ConstantValues[owner];
+        auto folded = [&](TerrainMap bit) {
+            return (constant & bit) != 0;
+        };
+        glm::vec3 tint = desc.BaseColorTint;
+        if (folded(TerrainMap_BaseColor))
+            tint *= SrgbToLinear(value[MapIndex(TerrainMap_BaseColor)]);
+        float roughness = folded(TerrainMap_Roughness) ? value[MapIndex(TerrainMap_Roughness)].x : desc.Roughness;
+        float metallic = folded(TerrainMap_Metallic) ? value[MapIndex(TerrainMap_Metallic)].x : desc.Metallic;
+        glm::vec3 emissive =
+            folded(TerrainMap_Emissive) ? SrgbToLinear(value[MapIndex(TerrainMap_Emissive)]) : desc.EmissiveColor;
+        float opacity = folded(TerrainMap_Opacity) ? value[MapIndex(TerrainMap_Opacity)].x : desc.Opacity;
+
+        shader->SetVec3(names[i].BaseColorTint, tint);
+        shader->SetFloat(names[i].Roughness, roughness);
+        shader->SetFloat(names[i].Metallic, metallic);
+        shader->SetVec3(names[i].Emissive, emissive);
         shader->SetFloat(names[i].EmissiveStrength, desc.EmissiveStrength);
-        shader->SetFloat(names[i].Opacity, desc.Opacity);
+        shader->SetFloat(names[i].Opacity, opacity);
         shader->SetFloat(names[i].Scale, desc.TextureScale);
         shader->SetFloat(names[i].NormalStrength, desc.NormalStrength);
         shader->SetFloat(names[i].HeightScale, desc.HeightScale);
-        shader->SetInt(names[i].Maps, (int)s_Data.Maps[i]);
+        shader->SetInt(names[i].Maps, (int)(s_Data.Maps[i] & ~constant));
         shader->SetInt(names[i].Active, s_Data.Active[i] ? 1 : 0);
-        shader->SetInt(names[i].Layer, s_Data.SharedFrom[i] >= 0 ? s_Data.SharedFrom[i] : (int)i);
-        uint32_t owner = s_Data.SharedFrom[i] >= 0 ? (uint32_t)s_Data.SharedFrom[i] : i;
+        shader->SetInt(names[i].Layer, (int)owner);
         shader->SetInt(names[i].VariantBase, (int)s_Data.VariantBase[owner]);
         shader->SetInt(names[i].VariantCount, (int)s_Data.VariantCount[owner]);
     }

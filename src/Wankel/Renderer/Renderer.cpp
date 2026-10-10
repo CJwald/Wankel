@@ -847,6 +847,7 @@ void Renderer::SetLight(const LightSettings& light) {
 
 void Renderer::SetShadows(const ShadowSettings& shadows) {
     s_Data.Shadows = shadows;
+    Shader::SetGlobalDefine("SHADOW_FILTER_TAPS", shadows.FilterTaps >= 9 ? 9 : 4);
     s_Data.LastSubmitShader = nullptr; // re-upload on each shader's next draw
 }
 
