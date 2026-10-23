@@ -253,6 +253,7 @@ void SandboxLayer::OnImGuiRender() {
             ImGui::Separator();
             ImGui::Checkbox("Noise Fog", &m_Fog.NoiseEnabled);
             ImGui::SliderFloat("Noise Scale", &m_Fog.NoiseScale, 0.0001f, 0.1f, "%.5f", ImGuiSliderFlags_Logarithmic);
+            ImGui::DragFloat3("Noise Axis Scale", &m_Fog.NoiseAxisScale[0], 0.01f, 0.01f, 20.0f, "%.2f");
             ImGui::SliderFloat("Noise Strength", &m_Fog.NoiseStrength, 0.0f, 4.0f);
             ImGui::SliderInt("Noise Octaves", &m_Fog.NoiseOctaves, 1, 8);
 

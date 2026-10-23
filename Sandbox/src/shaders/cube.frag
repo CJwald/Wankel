@@ -27,6 +27,7 @@ uniform int u_FogNoiseEnabled;
 
 uniform float u_Time;
 uniform float u_FogNoiseScale;
+uniform vec3 u_FogNoiseAxisScale;
 uniform float u_FogNoiseStrength;
 uniform float u_FogNoiseSpeed;
 uniform int u_FogNoiseOctaves;
@@ -166,7 +167,7 @@ void main() {
 
     // 3D NOISE FOG
     if(u_FogNoiseEnabled == 1) {
-        vec3 pos = v_WorldPos * u_FogNoiseScale;
+        vec3 pos = v_WorldPos * u_FogNoiseScale * u_FogNoiseAxisScale;
 
         // VECTORISED WIND
         vec3 windOffset = u_FogWindDir * (u_Time * u_FogWindSpeed);

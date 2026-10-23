@@ -430,6 +430,7 @@ void UploadSharedDrawState(Shader* shader, const Material& material, bool useVer
         shader->SetFloat("u_Time", (float)Time::GetTime());
 
         shader->SetFloat("u_FogNoiseScale", s_Data.Fog.NoiseScale);
+        shader->SetVec3("u_FogNoiseAxisScale", s_Data.Fog.NoiseAxisScale);
         shader->SetFloat("u_FogNoiseStrength", s_Data.Fog.NoiseStrength);
         shader->SetInt("u_FogNoiseOctaves", s_Data.Fog.NoiseOctaves);
         shader->SetInt("u_FogNoiseEnabled", s_Data.Fog.NoiseEnabled ? 1 : 0);
