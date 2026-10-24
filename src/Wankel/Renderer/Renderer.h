@@ -32,6 +32,7 @@ struct FogSettings {
     // Noise fog
     bool NoiseEnabled = true;
     float NoiseScale = 0.05f;
+    glm::vec3 NoiseAxisScale = {1.0f, 1.0f, 1.0f}; // per-axis multiplier on NoiseScale, stretches/squashes the noise
     float NoiseStrength = 0.75f;
     int NoiseOctaves = 4;
     glm::vec3 WindDir = {1.0f, 0.0f, 0.0f};
