@@ -249,6 +249,9 @@ void LinuxWindow::SetCursorMode(CursorMode mode) {
             break;
     }
 
+    // GLFW's Wayland cursor-animation timer re-shows a custom cursor (e.g. ImGui's arrow) even while hidden/disabled.
+    if (mode != CursorMode::Normal)
+        glfwSetCursor(m_Window, nullptr);
     glfwSetInputMode(m_Window, GLFW_CURSOR, glfwMode);
 
     // Re-arm the cursor-pos callback's first-sample guard so re-entering
