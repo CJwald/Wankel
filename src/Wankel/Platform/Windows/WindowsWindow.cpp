@@ -123,6 +123,26 @@ void WindowsWindow::Init(const WindowProps& props) {
         }
     });
 
+    glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        if (key == GLFW_KEY_UNKNOWN)
+            return;
+        if (action == GLFW_RELEASE) {
+            KeyReleasedEvent event((KeyCode)key);
+            data.EventCallback(event);
+        } else {
+            KeyPressedEvent event((KeyCode)key, action == GLFW_REPEAT);
+            data.EventCallback(event);
+        }
+    });
+
+    // Text input (layout-aware characters), separate from the physical-key events above.
+    glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int codepoint) {
+        WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+        KeyTypedEvent event((KeyCode)codepoint);
+        data.EventCallback(event);
+    });
+
     //
     glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset) {
         WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);

@@ -76,6 +76,13 @@ struct RendererData {
     uint32_t ScreenQuadVBO = 0;
     Shader* ScreenQuadShader = nullptr;
 
+    // BlurScreen - two half-resolution ping-pong targets, grow-only.
+    Shader* BlurShader = nullptr;
+    uint32_t BlurFBO[2] = {0, 0};
+    uint32_t BlurTexture[2] = {0, 0};
+    int BlurWidth = 0;
+    int BlurHeight = 0;
+
     // Occlusion-query proxy cube (DrawOcclusionProxyBox) - static geometry, transformed per call.
     uint32_t OcclusionBoxVAO = 0;
     uint32_t OcclusionBoxVBO = 0;
@@ -180,6 +187,7 @@ void Renderer::Init() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
     s_Data.ScreenQuadShader = new Shader("WankelShaders/screenquad.vert", "WankelShaders/screenquad.frag");
+    s_Data.BlurShader = new Shader("WankelShaders/blur.vert", "WankelShaders/blur.frag");
 
     // OCCLUSION PROXY CUBE (DrawOcclusionProxyBox) - a static unit [0,1]^3 box, transformed per call
     // into a chunk's world-space AABB and drawn as a stable occlusion-query proxy volume.
@@ -259,6 +267,11 @@ void Renderer::Shutdown() {
 
     glDeleteBuffers(1, &s_Data.ScreenQuadVBO);
     glDeleteVertexArrays(1, &s_Data.ScreenQuadVAO);
+
+    delete s_Data.BlurShader;
+    s_Data.BlurShader = nullptr;
+    glDeleteFramebuffers(2, s_Data.BlurFBO);
+    glDeleteTextures(2, s_Data.BlurTexture);
 
     delete s_Data.OcclusionBoxShader;
     s_Data.OcclusionBoxShader = nullptr;
@@ -760,6 +773,81 @@ void Renderer::SubmitScreenQuad(const glm::vec2& min, const glm::vec2& max, cons
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+}
+
+
+void Renderer::BlurScreen(uint32_t screenWidth, uint32_t screenHeight, float radius, int iterations) {
+    if (screenWidth == 0 || screenHeight == 0 || iterations <= 0)
+        return;
+    GLint source = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &source);
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    int width = std::max((int)screenWidth / 2, 1), height = std::max((int)screenHeight / 2, 1);
+    if (!s_Data.BlurFBO[0] || width > s_Data.BlurWidth || height > s_Data.BlurHeight) {
+        s_Data.BlurWidth = std::max(width, s_Data.BlurWidth);
+        s_Data.BlurHeight = std::max(height, s_Data.BlurHeight);
+        if (!s_Data.BlurFBO[0]) {
+            glGenFramebuffers(2, s_Data.BlurFBO);
+            glGenTextures(2, s_Data.BlurTexture);
+        }
+        for (int i = 0; i < 2; i++) {
+            glBindTexture(GL_TEXTURE_2D, s_Data.BlurTexture[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, s_Data.BlurWidth, s_Data.BlurHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_Data.BlurFBO[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_Data.BlurTexture[i], 0);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    // Downsample the screen into target 0 (linear blit = a free 2x box filter).
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)source);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, s_Data.BlurFBO[0]);
+    glBlitFramebuffer(0, 0, (GLint)screenWidth, (GLint)screenHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
+                      GL_LINEAR);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    s_Data.BlurShader->Bind();
+    s_Data.BlurShader->SetInt("u_Texture", 0);
+    glActiveTexture(GL_TEXTURE0);
+    VertexArray::BindID(s_Data.ScreenQuadVAO); // core profile needs a bound VAO; the shader reads no attributes
+
+    // Targets are allocated grow-only, so UVs only span the used width x height corner.
+    glm::vec2 uvScale = {(float)width / (float)s_Data.BlurWidth, (float)height / (float)s_Data.BlurHeight};
+    auto pass = [&](int from, int to, glm::vec2 axis) {
+        glBindFramebuffer(GL_FRAMEBUFFER, s_Data.BlurFBO[to]);
+        glViewport(0, 0, width, height);
+        glBindTexture(GL_TEXTURE_2D, s_Data.BlurTexture[from]);
+        glm::vec2 step = axis * radius / glm::vec2((float)s_Data.BlurWidth, (float)s_Data.BlurHeight);
+        s_Data.BlurShader->SetVec3("u_Step", {step, 0.0f});
+        s_Data.BlurShader->SetVec3("u_UVScale", {uvScale, 0.0f});
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    };
+    for (int i = 0; i < iterations; i++) {
+        pass(0, 1, {1.0f, 0.0f});
+        pass(1, 0, {0.0f, 1.0f});
+    }
+
+    // Upsample the result back over the source framebuffer.
+    glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)source);
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    glBindTexture(GL_TEXTURE_2D, s_Data.BlurTexture[0]);
+    s_Data.BlurShader->SetVec3("u_Step", glm::vec3(0.0f));
+    s_Data.BlurShader->SetVec3("u_UVScale", {uvScale, 0.0f});
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glEnable(GL_BLEND);
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 }
