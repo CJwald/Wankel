@@ -51,6 +51,8 @@ public:
     // position/size preceded it.
     virtual void SetFullscreen(bool enabled) = 0;
     virtual bool IsFullscreen() const = 0;
+    // Windowed client size in screen coordinates; while fullscreen it becomes the size restored on leaving.
+    virtual void SetSize(uint32_t width, uint32_t height) = 0;
 
     static Scope<Window> Create(const WindowProps& props = WindowProps());
 };

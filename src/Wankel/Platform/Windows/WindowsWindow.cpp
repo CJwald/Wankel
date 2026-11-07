@@ -253,6 +253,15 @@ void WindowsWindow::SetFullscreen(bool enabled) {
 }
 
 
+void WindowsWindow::SetSize(uint32_t width, uint32_t height) {
+    if (m_Fullscreen) {
+        m_WindowedWidth = (int)width;
+        m_WindowedHeight = (int)height;
+        return;
+    }
+    glfwSetWindowSize(m_Window, (int)width, (int)height);
+}
+
 void WindowsWindow::SetCursorMode(CursorMode mode) {
     m_CursorMode = mode;
 

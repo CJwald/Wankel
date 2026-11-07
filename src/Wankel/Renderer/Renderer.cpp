@@ -11,6 +11,7 @@
 #include "ChunkGeometryPool.h"
 #include "SplitChunkGeometryPool.h"
 #include "ShadowMap.h"
+#include "RenderTarget.h"
 #include "TerrainMaterial.h"
 
 #include "Wankel/Core/Time.h"
@@ -105,6 +106,7 @@ struct RendererData {
     glm::mat4 SavedView {1.0f};
     glm::mat4 SavedProjection {1.0f};
     int SavedViewport[4] = {0, 0, 0, 0};
+    int SavedFramebuffer = 0; // restored by EndShadowPass - the scene may be drawing into an offscreen target
 
     // CaptureSceneDepth target - a depth texture the size of the viewport plus an FBO to blit into it.
     uint32_t SceneDepthFBO = 0;
@@ -886,6 +888,18 @@ void Renderer::SubmitScreenTriangle(const glm::vec2& p0, const glm::vec2& p1, co
 }
 
 
+void Renderer::PresentRenderTarget(const RenderTarget& target, uint32_t screenWidth, uint32_t screenHeight) {
+    GLint previousRead = 0, previousDraw = 0;
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousRead);
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDraw);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, target.GetFramebufferID());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, (GLint)target.GetWidth(), (GLint)target.GetHeight(), 0, 0, (GLint)screenWidth,
+                      (GLint)screenHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)previousRead);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)previousDraw);
+}
+
 void Renderer::SetScissorRect(const glm::vec2& min, const glm::vec2& max, uint32_t screenWidth, uint32_t screenHeight) {
     if (screenWidth == 0 || screenHeight == 0)
         return;
@@ -946,6 +960,7 @@ void Renderer::BeginShadowPass(const ShadowMap& target, const glm::mat4& view, c
         s_Data.SavedView = s_Data.View;
         s_Data.SavedProjection = s_Data.Projection;
         glGetIntegerv(GL_VIEWPORT, s_Data.SavedViewport);
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &s_Data.SavedFramebuffer);
     }
     s_Data.InShadowPass = true;
     s_Data.View = view;
@@ -1026,7 +1041,7 @@ void Renderer::EndShadowPass() {
         return;
     glDisable(GL_POLYGON_OFFSET_FILL);
     glCullFace(GL_BACK);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)s_Data.SavedFramebuffer);
     glViewport(s_Data.SavedViewport[0], s_Data.SavedViewport[1], s_Data.SavedViewport[2], s_Data.SavedViewport[3]);
     s_Data.View = s_Data.SavedView;
     s_Data.Projection = s_Data.SavedProjection;
