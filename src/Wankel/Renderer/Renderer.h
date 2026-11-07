@@ -17,6 +17,7 @@ class OcclusionQuery;
 class ChunkGeometryPool;
 class SplitChunkGeometryPool;
 class ShadowMap;
+class RenderTarget;
 
 // Off = today's smooth-interpolated vertex color (see u_VoxelSplitSharpness), zero extra cost.
 // CpuSplit = de-indexed split-capable chunk mesh (SplitChunkGeometryPool) + the WA-recovery shader
@@ -203,6 +204,10 @@ public:
     // Gaussian-blurs whatever is already drawn to the bound framebuffer (half-res separable passes, then
     // upsampled back) - e.g. behind a full-screen menu. Immediate, like SubmitScreenQuad; call before drawing the UI.
     static void BlurScreen(uint32_t screenWidth, uint32_t screenHeight, float radius = 1.5f, int iterations = 3);
+
+    // Stretches `target`'s color over the whole default framebuffer (linear filter) - e.g. a scene rendered
+    // at a lower/higher resolution than the window, before the UI is drawn on top at native resolution.
+    static void PresentRenderTarget(const RenderTarget& target, uint32_t screenWidth, uint32_t screenHeight);
 
     // Clips every subsequent Submit* call (screen-space or 3D) to `min`/`max` (pixels, Y-down,
     // origin top-left - same convention as the screen-space Submit* calls above) until

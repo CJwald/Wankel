@@ -23,6 +23,7 @@ public:
     uint32_t GetColorTexture() const { return m_Color; }
     uint32_t GetWidth() const { return m_Width; }
     uint32_t GetHeight() const { return m_Height; }
+    uint32_t GetFramebufferID() const { return m_Framebuffer; }
 
 private:
     void Allocate();

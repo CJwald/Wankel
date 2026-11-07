@@ -27,6 +27,7 @@ public:
 
     void SetFullscreen(bool enabled) override;
     bool IsFullscreen() const override { return m_Fullscreen; }
+    void SetSize(uint32_t width, uint32_t height) override;
 
 private:
     virtual void Init(const WindowProps& props);
