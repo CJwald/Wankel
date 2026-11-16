@@ -20,6 +20,11 @@
 #define TERRAIN_MAPS_USED 511
 #endif
 
+// 1 = every slot renders flat as its maps' mean (TerrainMaterials::SetSolidColor) - no triplanar sampling.
+#ifndef TERRAIN_SOLID_COLOR
+#define TERRAIN_SOLID_COLOR 0
+#endif
+
 // Each param is the channel's value when its map is missing; BaseColorTint and EmissiveStrength also scale maps.
 struct TerrainSlot {
     vec3 BaseColorTint;
@@ -87,6 +92,11 @@ struct TriplanarCoords {
 vec4 SampleTriplanar(sampler2DArray tex, TriplanarCoords c, vec3 blend) {
     return textureGrad(tex, c.X, c.DxX, c.DyX) * blend.x + textureGrad(tex, c.Y, c.DxY, c.DyY) * blend.y +
            textureGrad(tex, c.Z, c.DxZ, c.DyZ) * blend.z;
+}
+
+// A layer's mean value - its top mip (the level clamps to the smallest one).
+vec4 TerrainMean(sampler2DArray tex, float layer) {
+    return textureLod(tex, vec3(0.5, 0.5, layer), 16.0);
 }
 
 // ---- Variation helpers ----
@@ -241,7 +251,8 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
     vec3 axisSign = vec3(projN.x < 0.0 ? -1.0 : 1.0, projN.y < 0.0 ? -1.0 : 1.0, projN.z < 0.0 ? -1.0 : 1.0);
 
     // Fragment-wide variation terms, shared by every slot.
-    const bool variation = TEXVAR_ENABLED != 0;
+    const bool solid = TERRAIN_SOLID_COLOR != 0;
+    const bool variation = TEXVAR_ENABLED != 0 && !solid;
     float macro = variationNoise.x;
     vec3 materialNoise = variationNoise.yzw;
     // Debug view inputs from the most heavily weighted slot's dominant plane.
@@ -307,7 +318,7 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
 
         // Height: per-plane parallax offset (offset-limited, no mesh displacement) - each plane shifts its uv
         // along the view direction expressed in that plane's own u/v axes.
-        if ((maps & TERRAIN_MAP_HEIGHT) != 0 && slot.HeightScale > 0.0) {
+        if (!solid && (maps & TERRAIN_MAP_HEIGHT) != 0 && slot.HeightScale > 0.0) {
             float depth = slot.HeightScale * slot.Scale;
             float hX = textureGrad(u_TerrainSurface, c.X, c.DxX, c.DyX).a;
             float hY = textureGrad(u_TerrainSurface, c.Y, c.DxY, c.DyY).a;
@@ -332,29 +343,33 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
 
         vec3 baseColor = slot.BaseColorTint;
         if ((maps & TERRAIN_MAP_BASECOLOR) != 0)
-            baseColor *= useTaps ? SampleTriplanarCells(u_TerrainBaseColor, cellsX, cellsY, cellsZ, c, layers, blend).rgb
-                                 : SampleTriplanar(u_TerrainBaseColor, c, blend).rgb;
+            baseColor *= solid     ? TerrainMean(u_TerrainBaseColor, layer).rgb
+                         : useTaps ? SampleTriplanarCells(u_TerrainBaseColor, cellsX, cellsY, cellsZ, c, layers, blend).rgb
+                                   : SampleTriplanar(u_TerrainBaseColor, c, blend).rgb;
 
         vec4 surf = vec4(1.0, slot.Roughness, slot.Metallic, 0.5); // AO, roughness, metallic, height defaults
         if ((maps & TERRAIN_MAPS_SURFACE) != 0) {
-            vec4 t = useTaps ? SampleTriplanarCells(u_TerrainSurface, cellsX, cellsY, cellsZ, c, layers, blend)
-                             : SampleTriplanar(u_TerrainSurface, c, blend);
+            vec4 t = solid     ? TerrainMean(u_TerrainSurface, layer)
+                     : useTaps ? SampleTriplanarCells(u_TerrainSurface, cellsX, cellsY, cellsZ, c, layers, blend)
+                               : SampleTriplanar(u_TerrainSurface, c, blend);
             surf = vec4((maps & TERRAIN_MAP_AO) != 0 ? t.r : surf.r, (maps & TERRAIN_MAP_ROUGHNESS) != 0 ? t.g : surf.g,
                         (maps & TERRAIN_MAP_METALLIC) != 0 ? t.b : surf.b, (maps & TERRAIN_MAP_HEIGHT) != 0 ? t.a : surf.a);
         }
 
         vec2 opacityMask = vec2(slot.Opacity, 0.0);
         if ((maps & TERRAIN_MAPS_OPACITY_MASK) != 0) {
-            vec2 t = useTaps ? SampleTriplanarCells(u_TerrainOpacityMask, cellsX, cellsY, cellsZ, c, layers, blend).rg
-                             : SampleTriplanar(u_TerrainOpacityMask, c, blend).rg;
+            vec2 t = solid     ? TerrainMean(u_TerrainOpacityMask, layer).rg
+                     : useTaps ? SampleTriplanarCells(u_TerrainOpacityMask, cellsX, cellsY, cellsZ, c, layers, blend).rg
+                               : SampleTriplanar(u_TerrainOpacityMask, c, blend).rg;
             opacityMask = vec2((maps & TERRAIN_MAP_OPACITY) != 0 ? t.r : opacityMask.r,
                                (maps & TERRAIN_MAP_MASK) != 0 ? t.g : opacityMask.g);
         }
 
         vec3 emissive = slot.Emissive;
         if ((maps & TERRAIN_MAP_EMISSIVE) != 0)
-            emissive = useTaps ? SampleTriplanarCells(u_TerrainEmissive, cellsX, cellsY, cellsZ, c, layers, blend).rgb
-                               : SampleTriplanar(u_TerrainEmissive, c, blend).rgb;
+            emissive = solid     ? TerrainMean(u_TerrainEmissive, layer).rgb
+                       : useTaps ? SampleTriplanarCells(u_TerrainEmissive, cellsX, cellsY, cellsZ, c, layers, blend).rgb
+                                 : SampleTriplanar(u_TerrainEmissive, c, blend).rgb;
         emissive *= slot.EmissiveStrength;
 
         float normalStrength = slot.NormalStrength;
@@ -378,14 +393,14 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
             d.DyZ *= k;
             if ((u_TexVarDetailChannels & 1) != 0 && (maps & TERRAIN_MAP_BASECOLOR) != 0) {
                 vec3 detail = SampleTriplanar(u_TerrainBaseColor, d, blend).rgb;
-                vec3 average = textureLod(u_TerrainBaseColor, vec3(0.5, 0.5, layer), 16.0).rgb; // top mip = mean
+                vec3 average = TerrainMean(u_TerrainBaseColor, layer).rgb;
                 float ratio = dot(detail, vec3(0.299, 0.587, 0.114)) /
                               max(dot(average, vec3(0.299, 0.587, 0.114)), 1e-3);
                 baseColor *= mix(1.0, ratio, u_TexVarDetailStrength);
             }
             if ((u_TexVarDetailChannels & 4) != 0 && (maps & TERRAIN_MAP_ROUGHNESS) != 0) {
                 float detail = SampleTriplanar(u_TerrainSurface, d, blend).g;
-                float average = textureLod(u_TerrainSurface, vec3(0.5, 0.5, layer), 16.0).g;
+                float average = TerrainMean(u_TerrainSurface, layer).g;
                 surf.g *= mix(1.0, detail / max(average, 1e-3), u_TexVarDetailStrength);
             }
         }
@@ -402,7 +417,7 @@ TerrainSurface BlendTerrainMaterials(vec3 vertexColor, vec3 N, float baseRoughne
         // Normal: each plane's tangent normal is reoriented into world space around the geometric normal
         // (whiteout blend) BEFORE the planes are blended - never an average of raw normal-map colors.
         vec3 normal = N;
-        if ((maps & TERRAIN_MAP_NORMAL) != 0) {
+        if (!solid && (maps & TERRAIN_MAP_NORMAL) != 0) {
             vec3 tnX, tnY, tnZ;
             if (useTaps) {
                 // Unweighted planes have no cells built (see above) - a flat tangent normal stands in.
