@@ -106,6 +106,7 @@ struct TerrainMaterialsData {
     uint32_t Resolution = 2048;
     float TriplanarSharpness = 4.0f;
     float TriplanarFaceNormal = 1.0f;
+    bool SolidColor = false;
     TextureVariationSettings Variation;
     glm::vec3 WorldPeriod {0.0f};
     bool Dirty = true; // arrays rebuilt lazily on the next BindTextures, so registering N slots loads once
@@ -397,6 +398,7 @@ void TerrainMaterials::SyncShaderDefines() {
     Shader::SetGlobalDefine("TEXVAR_DETAIL", on(v.Detail.Enabled));
     Shader::SetGlobalDefine("TEXVAR_MATERIAL", on(v.Material.Enabled));
     Shader::SetGlobalDefine("TEXVAR_DEBUG_VIEW", v.Enabled ? (int)v.View : 0);
+    Shader::SetGlobalDefine("TERRAIN_SOLID_COLOR", s_Data.SolidColor ? 1 : 0);
 
     uint32_t sampled = 0;
     for (uint32_t slot = 0; slot < kMaxTerrainMaterialSlots; slot++)
@@ -538,6 +540,14 @@ void TerrainMaterials::SetTriplanarFaceNormal(float blend) {
 
 float TerrainMaterials::GetTriplanarFaceNormal() {
     return s_Data.TriplanarFaceNormal;
+}
+
+void TerrainMaterials::SetSolidColor(bool solid) {
+    s_Data.SolidColor = solid;
+}
+
+bool TerrainMaterials::GetSolidColor() {
+    return s_Data.SolidColor;
 }
 
 TextureVariationSettings& TerrainMaterials::GetVariationSettings() {

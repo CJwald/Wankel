@@ -164,6 +164,10 @@ public:
     static void SetTriplanarFaceNormal(float blend);
     static float GetTriplanarFaceNormal();
 
+    // Every textured slot renders flat as its maps' average (top mip) times its params - no triplanar sampling.
+    static void SetSolidColor(bool solid);
+    static bool GetSolidColor();
+
     // Live-edited; feature on/off switches become TEXVAR_* shader defines (see SyncShaderDefines), the rest uniforms.
     static TextureVariationSettings& GetVariationSettings();
     // Publishes the variation on/off switches as global shader defines, so disabled features compile out entirely.
